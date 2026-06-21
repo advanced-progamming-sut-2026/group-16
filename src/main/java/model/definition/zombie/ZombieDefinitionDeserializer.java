@@ -60,7 +60,6 @@ public class ZombieDefinitionDeserializer extends JsonDeserializer<ZombieDefinit
             }
             extraProps.put(key, mapper.convertValue(entry.getValue(), Object.class));
         }
-
         return new ZombieDefinition(
                 alias, objClass,
                 hitpoints, eatDps, speed, wavePointCost, weight, cost,

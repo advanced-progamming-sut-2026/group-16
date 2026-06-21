@@ -60,13 +60,6 @@ public final class ZombieRegistry {
         return List.copyOf(armorDefinitions.values());
     }
 
-    /**
-     * Convenience: resolves all armor pieces a zombie actually wears,
-     * in one call, skipping any alias that wasn't found (e.g. if armor
-     * data hasn't been loaded yet). Useful for runtime code (e.g.
-     * ArmorBehavior) that just wants "give me the armor stat blocks
-     * for this zombie" without manually looping over getArmorAliases().
-     */
     public List<ArmorDefinition> resolveArmorFor(ZombieDefinition zombie) {
         List<ArmorDefinition> resolved = new java.util.ArrayList<>();
         for (String alias : zombie.getArmorAliases()) {
