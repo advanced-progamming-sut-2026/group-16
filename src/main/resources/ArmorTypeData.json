@@ -1,0 +1,154 @@
+[
+  {
+    "aliases": [
+      "ConeDefault"
+    ],
+    "objdata": {
+      "ArmorType": "Cone",
+      "BaseHealth": 370,
+      "ArmorFlags": [
+        "damageable",
+        "droppable",
+        "helm"
+      ],
+      "ArmorLayers": [
+        "zombie_armor_cone_norm",
+        "zombie_armor_cone_damage_01",
+        "zombie_armor_cone_damage_02"
+      ],
+      "ArmorLayerHealth": [
+        0.666,
+        0.333
+      ],
+      "ImpactSoundEvent": "Play_impact_plastic"
+    }
+  },
+  {
+    "aliases": [
+      "BucketDefault"
+    ],
+    "objdata": {
+      "ArmorType": "Bucket",
+      "BaseHealth": 1100,
+      "ArmorFlags": [
+        "metallic",
+        "damageable",
+        "droppable",
+        "helm"
+      ],
+      "ArmorLayers": [
+        "zombie_armor_bucket_norm",
+        "zombie_armor_bucket_damage_01",
+        "zombie_armor_bucket_damage_02"
+      ],
+      "ArmorLayerHealth": [
+        0.666,
+        0.333
+      ],
+      "ImpactSoundEvent": "Play_impact_shieldhit"
+    }
+  },
+  {
+    "aliases": [
+      "BrickDefault"
+    ],
+    "objdata": {
+      "ArmorType": "Brick",
+      "BaseHealth": 2200,
+      "ArmorFlags": [
+        "damageable",
+        "droppable",
+        "helm"
+      ],
+      "ArmorLayers": [
+        "zombie_armor_brick_norm",
+        "zombie_armor_brick_damage_01",
+        "zombie_armor_brick_damage_02"
+      ],
+      "ArmorLayerHealth": [
+        0.666,
+        0.333
+      ],
+      "ParticleLayerOverride": [
+        "zombie_armor_brick_damage_02",
+        "zombie_armor_brick_damage_02",
+        "zombie_armor_brick_damage_02"
+      ]
+    }
+  },
+  {
+    "aliases": [
+      "ShoulderArmorDefault"
+    ],
+    "objdata": {
+      "ArmorType": "ShoulderArmor",
+      "BaseHealth": 1600,
+      "ArmorFlags": [
+        "damageable",
+        "passdamage"
+      ],
+      "ArmorLayers": [
+        "zombie_shoulder_armor_norm",
+        "zombie_shoulder_armor_damage_01",
+        "zombie_shoulder_armor_damage_02"
+      ],
+      "ArmorLayerHealth": [
+        0.666,
+        0.333
+      ],
+      "ImpactSoundEvent": "",
+      "DropSoundEvent": ""
+    }
+  },
+  {
+    "aliases": [
+      "CrownDefault"
+    ],
+    "objdata": {
+      "ArmorType": "Crown",
+      "BaseHealth": 1600,
+      "ArmorFlags": [
+        "damageable",
+        "droppable",
+        "metallic",
+        "helm"
+      ],
+      "ArmorLayers": [
+        "zombie_armor_crown_norm",
+        "zombie_armor_crown_damage_01",
+        "zombie_armor_crown_damage_02"
+      ],
+      "ArmorLayerHealth": [
+        0.666,
+        0.333
+      ],
+      "ImpactSoundEvent": "",
+      "DropSoundEvent": ""
+    }
+  },
+  {
+    "aliases": [
+      "NewspaperDefault"
+    ],
+    "objdata": {
+      "ClassName": "NewspaperArmor",
+      "ArmorType": "Newspaper",
+      "BaseHealth": 800,
+      "ArmorFlags": [
+        "damageable"
+      ],
+      "ArmorLayers": [
+        "_zombie_newspaper",
+        "_zombie_newspaper_dmg1",
+        "_zombie_newspaper_dmg2"
+      ],
+      "ArmorLayerHealth": [
+        0.666,
+        0.333
+      ],
+      "FireLayer": "_zombie_newspaper_flame",
+      "ImpactSoundEvent": "Play_Zomb_Modern_Newspaper_Paper_Impact",
+      "DropSoundEvent": ""
+    }
+  }
+]
