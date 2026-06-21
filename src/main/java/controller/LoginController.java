@@ -1,50 +1,133 @@
 package controller;
 
 import model.command.LoginMenuCommands;
+import model.user.User;
+import model.user.UserDatabase;
+import util.HashUtil;
+import util.RegistrationValidator;
 import view.api.AuthView;
 
 import java.util.regex.Matcher;
 
 public class LoginController extends ViewController {
+    private final UserDatabase db;
+    private RegistrationController registrationController;
+    private String pendingPasswordResetUsername;
+    private String pendingNewPassword;
+
+    public LoginController(UserDatabase db) {
+        this.db = db;
+    }
+
+    public void setRegistrationController(RegistrationController registrationController) {
+        this.registrationController = registrationController;
+    }
+
+    @Override
+    public void displayMenu() {
+        getAuthView().showLoginMenu();
+    }
+
     @Override
     public void handleCommand(String input) {
         for (LoginMenuCommands cmd : LoginMenuCommands.values()) {
             Matcher matcher = cmd.getMatcher(input);
-            if (matcher == null)
+            if (matcher == null) {
                 continue;
-
+            }
             switch (cmd) {
                 case MENU_ENTER -> handleMenuEnter(matcher.group("menuName"));
                 case MENU_SHOW_CURRENT -> handleShowCurrent();
                 case MENU_EXIT -> handleMenuExit();
-                case LOGIN -> handleLogin(matcher.group("username"), matcher.group("password"),
-                        matcher.group("stayLoggedIn"));
-                case FORGET_PASSWORD -> handleForgetPassword(matcher.group("username"),
-                        matcher.group("email"), matcher.group("answer"));
+                case LOGIN -> handleLogin(matcher.group("username"),
+                        matcher.group("password"), matcher.group("stayLoggedIn"));
+                case FORGET_PASSWORD -> handleForgetPassword(matcher.group("username"), matcher.group("email"),
+                        matcher.group("answer"));
             }
             return;
         }
-        getAuthView().displayError("Invalid login command.");
+
+        if (pendingPasswordResetUsername != null) {
+            handlePendingPasswordInput(input.trim());
+            return;
+        }
+
+        getAuthView().errorInvalidLoginCommand();
     }
 
     private void handleMenuEnter(String menuName) {
-        // TODO: implement after menu navigation is done.
+        // TODO: implement after main menu navigation is done.
+        getAuthView().errorInvalidMenuName();
     }
 
     private void handleShowCurrent() {
-        // TODO: implement after login menu is done.
+        getAuthView().showCurrentLoginMenu();
     }
 
     private void handleMenuExit() {
-        // TODO: implement after menu navigation is done.
+        clearPendingPasswordReset();
+        parser.switchController(registrationController);
     }
 
     private void handleLogin(String username, String password, String stayLoggedIn) {
-        // TODO: implement after UserDatabase is done.
+        User user = db.getUser(username);
+        if (user == null || !user.authenticate(password)) {
+            getAuthView().errorWrongUsernameOrPassword();
+            return;
+        }
+
+        clearPendingPasswordReset();
+        // TODO: implement stay logged in.
+        getAuthView().showUserLoggedIn();
+        parser.switchController(new MainMenuController(user, registrationController));
     }
 
     private void handleForgetPassword(String username, String email, String answer) {
-        // TODO: implement after UserDatabase is done.
+        User user = db.getUser(username);
+        if (user == null || !user.getEmail().equalsIgnoreCase(email)) {
+            getAuthView().errorWrongUsernameOrEmail();
+            return;
+        }
+
+        if (!user.validateSecurityAnswer(answer)) {
+            getAuthView().errorWrongSecurityAnswer();
+            clearPendingPasswordReset();
+            parser.switchController(registrationController);
+            return;
+        }
+
+        pendingPasswordResetUsername = username;
+        pendingNewPassword = null;
+        getAuthView().promptNewPassword();
+    }
+
+    private void handlePendingPasswordInput(String input) {
+        if (pendingNewPassword == null) {
+            if (!RegistrationValidator.isStrongPassword(input)) {
+                getAuthView().errorWeakPassword();
+                getAuthView().promptNewPassword();
+                return;
+            }
+            pendingNewPassword = input;
+            getAuthView().promptPasswordConfirm();
+            return;
+        }
+
+        if (!pendingNewPassword.equals(input)) {
+            getAuthView().errorRepeatPasswordDoseNotMatch();
+            pendingNewPassword = null;
+            getAuthView().promptNewPassword();
+            return;
+        }
+
+        db.updatePassword(pendingPasswordResetUsername, HashUtil.hashSHA256(pendingNewPassword));
+        clearPendingPasswordReset();
+        getAuthView().showPasswordChanged();
+    }
+
+    private void clearPendingPasswordReset() {
+        pendingPasswordResetUsername = null;
+        pendingNewPassword = null;
     }
 
     private AuthView getAuthView() {

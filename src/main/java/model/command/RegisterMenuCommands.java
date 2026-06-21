@@ -9,7 +9,7 @@ public enum RegisterMenuCommands implements Command {
     MENU_EXIT("^menu exit$"),
     REGISTER("^register\\s+-u\\s+(?<username>\\S+)\\s+-p\\s+(?<password>\\S+)\\s+(?<passwordConfirm>\\S+)" +
                     "\\s+-n\\s+(?<nickname>\\S+)\\s+-e\\s+(?<email>\\S+)\\s+-g\\s+(?<gender>\\S+)$"),
-    PICK_QUESTION("^pick question\\s+-q\\s+(?<questionNumber>\\S+)\\s+-a\\s+(?<answer>\\S+)\\s+-c\\s+(?<answerConfirm>\\S+)$");
+    PICK_QUESTION("^pick question\\s+-q\\s+(?<questionNumber>\\S+)\\s+-a\\s+(?<answer>.+?)\\s+-c\\s+(?<answerConfirm>.+)$");
 
     private final Pattern compiledPattern;
 
