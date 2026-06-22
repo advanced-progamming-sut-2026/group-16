@@ -6,6 +6,10 @@ public abstract class ViewController {
     protected View view;
     protected CommandParser parser;
 
+    public final View getView() {
+        return view;
+    }
+
     public final void setView(View view) {
         this.view = view;
     }

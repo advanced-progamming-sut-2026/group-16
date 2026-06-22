@@ -1,8 +1,6 @@
 package model.user;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import util.HashUtil;
 
 public class User {
     private long id;
@@ -11,6 +9,8 @@ public class User {
     private String nickname;
     private String email;
     private Gender gender;
+    private int securityQuestionId;
+    private String securityAnswerHash;
 
     public User() {
 
@@ -48,17 +48,12 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
-    public static String makeSha256(String text) {
-        String passwordHashString;
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+    public boolean authenticate(String password) {
+        return passwordHash != null && passwordHash.equals(HashUtil.hashSHA256(password));
+    }
 
-            passwordHashString = java.util.HexFormat.of().formatHex(hashBytes);
-            return passwordHashString;
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
+    public boolean validateSecurityAnswer(String answer) {
+        return securityAnswerHash != null && securityAnswerHash.equals(HashUtil.hashSHA256(answer.trim()));
     }
 
     public String getNickname() {
@@ -83,6 +78,22 @@ public class User {
 
     public void setGender(Gender gender) {
         this.gender = gender;
+    }
+
+    public int getSecurityQuestionId() {
+        return securityQuestionId;
+    }
+
+    public void setSecurityQuestionId(int securityQuestionId) {
+        this.securityQuestionId = securityQuestionId;
+    }
+
+    public String getSecurityAnswerHash() {
+        return securityAnswerHash;
+    }
+
+    public void setSecurityAnswerHash(String securityAnswerHash) {
+        this.securityAnswerHash = securityAnswerHash;
     }
 
     @Override
