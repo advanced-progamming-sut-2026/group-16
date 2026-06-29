@@ -1,4 +1,84 @@
 package model.game.entity;
 
 public abstract class Entity {
+
+    private final String id;
+    private final int maxHealth;
+    private int health;
+    private double x;
+    private double y;
+    private boolean dead;
+
+    protected Entity(String id, int maxHealth, double x, double y) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("id must not be blank");
+        }
+        if (maxHealth <= 0) {
+            throw new IllegalArgumentException("maxHealth must be positive");
+        }
+        this.id = id;
+        this.maxHealth = maxHealth;
+        this.health = maxHealth;
+        this.x = x;
+        this.y = y;
+        this.dead = false;
+    }
+
+    public void takeDamage(int amount) {
+        if (dead || amount <= 0) {
+            return;
+        }
+        health -= amount;
+        if (health <= 0) {
+            health = 0;
+            dead = true;
+            onDeath();
+        }
+    }
+
+    protected void onDeath() {
+        // default: no-op
+    }
+
+    public final boolean isDead() {
+        return dead;
+    }
+
+    public final boolean isAlive() {
+        return !dead;
+    }
+
+    public final String getId() {
+        return id;
+    }
+
+    public final int getHealth() {
+        return health;
+    }
+
+    public final int getMaxHealth() {
+        return maxHealth;
+    }
+
+    public final double getX() {
+        return x;
+    }
+
+    protected final void setX(double x) {
+        this.x = x;
+    }
+
+    public final double getY() {
+        return y;
+    }
+
+    protected final void setY(double y) {
+        this.y = y;
+    }
+
+    public final double getHealthRatio() {
+        return (double) health / maxHealth;
+    }
+
+    public abstract void onTickUpdate(GameContext context);
 }

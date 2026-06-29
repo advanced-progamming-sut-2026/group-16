@@ -1,7 +1,7 @@
 package view.api;
 
 import model.game.entity.Plant;
-import model.game.entity.Zombie;
+import model.game.entity.zombie.Zombie;
 import model.item.Sun;
 
 import java.util.List;
