@@ -5,6 +5,7 @@ import model.user.User;
 import model.user.UserDatabase;
 import util.HashUtil;
 import util.RegistrationValidator;
+import util.StayLoggedInStorage;
 import view.api.AuthView;
 
 import java.util.regex.Matcher;
@@ -39,10 +40,10 @@ public class LoginController extends ViewController {
                 case MENU_ENTER -> handleMenuEnter(matcher.group("menuName"));
                 case MENU_SHOW_CURRENT -> handleShowCurrent();
                 case MENU_EXIT -> handleMenuExit();
-                case LOGIN -> handleLogin(matcher.group("username"),
-                        matcher.group("password"), matcher.group("stayLoggedIn"));
-                case FORGET_PASSWORD -> handleForgetPassword(matcher.group("username"), matcher.group("email"),
-                        matcher.group("answer"));
+                case LOGIN ->
+                        handleLogin(matcher.group("username"), matcher.group("password"), matcher.group("stayLoggedIn"));
+                case FORGET_PASSWORD ->
+                        handleForgetPassword(matcher.group("username"), matcher.group("email"), matcher.group("answer"));
             }
             return;
         }
@@ -77,7 +78,12 @@ public class LoginController extends ViewController {
         }
 
         clearPendingPasswordReset();
-        // TODO: implement stay logged in.
+        if (stayLoggedIn != null) {
+            StayLoggedInStorage.saveSession(user.getUsername(), user.getPasswordHash());
+        } else {
+            StayLoggedInStorage.clear();
+        }
+
         getAuthView().showUserLoggedIn();
         parser.switchController(new MainMenuController(user, registrationController));
     }
@@ -121,6 +127,7 @@ public class LoginController extends ViewController {
         }
 
         db.updatePassword(pendingPasswordResetUsername, HashUtil.hashSHA256(pendingNewPassword));
+        StayLoggedInStorage.clear();
         clearPendingPasswordReset();
         getAuthView().showPasswordChanged();
     }

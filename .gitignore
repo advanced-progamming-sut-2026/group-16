@@ -40,3 +40,4 @@ build/
 
 ### Datebae ###
 users.db
+user.session
