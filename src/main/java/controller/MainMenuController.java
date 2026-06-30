@@ -2,6 +2,7 @@ package controller;
 
 import model.command.MainMenuCommands;
 import model.user.User;
+import util.StayLoggedInStorage;
 import view.api.MainMenuView;
 
 import java.util.Locale;
@@ -53,6 +54,7 @@ public class MainMenuController extends ViewController {
     }
 
     private void handleLogout() {
+        StayLoggedInStorage.clear();
         getMainMenuView().showLoggedOut();
         parser.switchController(registrationController);
     }

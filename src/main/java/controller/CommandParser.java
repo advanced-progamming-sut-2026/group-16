@@ -1,6 +1,8 @@
 package controller;
 
+import model.user.User;
 import model.user.UserDatabase;
+import util.StayLoggedInStorage;
 import view.cli.AuthViewCli;
 import view.cli.MainMenuViewCli;
 
@@ -26,7 +28,26 @@ public class CommandParser {
         loginController.setView(authView);
         registrationController.setView(authView);
 
-        switchController(registrationController);
+        User stayLoggedInUser = restoreStayLoggedInUser(userDatabase);
+        if (stayLoggedInUser != null) {
+            switchController(new MainMenuController(stayLoggedInUser, registrationController));
+        } else {
+            switchController(registrationController);
+        }
+    }
+
+    private User restoreStayLoggedInUser(UserDatabase db) {
+        StayLoggedInStorage.Session session = StayLoggedInStorage.loadSession();
+        if (session == null) {
+            return null;
+        }
+
+        User user = db.getUser(session.username());
+        if (user == null || !session.passwordHash().equals(user.getPasswordHash())) {
+            StayLoggedInStorage.clear();
+            return null;
+        }
+        return user;
     }
 
     public void run() {
