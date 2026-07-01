@@ -10,7 +10,7 @@ public class App {
     private App() {
     }
 
-    public App getInstance() {
+    public static App getInstance() {
         if (app == null) {
             app = new App();
         }
