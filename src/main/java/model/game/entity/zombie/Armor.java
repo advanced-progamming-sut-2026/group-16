@@ -37,6 +37,10 @@ public final class Armor {
         return health <= 0;
     }
 
+    public void destroy() {
+        health = 0;
+    }
+
     public String getAlias() {
         return alias;
     }

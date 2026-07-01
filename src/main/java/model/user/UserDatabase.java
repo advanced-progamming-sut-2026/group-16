@@ -1,5 +1,7 @@
 package model.user;
 
+import model.collection.OwnedPlant;
+import model.collection.PlayerPlantProgress;
 import util.database.DatabaseUtil;
 
 import java.sql.*;
@@ -33,12 +35,25 @@ public class UserDatabase {
                     securityAnswerHash TEXT
                 );
                 """;
+        String plantSql = """
+                CREATE TABLE IF NOT EXISTS user_plants (
+                    userId INTEGER NOT NULL,
+                    plantName TEXT NOT NULL,
+                    level INTEGER NOT NULL CHECK(level BETWEEN 1 AND 4),
+                    unlocked INTEGER NOT NULL CHECK(unlocked IN (0, 1)),
+                    seedPackets INTEGER NOT NULL DEFAULT 0 CHECK(seedPackets >= 0),
+                    PRIMARY KEY (userId, plantName),
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                );
+                """;
 
         try (Connection conn = DatabaseUtil.getConnection();
              Statement stmt = conn.createStatement()) {
+            stmt.execute("PRAGMA foreign_keys = ON");
             stmt.execute(sql);
+            stmt.execute(plantSql);
         } catch (SQLException e) {
-            throw new RuntimeException("Could not create the database.");
+            throw new RuntimeException("Could not create the database.", e);
         }
     }
 
@@ -50,24 +65,27 @@ public class UserDatabase {
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
-        try (Connection conn = DatabaseUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    sql, Statement.RETURN_GENERATED_KEYS)) {
+                pstmt.setString(1, user.getUsername());
+                pstmt.setString(2, user.getPasswordHash());
+                pstmt.setString(3, user.getNickname());
+                pstmt.setString(4, user.getEmail());
+                pstmt.setString(5, user.getGender().name());
+                pstmt.setInt(6, user.getSecurityQuestionId());
+                pstmt.setString(7, user.getSecurityAnswerHash());
+                pstmt.executeUpdate();
 
-            pstmt.setString(1, user.getUsername());
-            pstmt.setString(2, user.getPasswordHash());
-            pstmt.setString(3, user.getNickname());
-            pstmt.setString(4, user.getEmail());
-            pstmt.setString(5, user.getGender().name());
-            pstmt.setInt(6, user.getSecurityQuestionId());
-            pstmt.setString(7, user.getSecurityAnswerHash());
-
-            pstmt.executeUpdate();
-
-            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    user.setId(generatedKeys.getLong(1));
+                try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        user.setId(generatedKeys.getLong(1));
+                    }
                 }
             }
+            replacePlantProgress(conn, user);
+            conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not register user.", e);
         }
@@ -85,7 +103,7 @@ public class UserDatabase {
             pstmt.setString(1, username);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapUser(rs);
+                    return mapUser(rs, conn);
                 }
             }
         } catch (SQLException e) {
@@ -138,7 +156,7 @@ public class UserDatabase {
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                users.add(mapUser(rs));
+                users.add(mapUser(rs, conn));
             }
         } catch (SQLException e) {
             // TODO: handle database error
@@ -147,7 +165,7 @@ public class UserDatabase {
         return users;
     }
 
-    private User mapUser(ResultSet rs) throws SQLException {
+    private User mapUser(ResultSet rs, Connection conn) throws SQLException {
         User user = new User();
         user.setId(rs.getLong("id"));
         user.setUsername(rs.getString("username"));
@@ -157,6 +175,66 @@ public class UserDatabase {
         user.setGender(Gender.fromString(rs.getString("gender")));
         user.setSecurityQuestionId(rs.getInt("securityQuestionNumber"));
         user.setSecurityAnswerHash(rs.getString("securityAnswerHash"));
+        user.setPlantProgress(loadPlantProgress(conn, user.getId()));
         return user;
+    }
+
+    public void savePlantProgress(User user) {
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            replacePlantProgress(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save plant progress.", e);
+        }
+    }
+
+    private void replacePlantProgress(Connection conn, User user) throws SQLException {
+        try (PreparedStatement delete = conn.prepareStatement(
+                "DELETE FROM user_plants WHERE userId = ?")) {
+            delete.setLong(1, user.getId());
+            delete.executeUpdate();
+        }
+
+        String insertSql = """
+                INSERT INTO user_plants
+                (userId, plantName, level, unlocked, seedPackets)
+                VALUES (?, ?, ?, ?, ?)
+                """;
+        try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+            for (OwnedPlant plant : user.getPlantProgress().getOwnedPlants().values()) {
+                insert.setLong(1, user.getId());
+                insert.setString(2, plant.getPlantName());
+                insert.setInt(3, plant.getLevel());
+                insert.setInt(4, plant.isUnlocked() ? 1 : 0);
+                insert.setInt(5, plant.getSeedPackets());
+                insert.addBatch();
+            }
+            insert.executeBatch();
+        }
+    }
+
+    private PlayerPlantProgress loadPlantProgress(Connection conn, long userId)
+            throws SQLException {
+        String sql = """
+                SELECT plantName, level, unlocked, seedPackets
+                FROM user_plants
+                WHERE userId = ?
+                ORDER BY plantName
+                """;
+        List<OwnedPlant> plants = new ArrayList<>();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setLong(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    plants.add(new OwnedPlant(
+                            rs.getString("plantName"),
+                            rs.getInt("level"),
+                            rs.getInt("unlocked") != 0,
+                            rs.getInt("seedPackets")));
+                }
+            }
+        }
+        return PlayerPlantProgress.fromOwnedPlants(plants);
     }
 }

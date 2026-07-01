@@ -11,6 +11,7 @@ public class User {
     private Gender gender;
     private int securityQuestionId;
     private String securityAnswerHash;
+    private model.collection.PlayerPlantProgress plantProgress;
 
     public User() {
 
@@ -94,6 +95,17 @@ public class User {
 
     public void setSecurityAnswerHash(String securityAnswerHash) {
         this.securityAnswerHash = securityAnswerHash;
+    }
+
+    public model.collection.PlayerPlantProgress getPlantProgress() {
+        if (plantProgress == null) {
+            plantProgress = new model.collection.PlayerPlantProgress();
+        }
+        return plantProgress;
+    }
+
+    public void setPlantProgress(model.collection.PlayerPlantProgress plantProgress) {
+        this.plantProgress = plantProgress;
     }
 
     @Override

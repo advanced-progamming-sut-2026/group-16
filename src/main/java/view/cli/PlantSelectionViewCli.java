@@ -1,6 +1,6 @@
 package view.cli;
 
-import model.game.entity.Plant;
+import model.game.entity.plant.Plant;
 import view.api.PlantSelectionView;
 
 import java.util.List;

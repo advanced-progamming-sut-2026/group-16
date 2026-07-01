@@ -1,6 +1,6 @@
 package view.api;
 
-import model.game.entity.Plant;
+import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
 import model.item.Sun;
 

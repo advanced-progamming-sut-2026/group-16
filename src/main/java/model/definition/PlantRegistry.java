@@ -5,6 +5,7 @@ import model.definition.plant.PlantDefinition;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,6 +23,20 @@ public final class PlantRegistry {
                 new File(filePath),
                 mapper.getTypeFactory().constructCollectionType(List.class, PlantDefinition.class)
         );
+        register(loaded);
+    }
+
+    public void loadFromJson(InputStream input) throws IOException {
+        List<PlantDefinition> loaded = mapper.readValue(
+                input,
+                mapper.getTypeFactory().constructCollectionType(List.class, PlantDefinition.class)
+        );
+        register(loaded);
+    }
+
+    private void register(List<PlantDefinition> loaded) {
+        byName.clear();
+        byId.clear();
         for (PlantDefinition def : loaded) {
             byName.put(def.getName(), def);
             byId.put(def.getId(), def);
