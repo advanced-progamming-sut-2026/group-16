@@ -3,7 +3,7 @@ package model;
 import model.user.User;
 
 public class App {
-    private App app;
+    private static App app;
 
     private User currentUser;
 
