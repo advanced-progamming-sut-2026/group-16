@@ -1,32 +1,42 @@
 package controller;
 
+import model.App;
 import model.user.User;
 import model.user.UserDatabase;
 import util.StayLoggedInStorage;
 import view.cli.AuthViewCli;
 import view.cli.MainMenuViewCli;
+import view.cli.ProfileViewCli;
 
 import java.util.Scanner;
 
 public class CommandParser {
     private final AuthViewCli authView;
     private final MainMenuViewCli mainMenuView;
+    private final ProfileViewCli profileView;
     private final RegistrationController registrationController;
+    private final MainMenuController mainMenuController;
     private ViewController currentController;
 
     public CommandParser() {
         UserDatabase userDatabase = UserDatabase.getInstance();
         authView = new AuthViewCli();
         mainMenuView = new MainMenuViewCli();
+        profileView = new ProfileViewCli();
 
         LoginController loginController = new LoginController(userDatabase);
         registrationController = new RegistrationController(userDatabase);
 
+        ProfileController profileController = new ProfileController();
+        mainMenuController = new MainMenuController(App.getInstance().getCurrentUser(), registrationController);
+
         loginController.setRegistrationController(registrationController);
         registrationController.setLoginController(loginController);
+        profileController.setMainMenuController(mainMenuController);
 
         loginController.setView(authView);
         registrationController.setView(authView);
+        profileController.setView(profileView);
 
         User stayLoggedInUser = restoreStayLoggedInUser(userDatabase);
         if (stayLoggedInUser != null) {
