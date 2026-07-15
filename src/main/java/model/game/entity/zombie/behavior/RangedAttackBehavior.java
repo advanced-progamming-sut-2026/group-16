@@ -1,6 +1,7 @@
 package model.game.entity.zombie.behavior;
 
 import model.game.entity.*;
+import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
 import model.game.entity.zombie.ZombieBehavior;
 import model.game.entity.zombie.ZombieState;

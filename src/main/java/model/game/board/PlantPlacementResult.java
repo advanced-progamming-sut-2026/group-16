@@ -1,0 +1,17 @@
+package model.game.board;
+
+public enum PlantPlacementResult {
+    SUCCESS,
+    OUT_OF_BOUNDS,
+    TILE_BLOCKED,
+    WATER_REQUIRES_AQUATIC,
+    REQUIRES_WATER,
+    NEEDS_GROUND_PLANT,
+    GROUND_OCCUPIED,
+    OVERLAY_OCCUPIED,
+    NOT_IN_LOADOUT,
+    INSUFFICIENT_SUN,
+    ON_COOLDOWN,
+    UNKNOWN_PLANT,
+    INVALID_LEVEL
+}

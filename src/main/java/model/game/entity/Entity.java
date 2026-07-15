@@ -3,7 +3,7 @@ package model.game.entity;
 public abstract class Entity {
 
     private final String id;
-    private final int maxHealth;
+    private int maxHealth;
     private int health;
     private double x;
     private double y;
@@ -58,6 +58,20 @@ public abstract class Entity {
 
     public final int getMaxHealth() {
         return maxHealth;
+    }
+
+    protected final void setMaxHealth(int maxHealth) {
+        if (maxHealth <= 0) {
+            throw new IllegalArgumentException("maxHealth must be positive");
+        }
+        this.maxHealth = maxHealth;
+    }
+
+    protected final void heal(int amount) {
+        if (dead || amount <= 0) {
+            return;
+        }
+        health = Math.min(maxHealth, health + amount);
     }
 
     public final double getX() {

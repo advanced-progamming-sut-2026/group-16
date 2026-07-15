@@ -1,6 +1,6 @@
 package view.cli;
 
-import model.game.entity.Plant;
+import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
 import model.item.Sun;
 import view.api.GamePlayView;
@@ -93,13 +93,15 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
     // zombie spawned command
     @Override
     public void showZombieSpawned(String zombieType, int wave, int lane, int cost) {
-        displayMessage("Zombie " + zombieType + " spawned at wave " + wave + " in lane " + lane + " which costed " + cost + ".");
+        displayMessage("Zombie " + zombieType + " spawned at wave "
+                + wave + " in lane " + lane + " which costed " + cost + ".");
     }
 
     // zombie died command
     @Override
     public void showZombieDied(String zombieType, double x, double y) {
-        displayMessage("Zombie of type " + zombieType + " is dead at (" + String.format("%.1f", x) + ", " + (int) y + ")");
+        displayMessage("Zombie of type " + zombieType
+                + " is dead at (" + String.format("%.1f", x) + ", " + (int) y + ")");
     }
 
     // nuke cheat command
@@ -172,7 +174,8 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
     // cheat spawn-zombie command
     @Override
     public void showCheatSpawnZombie(String zombieType, double x, double y) {
-        displayMessage("Zombie of type " + zombieType + " is spawned at (" + String.format("%.1f", x) + ", " + (int) y + ")");
+        displayMessage("Zombie of type " + zombieType
+                + " is spawned at (" + String.format("%.1f", x) + ", " + (int) y + ")");
     }
 
     // ====================== ERROR METHODS ======================

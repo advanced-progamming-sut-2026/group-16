@@ -127,7 +127,10 @@ public final class PlantDefinition {
     }
 
     public int getMaxLevel() {
-        return 1 + upgrades.size();
+        return upgrades.stream()
+                .mapToInt(PlantUpgrade::getLevel)
+                .max()
+                .orElse(1);
     }
 
     public String getUpgradeSummary(int currentLevel) {
