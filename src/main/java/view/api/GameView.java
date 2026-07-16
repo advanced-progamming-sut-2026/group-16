@@ -1,4 +1,13 @@
 package view.api;
 
 public interface GameView extends View {
+    void showGameMenu();
+
+    void showCurrentMenu();
+
+    void showCoinWallet(int coins);
+
+    void showGemWallet(int diamonds);
+
+    void showCheatAdded(String type, int amount);
 }

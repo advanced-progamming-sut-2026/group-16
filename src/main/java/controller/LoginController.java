@@ -1,5 +1,6 @@
 package controller;
 
+import model.App;
 import model.command.LoginMenuCommands;
 import model.user.User;
 import model.user.UserDatabase;
@@ -84,8 +85,9 @@ public class LoginController extends ViewController {
             StayLoggedInStorage.clear();
         }
 
+        App.getInstance().setCurrentUser(user);
         getAuthView().showUserLoggedIn();
-        parser.switchController(new MainMenuController(user, registrationController));
+        parser.switchController(new MainMenuController(user, registrationController, db));
     }
 
     private void handleForgetPassword(String username, String email, String answer) {

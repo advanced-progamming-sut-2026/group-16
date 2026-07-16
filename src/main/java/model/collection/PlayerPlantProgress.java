@@ -1,6 +1,7 @@
 package model.collection;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +48,20 @@ public final class PlayerPlantProgress {
     public boolean isOwned(String plantName) {
         OwnedPlant owned = ownedPlants.get(plantName);
         return owned != null && owned.isUnlocked();
+    }
+
+    public List<String> getUnlockedPlantNames() {
+        return ownedPlants.values().stream()
+                .filter(OwnedPlant::isUnlocked)
+                .map(OwnedPlant::getPlantName)
+                .toList();
+    }
+
+    public void addSeedPackets(String plantName, int count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("count must not be negative");
+        }
+        getOrCreate(plantName).addSeedPackets(count);
     }
 
     public int getMaxLevel() {

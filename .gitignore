@@ -38,6 +38,6 @@ build/
 ### Mac OS ###
 .DS_Store
 
-### Datebae ###
+### Database ###
 users.db
 user.session
