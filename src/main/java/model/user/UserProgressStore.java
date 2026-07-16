@@ -68,7 +68,11 @@ public final class UserProgressStore {
         loadGreenhousePots(conn, user);
         loadStoredBoosts(conn, user);
         if (user.getGreenhousePots().isEmpty()) {
-            UserProgressInitializer.initializeUserProgress(user);
+            for (int y = 1; y <= 4; y++) {
+                for (int x = 1; x <= 5; x++) {
+                    user.getGreenhousePots().add(new GreenhousePot(x, y, y > 1));
+                }
+            }
         }
     }
 

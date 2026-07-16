@@ -22,6 +22,10 @@ public class UserDatabase {
         return instance;
     }
 
+    public static void resetInstanceForTests() {
+        instance = null;
+    }
+
     private void createDatabase() {
         String sql = """
                 CREATE TABLE IF NOT EXISTS users (
