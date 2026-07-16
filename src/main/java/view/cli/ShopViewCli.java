@@ -3,22 +3,23 @@ package view.cli;
 import view.api.ShopView;
 
 public class ShopViewCli extends CliView implements ShopView {
-    // shop list command
     @Override
-    public void showShopList() {
-        // TODO: implement after the Shop is done.
+    public void showCurrentMenu() {
+        displayMessage("You are in the shop menu.");
     }
 
-    // shop daily command
     @Override
-    public void showDailyOffer() {
-        // TODO: implement after the Shop is done.
+    public void showShopList(String display) {
+        displayMessage(display);
     }
 
-    // shop buy command - success
+    @Override
+    public void showDailyOffer(String display) {
+        displayMessage(display);
+    }
+
     @Override
     public void showItemPurchased(String itemName, int count, String extraInfo) {
-        // TODO: change after the Shop is done.
         String msg = "Successfully purchased " + count + " " + itemName;
         if (extraInfo != null && !extraInfo.isEmpty()) {
             msg += " (" + extraInfo + ")";
