@@ -4,7 +4,7 @@ public final class Sun {
 
     private final int col;
     private final int row;
-    private final int value;
+    private int value;
     private final SunType type;
     private int lifetimeTicks;
     private final boolean fromPlant;
@@ -28,6 +28,12 @@ public final class Sun {
 
     public int getValue() {
         return value;
+    }
+
+    public int takeValue(int maximum) {
+        int taken = Math.min(value, Math.max(0, maximum));
+        value -= taken;
+        return taken;
     }
 
     public SunType getType() {

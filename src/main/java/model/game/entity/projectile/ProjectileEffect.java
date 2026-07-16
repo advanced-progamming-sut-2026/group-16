@@ -17,7 +17,8 @@ public enum ProjectileEffect {
         return switch (type.toLowerCase()) {
             case "pea" -> PEA;
             case "fire" -> FIRE;
-            case "ice", "snowball" -> ICE;
+            case "ice" -> ICE;
+            case "snowball" -> SNOWBALL;
             case "poison" -> POISON;
             case "butter" -> BUTTER;
             case "laser" -> LASER;

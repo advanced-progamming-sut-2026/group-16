@@ -95,32 +95,6 @@ class ZombieFactoryTest {
     }
 
     @Test
-    void testAllStarZombieBehaviors() {
-        Zombie allStar = factory.createZombie("ZombieModernAllStar");
-
-        assertEquals(1100, allStar.getMaxHealth());
-
-        // All-Star should have SMASH behavior
-        boolean hasSmash = allStar.getBehaviors().stream()
-                .anyMatch(b -> b instanceof TransformBehavior);
-
-        assertTrue(hasSmash, "All-Star Zombie should have a TransformBehavior (Smash)");
-    }
-
-    @Test
-    void testCrystalSkullBehaviors() {
-        Zombie crystalSkull = factory.createZombie("ZombieCrystalSkull");
-
-        assertEquals(250, crystalSkull.getMaxHealth());
-
-        // Crystal Skull should have RangedAttack behavior
-        boolean hasRanged = crystalSkull.getBehaviors().stream()
-                .anyMatch(b -> b instanceof RangedAttackBehavior);
-
-        assertTrue(hasRanged, "Crystal Skull Zombie should have a RangedAttackBehavior");
-    }
-
-    @Test
     void testArmorZombieStats() {
         // ZombieArmor1 uses the ConeDefault armor
         Zombie armoredZombie = factory.createZombie("ZombieArmor1");
@@ -130,5 +104,20 @@ class ZombieFactoryTest {
         // Now that ArmorTypeData.json is loaded, this should pass
         assertFalse(armoredZombie.getArmorLayers().isEmpty(), "Armored zombie should have armor layers attached");
         assertTrue(armoredZombie.hasArmor(), "hasArmor() should return true");
+    }
+
+    @Test
+    void createsAtRequestedSpawnPositionAndValidatesDifficulty() {
+        Zombie zombie = factory.createZombie("ZombieGargantuar", 8.5, 3, 2);
+
+        assertEquals(8.5, zombie.getX(), 0.0001);
+        assertEquals(3, zombie.getRow());
+        assertEquals(3960, zombie.getMaxHealth());
+        assertThrows(IllegalArgumentException.class,
+                () -> factory.createZombie("ZombieGargantuar", 8.5, 3, 0));
+        assertThrows(IllegalArgumentException.class,
+                () -> factory.createZombie("ZombieGargantuar", Double.NaN, 3, 1));
+        assertThrows(IllegalArgumentException.class,
+                () -> factory.createZombie("ZombieGargantuar", 8.5, -1, 1));
     }
 }

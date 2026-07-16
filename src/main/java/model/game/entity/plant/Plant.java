@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class Plant extends Entity {
@@ -28,6 +29,9 @@ public final class Plant extends Entity {
     private double actionCooldownTicks;
     private final List<PlantArmor> armorLayers = new ArrayList<>();
     private GameContext lastContext;
+    private final Set<String> disableSources = new HashSet<>();
+    private int hostileIceHits;
+    private String transformingWizardId;
 
     private int growthStage;
     private int growthTicksRemaining;
@@ -78,7 +82,7 @@ public final class Plant extends Entity {
     @Override
     public void onTickUpdate(GameContext context) {
         lastContext = context;
-        if (isDead() || stats.actionInterval() <= 0) {
+        if (isDead() || isDisabled() || stats.actionInterval() <= 0) {
             return;
         }
         PlantBehaviorSupport.tick(this, context.getTicksPerSecond());
@@ -224,6 +228,66 @@ public final class Plant extends Entity {
         return tags.contains(tag);
     }
 
+    public void disable(String sourceId) {
+        if (sourceId != null) {
+            disableSources.add(sourceId);
+        }
+    }
+
+    public void enable(String sourceId) {
+        disableSources.remove(sourceId);
+    }
+
+    public boolean isDisabled() {
+        return !disableSources.isEmpty();
+    }
+
+    public boolean isDisabledBy(String sourceId) {
+        return disableSources.contains(sourceId);
+    }
+
+    public boolean transformIntoCat(String wizardId) {
+        if (wizardId == null || wizardId.isBlank() || transformingWizardId != null) {
+            return false;
+        }
+        transformingWizardId = wizardId;
+        disable(wizardId);
+        return true;
+    }
+
+    public boolean restoreFromCat(String wizardId) {
+        if (wizardId == null || !wizardId.equals(transformingWizardId)) {
+            return false;
+        }
+        enable(wizardId);
+        transformingWizardId = null;
+        return true;
+    }
+
+    public boolean isCatTransformed() {
+        return transformingWizardId != null;
+    }
+
+    public boolean isCatTransformedBy(String wizardId) {
+        return wizardId != null && wizardId.equals(transformingWizardId);
+    }
+
+    public boolean canBeTargetedByZombie() {
+        return isAlive() && !isCatTransformed();
+    }
+
+    public int addHostileIceStack(String sourceId) {
+        return ++hostileIceHits;
+    }
+
+    public int getHostileIceStacks(String sourceId) {
+        return hostileIceHits;
+    }
+
+    public void clearHostileIce() {
+        hostileIceHits = 0;
+    }
+
     public String getName() {
         return definition.getName();
     }
@@ -258,6 +322,11 @@ public final class Plant extends Entity {
 
     public int getRow() {
         return (int) getY();
+    }
+
+    public void relocate(int col, int row) {
+        setX(col);
+        setY(row);
     }
 
     @Override

@@ -3,12 +3,17 @@ package model.game.entity.zombie;
 import model.game.entity.Entity;
 import model.game.entity.GameContext;
 import model.game.entity.plant.Plant;
+import model.game.entity.plant.PlantTag;
+import model.game.entity.projectile.Projectile;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class Zombie extends Entity {
+
+    private static final AtomicLong NEXT_ID = new AtomicLong();
 
     private final String type;
     private final double baseSpeed;
@@ -16,7 +21,8 @@ public final class Zombie extends Entity {
     private final int waveCost;
     private final List<Armor> armorLayers;
     private final List<ZombieBehavior> behaviors;
-    private double currentSpeed;
+    private double permanentSpeedMultiplier = 1.0;
+    private double permanentEatingDamageMultiplier = 1.0;
     private boolean glowing;
     private ZombieState state;
     private int tickAge;
@@ -25,21 +31,33 @@ public final class Zombie extends Entity {
     private int chillTicksRemaining;
     private int poisonTicksRemaining;
     private int poisonDamagePerTick;
+    private Action actionThisTick = Action.NONE;
+    private GameContext lastContext;
+    private boolean deathBehaviorsRun;
+    private boolean movingRight;
+    private boolean stationary;
+    private boolean trapImmune;
+    private boolean bypassDisabledPlants;
+    private boolean dodoBypass;
+    private boolean submerged;
+    private final boolean basicKnightTarget;
+    private final String knightTargetKey;
 
     private Zombie(Builder b) {
-        super(b.alias, b.maxHealth, b.x, b.y);
+        super(b.alias + "-" + NEXT_ID.incrementAndGet(), b.maxHealth, b.x, b.y);
         this.type = b.alias;
         this.baseSpeed = b.speed;
-        this.currentSpeed = b.speed;
         this.damage = b.damage;
         this.waveCost = b.waveCost;
         this.glowing = b.glowing;
-        this.armorLayers = List.copyOf(b.armors);
+        this.armorLayers = new ArrayList<>(b.armors);
         this.behaviors = b.behaviors.isEmpty()
                 ? List.of()
-                : Collections.unmodifiableList(b.behaviors);
+                : Collections.unmodifiableList(new ArrayList<>(b.behaviors));
         this.state = ZombieState.SPAWNING;
         this.tickAge = 0;
+        this.basicKnightTarget = b.basicKnightTarget;
+        this.knightTargetKey = b.knightTargetKey;
     }
 
     @Override
@@ -47,22 +65,50 @@ public final class Zombie extends Entity {
         if (isDead()) {
             return;
         }
+        lastContext = context;
         tickAge++;
-        if (state == ZombieState.SPAWNING) {
-            state = ZombieState.MOVING;
-        }
+        actionThisTick = Action.NONE;
+        state = ZombieState.MOVING;
         if (hypnotized) {
             actAsHypnotized(context);
             return;
         }
         for (ZombieBehavior behavior : behaviors) {
-            behavior.execute(this, context);
+            if (!behavior.isMovementBehavior()) {
+                behavior.execute(this, context);
+            }
+        }
+        for (ZombieBehavior behavior : behaviors) {
+            if (behavior.isMovementBehavior()) {
+                behavior.execute(this, context);
+            }
         }
     }
 
     @Override
     protected void onDeath() {
         state = ZombieState.DYING;
+        runDeathBehaviors(lastContext);
+    }
+
+    public void bindContext(GameContext context) {
+        if (context == null) {
+            return;
+        }
+        lastContext = context;
+        if (isDead()) {
+            runDeathBehaviors(context);
+        }
+    }
+
+    public void runDeathBehaviors(GameContext context) {
+        if (!isDead() || deathBehaviorsRun || context == null) {
+            return;
+        }
+        deathBehaviorsRun = true;
+        for (ZombieBehavior behavior : behaviors) {
+            behavior.onDeath(this, context);
+        }
     }
 
     @Override
@@ -92,6 +138,11 @@ public final class Zombie extends Entity {
     }
 
     public void setRow(int row) {
+        setY(row);
+    }
+
+    public void setPosition(double x, int row) {
+        setX(x);
         setY(row);
     }
     
@@ -138,15 +189,40 @@ public final class Zombie extends Entity {
     }
 
     public double getCurrentSpeed() {
-        return currentSpeed;
+        if (freezeTicksRemaining > 0) {
+            return 0.0;
+        }
+        double coldMultiplier = chillTicksRemaining > 0 ? 0.5 : 1.0;
+        return baseSpeed * permanentSpeedMultiplier * coldMultiplier;
     }
 
     public void setCurrentSpeed(double s) {
-        this.currentSpeed = s;
+        if (!Double.isFinite(s) || s < 0) {
+            throw new IllegalArgumentException("speed must be finite and non-negative");
+        }
+        permanentSpeedMultiplier = baseSpeed == 0 ? 1.0 : s / baseSpeed;
+    }
+
+    public void multiplySpeed(double multiplier) {
+        validateMultiplier(multiplier);
+        permanentSpeedMultiplier *= multiplier;
+    }
+
+    public double getPermanentSpeedMultiplier() {
+        return permanentSpeedMultiplier;
     }
 
     public int getDamage() {
-        return damage;
+        return Math.max(0, (int) Math.round(damage * permanentEatingDamageMultiplier));
+    }
+
+    public void multiplyEatingDamage(double multiplier) {
+        validateMultiplier(multiplier);
+        permanentEatingDamageMultiplier *= multiplier;
+    }
+
+    public double getPermanentEatingDamageMultiplier() {
+        return permanentEatingDamageMultiplier;
     }
 
     public int getWaveCost() {
@@ -199,10 +275,10 @@ public final class Zombie extends Entity {
         }
         if (target != null && nearestDistance <= 0.6) {
             state = ZombieState.EATING;
-            target.takeDamage(Math.max(1, damage / context.getTicksPerSecond()));
+            target.takeDamage(Math.max(1, getDamage() / context.getTicksPerSecond()));
         } else {
             state = ZombieState.MOVING;
-            moveRight(currentSpeed / context.getTicksPerSecond());
+            moveRight(getCurrentSpeed() / context.getTicksPerSecond());
         }
     }
 
@@ -212,12 +288,10 @@ public final class Zombie extends Entity {
 
     public void applyFreeze(int ticks) {
         freezeTicksRemaining = Math.max(freezeTicksRemaining, ticks);
-        currentSpeed = 0;
     }
 
     public void applyChill(int ticks) {
         chillTicksRemaining = Math.max(chillTicksRemaining, ticks);
-        currentSpeed = baseSpeed * 0.5;
     }
 
     public void applyPoison(int ticks, int damagePerTick) {
@@ -228,22 +302,13 @@ public final class Zombie extends Entity {
     public void clearColdStatuses() {
         freezeTicksRemaining = 0;
         chillTicksRemaining = 0;
-        currentSpeed = baseSpeed;
     }
 
     public void tickStatuses() {
         if (freezeTicksRemaining > 0) {
             freezeTicksRemaining--;
-            if (freezeTicksRemaining <= 0) {
-                currentSpeed = baseSpeed;
-            } else {
-                currentSpeed = 0;
-            }
         } else if (chillTicksRemaining > 0) {
             chillTicksRemaining--;
-            if (chillTicksRemaining <= 0) {
-                currentSpeed = baseSpeed;
-            }
         }
         if (poisonTicksRemaining > 0) {
             poisonTicksRemaining--;
@@ -252,7 +317,18 @@ public final class Zombie extends Entity {
     }
 
     public List<Armor> getArmorLayers() {
-        return armorLayers;
+        return Collections.unmodifiableList(armorLayers);
+    }
+
+    public void addArmor(Armor armor) {
+        if (armor == null) {
+            throw new IllegalArgumentException("armor must not be null");
+        }
+        armorLayers.add(armor);
+    }
+
+    public void grantArmor(Armor armor) {
+        addArmor(armor);
     }
 
     public List<ZombieBehavior> getBehaviors() {
@@ -267,8 +343,115 @@ public final class Zombie extends Entity {
         this.state = s;
     }
 
+    public boolean tryBeginAbilityAction() {
+        if (isDead() || actionThisTick != Action.NONE) {
+            return false;
+        }
+        actionThisTick = Action.ABILITY;
+        state = ZombieState.ABILITY;
+        return true;
+    }
+
+    public boolean tryBeginMovementAction() {
+        if (isDead() || actionThisTick != Action.NONE) {
+            return false;
+        }
+        actionThisTick = Action.MOVEMENT;
+        return true;
+    }
+
     public boolean hasArmor() {
         return armorLayers.stream().anyMatch(a -> !a.isDestroyed());
+    }
+
+    public boolean hasArmorAlias(String alias) {
+        return armorLayers.stream().anyMatch(a -> !a.isDestroyed() && a.getAlias().equals(alias));
+    }
+
+    public boolean interceptProjectile(Projectile projectile, GameContext context) {
+        for (ZombieBehavior behavior : behaviors) {
+            if (behavior.interceptProjectile(this, projectile, context)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isMovingRight() {
+        return movingRight;
+    }
+
+    public void setMovingRight(boolean movingRight) {
+        this.movingRight = movingRight;
+    }
+
+    public boolean isStationary() {
+        return stationary;
+    }
+
+    public void setStationary(boolean stationary) {
+        this.stationary = stationary;
+    }
+
+    public boolean isTrapImmune() {
+        return trapImmune;
+    }
+
+    public void setTrapImmune(boolean trapImmune) {
+        this.trapImmune = trapImmune;
+    }
+
+    public void setBypassDisabledPlants(boolean bypassDisabledPlants) {
+        this.bypassDisabledPlants = bypassDisabledPlants;
+    }
+
+    public void setDodoBypass(boolean dodoBypass) {
+        this.dodoBypass = dodoBypass;
+        this.trapImmune = dodoBypass;
+    }
+
+    public boolean shouldBypass(Plant plant) {
+        if (plant == null) {
+            return false;
+        }
+        if (plant.isCatTransformed()) {
+            return true;
+        }
+        if (bypassDisabledPlants && plant.isDisabled()) {
+            return true;
+        }
+        if (!dodoBypass || "Tall-nut".equalsIgnoreCase(plant.getName())) {
+            return false;
+        }
+        return plant.hasTag(PlantTag.TRAP)
+                || plant.hasTag(PlantTag.MOVE_ZOMBIE)
+                || plant.getName().toLowerCase().contains("wall-nut")
+                || plant.getName().toLowerCase().contains("spike");
+    }
+
+    public boolean isValidKnightTarget(java.util.Set<String> validTargetKeys) {
+        return basicKnightTarget && knightTargetKey != null
+                && validTargetKeys.contains(knightTargetKey);
+    }
+
+    public boolean isSubmerged() {
+        return submerged && state != ZombieState.EATING;
+    }
+
+    public void setSubmerged(boolean submerged) {
+        this.submerged = submerged;
+    }
+
+    private static void validateMultiplier(double multiplier) {
+        if (!Double.isFinite(multiplier) || multiplier < 0) {
+            throw new IllegalArgumentException("multiplier must be finite and non-negative");
+        }
+    }
+
+    private enum Action {
+        NONE,
+        MOVEMENT,
+        ABILITY
     }
 
 //    public double getHealthRatio() {
@@ -292,6 +475,8 @@ public final class Zombie extends Entity {
         private double x = 0;
         private double y = 0;
         private boolean glowing = false;
+        private boolean basicKnightTarget;
+        private String knightTargetKey;
 
         public Builder(String alias) {
             if (alias == null || alias.isBlank()) {
@@ -328,6 +513,12 @@ public final class Zombie extends Entity {
 
         public Builder glowing(boolean v) {
             this.glowing = v;
+            return this;
+        }
+
+        public Builder knightTarget(boolean basic, String key) {
+            this.basicKnightTarget = basic;
+            this.knightTargetKey = key;
             return this;
         }
 

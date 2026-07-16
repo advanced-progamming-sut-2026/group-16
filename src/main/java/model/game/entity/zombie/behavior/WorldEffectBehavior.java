@@ -3,7 +3,6 @@ package model.game.entity.zombie.behavior;
 import model.game.entity.GameContext;
 import model.game.entity.zombie.Zombie;
 import model.game.entity.zombie.ZombieBehavior;
-import model.game.entity.zombie.ZombieState;
 
 public final class WorldEffectBehavior implements ZombieBehavior {
 
@@ -37,14 +36,21 @@ public final class WorldEffectBehavior implements ZombieBehavior {
             }
         };
 
-        if (shouldFire) {
+        if (shouldFire && zombie.tryBeginAbilityAction()) {
             fired = true;
-            zombie.setState(ZombieState.ABILITY);
             context.applyRowEffect(zombie.getRow(), effectType, effectDurationTicks);
 
             if (trigger == EffectTrigger.ON_TIMER) {
                 zombie.takeDamage(zombie.getHealth());
             }
+        }
+    }
+
+    @Override
+    public void onDeath(Zombie zombie, GameContext context) {
+        if (!fired && trigger == EffectTrigger.ON_DEATH) {
+            fired = true;
+            context.applyRowEffect(zombie.getRow(), effectType, effectDurationTicks);
         }
     }
 

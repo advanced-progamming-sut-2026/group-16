@@ -3,8 +3,11 @@ package model.game.entity.projectile;
 import model.game.board.GameBoard;
 import model.game.board.tile.NormalTile;
 import model.game.entity.plant.Plant;
+import model.game.entity.plant.PlantCovering;
 import model.game.entity.plant.PlantSpecialModifiers;
+import model.game.entity.zombie.ArcadeObstacle;
 import model.game.entity.zombie.Zombie;
+import model.game.entity.GameContext;
 
 import java.util.Iterator;
 import java.util.List;
@@ -14,14 +17,30 @@ import java.util.function.Consumer;
 public final class ProjectileSystem {
 
     private final List<Projectile> projectiles = new java.util.ArrayList<>();
+    private final List<Projectile> pendingProjectiles = new java.util.ArrayList<>();
     private final Random random = new Random();
+    private boolean ticking;
 
     public List<Projectile> getProjectiles() {
         return List.copyOf(projectiles);
     }
 
     public void spawn(Projectile projectile) {
-        projectiles.add(projectile);
+        if (projectile != null) {
+            if (ticking) {
+                pendingProjectiles.add(projectile);
+            } else {
+                projectiles.add(projectile);
+            }
+        }
+    }
+
+    public void spawnReflected(Zombie reflector, Projectile original) {
+        if (reflector == null || original == null) {
+            return;
+        }
+        spawn(Projectile.reflected(reflector.getRow(), reflector.getX() - 0.1,
+                original, reflector.getId()));
     }
 
     public void spawnFromPlant(Plant plant, int damage, int shots, ProjectileProfile profile) {
@@ -56,41 +75,102 @@ public final class ProjectileSystem {
     }
 
     public void tick(GameBoard board, List<Zombie> zombies, Consumer<Zombie> onZombieKilled) {
-        Iterator<Projectile> iterator = projectiles.iterator();
-        while (iterator.hasNext()) {
-            Projectile projectile = iterator.next();
-            if (projectile.isExpired()) {
-                iterator.remove();
-                continue;
-            }
-            move(projectile, board, zombies);
-            if (projectile.isExpired()) {
-                iterator.remove();
-                continue;
-            }
-            if (projectile.isFromZombie()) {
-                Plant target = board.getPlantAt(
-                        (int) Math.floor(projectile.getX()), projectile.getRow());
-                if (target != null && target.isAlive()) {
-                    target.takeDamage(projectile.getDamage());
+        tick(board, zombies, onZombieKilled, null);
+    }
+
+    public void tick(GameBoard board, List<Zombie> zombies, Consumer<Zombie> onZombieKilled,
+                     GameContext context) {
+        ticking = true;
+        try {
+            Iterator<Projectile> iterator = projectiles.iterator();
+            while (iterator.hasNext()) {
+                Projectile projectile = iterator.next();
+                if (projectile.isExpired()) {
                     iterator.remove();
                     continue;
                 }
-                projectile.decrementLifetime();
-                continue;
-            }
-            Zombie hit = findTarget(projectile, zombies);
-            if (hit != null) {
-                projectile.recordHit(hit.getId());
-                applyHit(projectile, hit, board, zombies, onZombieKilled);
-                if (!projectile.canPierce()) {
+                move(projectile, board, zombies);
+                if (projectile.isExpired()) {
                     iterator.remove();
-                } else {
-                    projectile.consumePierce();
+                    continue;
                 }
+                if (projectile.isFromZombie()) {
+                    Plant target = board.getPlantAt(
+                            (int) Math.floor(projectile.getX()), projectile.getRow());
+                    if (target != null && target.canBeTargetedByZombie()) {
+                        applyHostileHit(projectile, target, context);
+                        iterator.remove();
+                        continue;
+                    }
+                    projectile.decrementLifetime();
+                    continue;
+                }
+                if (context != null
+                        && projectile.getProfile().trajectory()
+                        != ProjectileProfile.Trajectory.ARCING
+                        && hitBoardObject(projectile, context)) {
+                    iterator.remove();
+                    continue;
+                }
+                Zombie hit = findTarget(projectile, zombies);
+                if (hit != null) {
+                    if (context != null && hit.interceptProjectile(projectile, context)) {
+                        iterator.remove();
+                        continue;
+                    }
+                    projectile.recordHit(hit.getId());
+                    applyHit(projectile, hit, board, zombies, onZombieKilled);
+                    if (!projectile.canPierce()) {
+                        iterator.remove();
+                    } else {
+                        projectile.consumePierce();
+                    }
+                }
+                projectile.decrementLifetime();
             }
-            projectile.decrementLifetime();
+        } finally {
+            ticking = false;
+            projectiles.addAll(pendingProjectiles);
+            pendingProjectiles.clear();
         }
+    }
+
+    private void applyHostileHit(Projectile projectile, Plant target, GameContext context) {
+        target.takeDamage(projectile.getDamage());
+        if (projectile.getEffect() == ProjectileEffect.SNOWBALL) {
+            if (context != null) {
+                context.registerHunterIceHit(target);
+            } else {
+                target.addHostileIceStack(projectile.getHostileSourceId());
+            }
+        } else if (projectile.getEffect() == ProjectileEffect.FIRE) {
+            target.clearHostileIce();
+        }
+    }
+
+    private boolean hitBoardObject(Projectile projectile, GameContext context) {
+        for (PlantCovering covering : context.getPlantCoverings()) {
+            if (covering.isAlive() && covering.blocksStraightProjectiles()
+                    && covering.getRow() == projectile.getRow()
+                    && Math.abs(covering.getX() - projectile.getX()) <= 0.35) {
+                if (covering.getType() == PlantCovering.Type.HUNTER_ICE
+                        && projectile.getEffect() == ProjectileEffect.FIRE) {
+                    covering.takeDamage(covering.getHealth());
+                } else {
+                    covering.takeDamage(projectile.getDamage());
+                }
+                return true;
+            }
+        }
+        for (ArcadeObstacle obstacle : context.getArcadeObstacles()) {
+            if (obstacle.isAlive() && obstacle.blocksStraightProjectiles()
+                    && obstacle.getRow() == projectile.getRow()
+                    && Math.abs(obstacle.getX() - projectile.getX()) <= 0.35) {
+                obstacle.takeDamage(projectile.getDamage());
+                return true;
+            }
+        }
+        return false;
     }
 
     private void move(Projectile projectile, GameBoard board, List<Zombie> zombies) {
