@@ -10,12 +10,19 @@ public final class DamageReactionBehavior implements ZombieBehavior {
     private final Trigger trigger;
     private final double healthThreshold;
     private final double speedMultiplier;
+    private final double eatingDamageMultiplier;
     private boolean triggered = false;
 
     public DamageReactionBehavior(Trigger trigger, double healthThreshold, double speedMultiplier) {
+        this(trigger, healthThreshold, speedMultiplier, 1.0);
+    }
+
+    public DamageReactionBehavior(Trigger trigger, double healthThreshold,
+                                  double speedMultiplier, double eatingDamageMultiplier) {
         this.trigger = trigger;
         this.healthThreshold = healthThreshold;
         this.speedMultiplier = speedMultiplier;
+        this.eatingDamageMultiplier = eatingDamageMultiplier;
     }
 
     @Override
@@ -29,7 +36,8 @@ public final class DamageReactionBehavior implements ZombieBehavior {
 
         if (shouldTrigger) {
             triggered = true;
-            zombie.setCurrentSpeed(zombie.getCurrentSpeed() * speedMultiplier);
+            zombie.multiplySpeed(speedMultiplier);
+            zombie.multiplyEatingDamage(eatingDamageMultiplier);
         }
     }
 

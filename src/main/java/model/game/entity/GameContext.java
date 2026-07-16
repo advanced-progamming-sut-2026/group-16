@@ -2,9 +2,13 @@ package model.game.entity;
 
 import model.game.entity.plant.Plant;
 import model.game.entity.plant.PlantCategory;
+import model.game.entity.plant.PlantCovering;
 import model.game.entity.projectile.ProjectileProfile;
+import model.game.entity.projectile.Projectile;
+import model.game.entity.zombie.ArcadeObstacle;
 import model.game.entity.zombie.Zombie;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public interface GameContext {
@@ -26,6 +30,14 @@ public interface GameContext {
     List<Zombie> getAllZombies();
 
     void spawnProjectile(int row, double startX, int damage, String projectileType);
+
+    default void spawnProjectile(Zombie source, int row, double startX,
+                                 int damage, String projectileType) {
+        spawnProjectile(row, startX, damage, projectileType);
+    }
+
+    default void reflectProjectile(Zombie reflector, Projectile projectile) {
+    }
 
     void spawnZombieOfType(String alias, int row, double x);
 
@@ -68,4 +80,66 @@ public interface GameContext {
     void pullUnderwater(Plant plant, double value);
 
     void localAreaAttack(Plant plant, double value);
+
+    default List<Plant> getAllPlants() {
+        ArrayList<Plant> plants = new java.util.ArrayList<>();
+        for (int row = 0; row < getRowCount(); row++) {
+            for (int col = 0; col < getColCount(); col++) {
+                Plant plant = getPlantAt(col, row);
+                if (plant != null && plant.isAlive()) {
+                    plants.add(plant);
+                }
+            }
+        }
+        return plants;
+    }
+
+    default boolean movePlant(Plant plant, int col, int row) {
+        return false;
+    }
+
+    default void createGraves(int count) {
+    }
+
+    default int withdrawSun(int amount) {
+        return 0;
+    }
+
+    default void returnSun(int amount) {
+    }
+
+    default int stealGroundSun(int maximum) {
+        return 0;
+    }
+
+    default boolean isWaterAt(int col, int row) {
+        return false;
+    }
+
+    default void pushIceInRow(int row) {
+    }
+
+    default void createIceBlocks(int row, int startCol, int count) {
+    }
+
+    default PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health) {
+        return null;
+    }
+
+    default void registerHunterIceHit(Plant plant) {
+    }
+
+    default List<PlantCovering> getPlantCoverings() {
+        return List.of();
+    }
+
+    default void pushArcadeObstacle(Zombie pusher) {
+    }
+
+    default void releaseArcadeObstacle(String pusherId) {
+    }
+
+    default List<ArcadeObstacle> getArcadeObstacles() {
+        return List.of();
+    }
 }

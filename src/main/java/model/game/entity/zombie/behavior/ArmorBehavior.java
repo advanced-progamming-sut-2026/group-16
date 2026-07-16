@@ -24,7 +24,7 @@ public final class ArmorBehavior implements ZombieBehavior {
 
         if (armorWasPresent && !zombie.hasArmor()) {
             reacted = true;
-            zombie.setCurrentSpeed(zombie.getCurrentSpeed() * speedBonusWhenArmorLost);
+            zombie.multiplySpeed(speedBonusWhenArmorLost);
         }
     }
 }

@@ -19,12 +19,20 @@ public final class MovementBehavior implements ZombieBehavior {
         }
 
         Plant target = context.getPlantInFront(zombie.getX(), zombie.getRow());
+        if (!zombie.tryBeginMovementAction()) {
+            return;
+        }
 
-        if (target != null && target.isAlive()) {
+        if (target != null && target.isAlive() && !zombie.shouldBypass(target)) {
             eatPlant(zombie, target, context);
         } else {
-            walkLeft(zombie, context);
+            walk(zombie, context);
         }
+    }
+
+    @Override
+    public boolean isMovementBehavior() {
+        return true;
     }
 
     private void eatPlant(Zombie zombie, Plant target, GameContext context) {
@@ -55,10 +63,17 @@ public final class MovementBehavior implements ZombieBehavior {
         }
     }
 
-    private void walkLeft(Zombie zombie, GameContext context) {
+    private void walk(Zombie zombie, GameContext context) {
         zombie.setState(ZombieState.MOVING);
+        if (zombie.isStationary()) {
+            return;
+        }
 
         double stepPerTick = zombie.getCurrentSpeed() / context.getTicksPerSecond();
+        if (zombie.isMovingRight()) {
+            zombie.moveRight(stepPerTick);
+            return;
+        }
         zombie.moveLeft(stepPerTick);
 
         if (zombie.getX() <= 0.0) {

@@ -33,13 +33,16 @@ public final class RangedAttackBehavior implements ZombieBehavior {
         }
 
         if (hasTargetInRange(zombie, context)) {
+            if (!zombie.tryBeginAbilityAction()) {
+                return;
+            }
             context.spawnProjectile(
+                    zombie,
                     zombie.getRow(),
                     zombie.getX() - 0.5,
                     damage,
                     projectileType
             );
-            zombie.setState(ZombieState.ABILITY);
         }
 
         ticksUntilNextShot = cooldownTicks;
@@ -52,7 +55,7 @@ public final class RangedAttackBehavior implements ZombieBehavior {
 
         for (int col = startCol; col >= endCol; col--) {
             Plant p = context.getPlantAt(col, row);
-            if (p != null && p.isAlive()) {
+            if (p != null && p.canBeTargetedByZombie()) {
                 return true;
             }
         }

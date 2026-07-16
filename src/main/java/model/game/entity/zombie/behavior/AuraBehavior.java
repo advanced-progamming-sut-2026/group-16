@@ -4,6 +4,10 @@ import model.game.entity.GameContext;
 import model.game.entity.zombie.Zombie;
 import model.game.entity.zombie.ZombieBehavior;
 import model.game.entity.zombie.ZombieState;
+import model.game.entity.zombie.Armor;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public final class AuraBehavior implements ZombieBehavior {
 
@@ -11,6 +15,7 @@ public final class AuraBehavior implements ZombieBehavior {
     private final double rangeColumns;
     private final int pulseTicks;
     private int ticksUntilPulse;
+    private final Set<String> permanentlyBoostedZombieIds = new HashSet<>();
     public AuraBehavior(AuraType type, double rangeColumns, int pulseTicks) {
         this.type = type;
         this.rangeColumns = rangeColumns;
@@ -41,13 +46,14 @@ public final class AuraBehavior implements ZombieBehavior {
         switch (type) {
             case GRANT_ARMOR -> {
                 if (!target.hasArmor()) {
-                    target.getArmorLayers(); // immutable list; actual armor
-                    // addition would need builder/factory support.
-                    // TODO: Add armor via factory when aura grants armor.
+                    target.grantArmor(new Armor(
+                            "AuraKnightArmor", "knight", 1600, true, true));
                 }
             }
             case SPEED_BOOST -> {
-                target.setCurrentSpeed(target.getBaseSpeed() * 1.3);
+                if (permanentlyBoostedZombieIds.add(target.getId())) {
+                    target.multiplySpeed(1.3);
+                }
             }
         }
     }

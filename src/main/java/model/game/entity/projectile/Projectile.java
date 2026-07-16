@@ -16,6 +16,7 @@ public final class Projectile {
     private int pierceRemaining;
     private int lifetimeTicks;
     private boolean fromZombie;
+    private String hostileSourceId;
     private final Set<String> hitEntityIds = new HashSet<>();
 
     public Projectile(int row, double x, int damage, ProjectileProfile profile,
@@ -32,9 +33,23 @@ public final class Projectile {
     }
 
     public static Projectile fromZombie(int row, double x, int damage, String projectileType) {
+        return fromZombie(row, x, damage, projectileType, "hostile");
+    }
+
+    public static Projectile fromZombie(int row, double x, int damage, String projectileType,
+                                        String sourceId) {
         Projectile p = new Projectile(row, x, damage, ProjectileProfile.straight(),
                 ProjectileEffect.fromString(projectileType), null, 0);
         p.fromZombie = true;
+        p.hostileSourceId = sourceId == null || sourceId.isBlank() ? "hostile" : sourceId;
+        return p;
+    }
+
+    public static Projectile reflected(int row, double x, Projectile original, String sourceId) {
+        Projectile p = new Projectile(row, x, original.getDamage(), original.getProfile(),
+                original.getEffect(), null, 0);
+        p.fromZombie = true;
+        p.hostileSourceId = sourceId == null || sourceId.isBlank() ? "reflected" : sourceId;
         return p;
     }
 
@@ -72,6 +87,10 @@ public final class Projectile {
 
     public boolean isFromZombie() {
         return fromZombie;
+    }
+
+    public String getHostileSourceId() {
+        return hostileSourceId == null ? "hostile" : hostileSourceId;
     }
 
     public int getPierceRemaining() {
