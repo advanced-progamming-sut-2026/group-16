@@ -1,11 +1,31 @@
 package controller;
 
 import model.command.ShopMenuCommands;
+import model.shop.ShopManager;
+import model.user.User;
+import model.user.UserDatabase;
 import view.api.ShopView;
 
 import java.util.regex.Matcher;
 
 public class ShopController extends ViewController {
+    private final User user;
+    private final UserDatabase userDatabase;
+    private final GreenhouseController greenhouseController;
+    private final ShopManager shopManager;
+
+    public ShopController(User user, UserDatabase userDatabase, GreenhouseController greenhouseController) {
+        this.user = user;
+        this.userDatabase = userDatabase;
+        this.greenhouseController = greenhouseController;
+        this.shopManager = new ShopManager();
+    }
+
+    @Override
+    public void displayMenu() {
+        getShopView().showCurrentMenu();
+    }
+
     @Override
     public void handleCommand(String input) {
         for (ShopMenuCommands cmd : ShopMenuCommands.values()) {
@@ -27,23 +47,48 @@ public class ShopController extends ViewController {
     }
 
     private void handleShowCurrent() {
-        // TODO: implement after Shop is done.
+        getShopView().showCurrentMenu();
     }
 
     private void handleMenuExit() {
-        // TODO: implement after menu navigation is done.
+        parser.switchController(greenhouseController);
     }
 
     private void handleShopList() {
-        // TODO: implement after Shop is done.
+        getShopView().showShopList(shopManager.formatPermanentItems());
     }
 
     private void handleShopDaily() {
-        // TODO: implement after Shop is done.
+        shopManager.refreshDailyOfferIfNeeded(user);
+        userDatabase.saveUserWallet(user);
+        getShopView().showDailyOffer(shopManager.formatDailyOffer(user));
     }
 
     private void handleShopBuy(String itemId, String count, String plantType) {
-        // TODO: implement after Shop is done.
+        int itemCount;
+        try {
+            itemCount = Integer.parseInt(count.trim());
+        } catch (NumberFormatException e) {
+            getShopView().errorInvalidBuyCount();
+            return;
+        }
+
+        ShopManager.PurchaseResult result = shopManager.purchase(user, itemId, itemCount, plantType);
+        switch (result.status()) {
+            case "invalid_count" -> getShopView().errorInvalidBuyCount();
+            case "item_not_found" -> getShopView().errorItemNotFound(result.errorArg());
+            case "insufficient_coins" -> getShopView().errorInsufficientCoins();
+            case "insufficient_diamonds" -> getShopView().errorInsufficientDiamonds();
+            case "daily_purchased" -> getShopView().errorDailyOfferAlreadyPurchased();
+            case "max_capacity" -> getShopView().errorMaxCapacityReached(result.itemName());
+            case "plant_type_required" -> getShopView().errorPlantTypeRequired();
+            case "plant_not_unlocked" -> getShopView().errorPlantNotUnlocked(result.errorArg());
+            default -> {
+                userDatabase.saveUserWallet(user);
+                userDatabase.savePlantProgress(user);
+                getShopView().showItemPurchased(result.itemName(), result.count(), result.extraInfo());
+            }
+        }
     }
 
     private ShopView getShopView() {

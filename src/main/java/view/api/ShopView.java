@@ -1,9 +1,11 @@
 package view.api;
 
 public interface ShopView extends View {
-    void showShopList();
+    void showCurrentMenu();
 
-    void showDailyOffer();
+    void showShopList(String display);
+
+    void showDailyOffer(String display);
 
     void showItemPurchased(String itemName, int count, String extraInfo);
 
