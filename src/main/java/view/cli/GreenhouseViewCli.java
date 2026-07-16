@@ -3,10 +3,14 @@ package view.cli;
 import view.api.GreenhouseView;
 
 public class GreenhouseViewCli extends CliView implements GreenhouseView {
-    // show greenhouse command
     @Override
-    public void showGreenhouse() {
-        // TODO: implement after the Greenhouse is done.
+    public void showCurrentMenu() {
+        displayMessage("You are in the greenhouse menu.");
+    }
+
+    @Override
+    public void showGreenhouse(String display) {
+        displayMessage(display);
     }
 
     // plant pot command

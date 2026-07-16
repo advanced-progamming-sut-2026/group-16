@@ -1,10 +1,31 @@
 package controller;
 
 import model.command.GreenhouseMenuCommands;
+import model.greenhouse.GreenhouseService;
+import model.user.User;
+import model.user.UserDatabase;
+import view.api.GreenhouseView;
 
 import java.util.regex.Matcher;
 
 public class GreenhouseController extends ViewController {
+    private final User user;
+    private final UserDatabase userDatabase;
+    private final GameController gameController;
+    private final GreenhouseService greenhouseService;
+
+    public GreenhouseController(User user, UserDatabase userDatabase, GameController gameController) {
+        this.user = user;
+        this.userDatabase = userDatabase;
+        this.gameController = gameController;
+        this.greenhouseService = new GreenhouseService(model.App.getInstance().getPlantRegistry());
+    }
+
+    @Override
+    public void displayMenu() {
+        getGreenhouseView().showCurrentMenu();
+    }
+
     @Override
     public void handleCommand(String input) {
         for (GreenhouseMenuCommands cmd : GreenhouseMenuCommands.values()) {
@@ -27,30 +48,88 @@ public class GreenhouseController extends ViewController {
     }
 
     private void handleShowCurrent() {
-        // TODO: implement after Greenhouse is done.
+        getGreenhouseView().showCurrentMenu();
     }
 
     private void handleMenuExit() {
-        // TODO: implement after menu navigation is done.
+        parser.switchController(gameController);
     }
 
     private void handleShowGreenhouse() {
-        // TODO: implement after Greenhouse is done.
+        getGreenhouseView().showGreenhouse(greenhouseService.formatDisplay(user));
     }
 
     private void handlePlantPotAt(String x, String y) {
-        // TODO: implement after Greenhouse is done.
+        int potX = parseCoordinate(x);
+        int potY = parseCoordinate(y);
+        if (potX < 0 || potY < 0) {
+            getGreenhouseView().errorInvalidPotLocation(potX, potY);
+            return;
+        }
+        GreenhouseService.PlantingResult result = greenhouseService.plant(user, potX, potY);
+        switch (result.status()) {
+            case "invalid_location" -> getGreenhouseView().errorInvalidPotLocation(potX, potY);
+            case "locked" -> getGreenhouseView().errorPotLocked(potX, potY);
+            case "occupied" -> getGreenhouseView().errorPotAlreadyOccupied(potX, potY);
+            default -> {
+                userDatabase.saveUserWallet(user);
+                getGreenhouseView().showPlantPlantedInPot(potX, potY, result.plantType());
+            }
+        }
     }
 
     private void handleCollect(String x, String y) {
-        // TODO: implement after Greenhouse is done.
+        int potX = parseCoordinate(x);
+        int potY = parseCoordinate(y);
+        if (potX < 0 || potY < 0) {
+            getGreenhouseView().errorInvalidPotLocation(potX, potY);
+            return;
+        }
+        GreenhouseService.CollectResult result = greenhouseService.collect(user, potX, potY);
+        switch (result.status()) {
+            case "invalid_location" -> getGreenhouseView().errorInvalidPotLocation(potX, potY);
+            case "no_plant" -> getGreenhouseView().errorNoPlantToCollect(potX, potY);
+            case "not_ready" -> getGreenhouseView().errorPlantNotReady(potX, potY);
+            default -> {
+                userDatabase.saveUserWallet(user);
+                getGreenhouseView().showPotCollected(potX, potY, result.reward());
+            }
+        }
     }
 
     private void handleGrow(String x, String y) {
-        // TODO: implement after Greenhouse is done.
+        int potX = parseCoordinate(x);
+        int potY = parseCoordinate(y);
+        if (potX < 0 || potY < 0) {
+            getGreenhouseView().errorInvalidPotLocation(potX, potY);
+            return;
+        }
+        GreenhouseService.GrowResult result = greenhouseService.grow(user, potX, potY);
+        switch (result.status()) {
+            case "invalid_location" -> getGreenhouseView().errorInvalidPotLocation(potX, potY);
+            case "no_plant" -> getGreenhouseView().errorNoPlantToCollect(potX, potY);
+            case "already_ready" -> getGreenhouseView().errorCannotAccelerateReadyPlant(potX, potY);
+            case "not_enough_diamonds" -> getGreenhouseView().errorNotEnoughDiamondsForAccelerate();
+            default -> {
+                userDatabase.saveUserWallet(user);
+                getGreenhouseView().showPlantGrowthAccelerated(potX, potY, result.diamondsSpent());
+            }
+        }
     }
 
     private void handleEnterShop() {
-        // TODO: implement after Greenhouse is done.
+        parser.switchController(new ShopController(user, userDatabase, this));
+    }
+
+    private int parseCoordinate(String value) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    private GreenhouseView getGreenhouseView() {
+        return (GreenhouseView) view;
     }
 }

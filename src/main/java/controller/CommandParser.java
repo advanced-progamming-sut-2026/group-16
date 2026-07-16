@@ -5,30 +5,39 @@ import model.user.User;
 import model.user.UserDatabase;
 import util.StayLoggedInStorage;
 import view.cli.AuthViewCli;
+import view.cli.GameViewCli;
+import view.cli.GreenhouseViewCli;
 import view.cli.MainMenuViewCli;
 import view.cli.ProfileViewCli;
+import view.cli.ShopViewCli;
 
 import java.util.Scanner;
 
 public class CommandParser {
     private final AuthViewCli authView;
+    private final GameViewCli gameView;
+    private final GreenhouseViewCli greenhouseView;
     private final MainMenuViewCli mainMenuView;
     private final ProfileViewCli profileView;
+    private final ShopViewCli shopView;
     private final RegistrationController registrationController;
-    private final MainMenuController mainMenuController;
     private ViewController currentController;
 
     public CommandParser() {
         UserDatabase userDatabase = UserDatabase.getInstance();
         authView = new AuthViewCli();
+        gameView = new GameViewCli();
+        greenhouseView = new GreenhouseViewCli();
         mainMenuView = new MainMenuViewCli();
         profileView = new ProfileViewCli();
+        shopView = new ShopViewCli();
 
         LoginController loginController = new LoginController(userDatabase);
         registrationController = new RegistrationController(userDatabase);
 
         ProfileController profileController = new ProfileController();
-        mainMenuController = new MainMenuController(App.getInstance().getCurrentUser(), registrationController);
+        MainMenuController mainMenuController = new MainMenuController(
+                App.getInstance().getCurrentUser(), registrationController, userDatabase);
 
         loginController.setRegistrationController(registrationController);
         registrationController.setLoginController(loginController);
@@ -40,7 +49,8 @@ public class CommandParser {
 
         User stayLoggedInUser = restoreStayLoggedInUser(userDatabase);
         if (stayLoggedInUser != null) {
-            switchController(new MainMenuController(stayLoggedInUser, registrationController));
+            App.getInstance().setCurrentUser(stayLoggedInUser);
+            switchController(new MainMenuController(stayLoggedInUser, registrationController, userDatabase));
         } else {
             switchController(registrationController);
         }
@@ -89,6 +99,14 @@ public class CommandParser {
         newController.setParser(this);
         if (newController instanceof MainMenuController) {
             newController.setView(mainMenuView);
+        } else if (newController instanceof ProfileController) {
+            newController.setView(profileView);
+        } else if (newController instanceof GameController) {
+            newController.setView(gameView);
+        } else if (newController instanceof GreenhouseController) {
+            newController.setView(greenhouseView);
+        } else if (newController instanceof ShopController) {
+            newController.setView(shopView);
         } else if (newController.getView() == null) {
             newController.setView(authView);
         }

@@ -2,6 +2,7 @@ package controller;
 
 import model.command.MainMenuCommands;
 import model.user.User;
+import model.user.UserDatabase;
 import util.StayLoggedInStorage;
 import view.api.MainMenuView;
 
@@ -11,10 +12,12 @@ import java.util.regex.Matcher;
 public class MainMenuController extends ViewController {
     private final User activeUser;
     private final RegistrationController registrationController;
+    private final UserDatabase userDatabase;
 
-    public MainMenuController(User activeUser, RegistrationController registrationController) {
+    public MainMenuController(User activeUser, RegistrationController registrationController, UserDatabase userDatabase) {
         this.activeUser = activeUser;
         this.registrationController = registrationController;
+        this.userDatabase = userDatabase;
     }
 
     @Override
@@ -41,10 +44,14 @@ public class MainMenuController extends ViewController {
 
     private void handleMenuEnter(String menuName) {
         switch (normalizeMenuName(menuName)) {
-            case "game" -> parser.switchController(new GameController());
+            case "game" -> parser.switchController(new GameController(activeUser, userDatabase, this));
             case "settings" -> parser.switchController(new SettingController());
             case "news" -> parser.switchController(new NewsController());
-            case "profile" -> parser.switchController(new ProfileController());
+            case "profile" -> {
+                ProfileController profileController = new ProfileController();
+                profileController.setMainMenuController(this);
+                parser.switchController(profileController);
+            }
             default -> getMainMenuView().errorInvalidMenuName();
         }
     }

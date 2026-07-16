@@ -52,6 +52,7 @@ public class UserDatabase {
             stmt.execute("PRAGMA foreign_keys = ON");
             stmt.execute(sql);
             stmt.execute(plantSql);
+            UserProgressStore.createTables();
         } catch (SQLException e) {
             throw new RuntimeException("Could not create the database.", e);
         }
@@ -85,6 +86,7 @@ public class UserDatabase {
                 }
             }
             replacePlantProgress(conn, user);
+            UserProgressStore.initializeUserProgress(conn, user);
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not register user.", e);
@@ -176,6 +178,7 @@ public class UserDatabase {
         user.setSecurityQuestionId(rs.getInt("securityQuestionNumber"));
         user.setSecurityAnswerHash(rs.getString("securityAnswerHash"));
         user.setPlantProgress(loadPlantProgress(conn, user.getId()));
+        UserProgressStore.loadUserProgress(conn, user);
         return user;
     }
 
@@ -186,6 +189,16 @@ public class UserDatabase {
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not save plant progress.", e);
+        }
+    }
+
+    public void saveUserWallet(User user) {
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            UserProgressStore.saveUserProgress(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save user wallet progress.", e);
         }
     }
 

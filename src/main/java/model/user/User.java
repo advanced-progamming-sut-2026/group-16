@@ -1,6 +1,13 @@
 package model.user;
 
+import model.collection.PlayerPlantProgress;
 import util.HashUtil;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 public class User {
     private long id;
@@ -11,7 +18,15 @@ public class User {
     private Gender gender;
     private int securityQuestionId;
     private String securityAnswerHash;
-    private model.collection.PlayerPlantProgress plantProgress;
+    private PlayerPlantProgress plantProgress;
+    private int coins;
+    private int diamonds;
+    private int plantFood;
+    private final List<GreenhousePot> greenhousePots = new ArrayList<>();
+    private final Set<String> storedBoosts = new LinkedHashSet<>();
+    private String dailyOfferPlant;
+    private LocalDate dailyOfferDate;
+    private boolean dailyOfferPurchased;
 
     public User() {
 
@@ -97,15 +112,131 @@ public class User {
         this.securityAnswerHash = securityAnswerHash;
     }
 
-    public model.collection.PlayerPlantProgress getPlantProgress() {
+    public PlayerPlantProgress getPlantProgress() {
         if (plantProgress == null) {
-            plantProgress = new model.collection.PlayerPlantProgress();
+            plantProgress = new PlayerPlantProgress();
         }
         return plantProgress;
     }
 
-    public void setPlantProgress(model.collection.PlayerPlantProgress plantProgress) {
+    public void setPlantProgress(PlayerPlantProgress plantProgress) {
         this.plantProgress = plantProgress;
+    }
+
+    public int getCoins() {
+        return coins;
+    }
+
+    public void setCoins(int coins) {
+        this.coins = Math.max(0, coins);
+    }
+
+    public void addCoins(int amount) {
+        if (amount > 0) {
+            coins += amount;
+        }
+    }
+
+    public boolean spendCoins(int amount) {
+        if (amount < 0 || coins < amount) {
+            return false;
+        }
+        coins -= amount;
+        return true;
+    }
+
+    public int getDiamonds() {
+        return diamonds;
+    }
+
+    public void setDiamonds(int diamonds) {
+        this.diamonds = Math.max(0, diamonds);
+    }
+
+    public void addDiamonds(int amount) {
+        if (amount > 0) {
+            diamonds += amount;
+        }
+    }
+
+    public boolean spendDiamonds(int amount) {
+        if (amount < 0 || diamonds < amount) {
+            return false;
+        }
+        diamonds -= amount;
+        return true;
+    }
+
+    public int getPlantFood() {
+        return plantFood;
+    }
+
+    public void setPlantFood(int plantFood) {
+        this.plantFood = Math.max(0, plantFood);
+    }
+
+    public List<GreenhousePot> getGreenhousePots() {
+        return greenhousePots;
+    }
+
+    public GreenhousePot getPotAt(int x, int y) {
+        for (GreenhousePot pot : greenhousePots) {
+            if (pot.getX() == x && pot.getY() == y) {
+                return pot;
+            }
+        }
+        return null;
+    }
+
+    public int countUnlockedPots() {
+        int count = 0;
+        for (GreenhousePot pot : greenhousePots) {
+            if (!pot.isLocked()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public GreenhousePot findNextLockedPot() {
+        for (GreenhousePot pot : greenhousePots) {
+            if (pot.isLocked()) {
+                return pot;
+            }
+        }
+        return null;
+    }
+
+    public Set<String> getStoredBoosts() {
+        return storedBoosts;
+    }
+
+    public boolean hasStoredBoost(String plantType) {
+        return storedBoosts.contains(plantType);
+    }
+
+    public String getDailyOfferPlant() {
+        return dailyOfferPlant;
+    }
+
+    public void setDailyOfferPlant(String dailyOfferPlant) {
+        this.dailyOfferPlant = dailyOfferPlant;
+    }
+
+    public LocalDate getDailyOfferDate() {
+        return dailyOfferDate;
+    }
+
+    public void setDailyOfferDate(LocalDate dailyOfferDate) {
+        this.dailyOfferDate = dailyOfferDate;
+    }
+
+    public boolean isDailyOfferPurchased() {
+        return dailyOfferPurchased;
+    }
+
+    public void setDailyOfferPurchased(boolean dailyOfferPurchased) {
+        this.dailyOfferPurchased = dailyOfferPurchased;
     }
 
     @Override

@@ -10,7 +10,7 @@ public enum GreenhouseMenuCommands implements Command {
     PLANT_POT_AT("^plant pot at\\s+\\((?<x>[^,]+),\\s*(?<y>[^)]+)\\)$"),
     COLLECT("^collect\\s+\\((?<x>[^,]+),\\s*(?<y>[^)]+)\\)$"),
     GROW("^grow\\s+\\((?<x>[^,]+),\\s*(?<y>[^)]+)\\)$"),
-    ENTER_SHOP("^enter shop$"),;
+    ENTER_SHOP("^enter shop$");
 
     private final Pattern compiledPattern;
 

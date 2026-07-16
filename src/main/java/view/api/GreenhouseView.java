@@ -1,7 +1,9 @@
 package view.api;
 
 public interface GreenhouseView extends View {
-    void showGreenhouse();
+    void showCurrentMenu();
+
+    void showGreenhouse(String display);
 
     void showPlantPlantedInPot(int x, int y, String plantType);
 

@@ -1,10 +1,28 @@
 package controller;
 
 import model.command.GameMenuCommands;
+import model.user.User;
+import model.user.UserDatabase;
+import view.api.GameView;
 
 import java.util.regex.Matcher;
 
 public class GameController extends ViewController {
+    private final User user;
+    private final UserDatabase userDatabase;
+    private final MainMenuController mainMenuController;
+
+    public GameController(User user, UserDatabase userDatabase, MainMenuController mainMenuController) {
+        this.user = user;
+        this.userDatabase = userDatabase;
+        this.mainMenuController = mainMenuController;
+    }
+
+    @Override
+    public void displayMenu() {
+        getGameView().showGameMenu();
+    }
+
     @Override
     public void handleCommand(String input) {
         for (GameMenuCommands cmd : GameMenuCommands.values()) {
@@ -30,42 +48,66 @@ public class GameController extends ViewController {
     }
 
     private void handleMenuEnter(String menuName) {
-        // TODO: implement after game menu navigation is done.
+        view.displayError("Only greenhouse path is implemented in this phase.");
     }
 
     private void handleShowCurrent() {
-        // TODO: implement after game menu is done.
+        getGameView().showCurrentMenu();
     }
 
     private void handleMenuExit() {
-        // TODO: implement after menu navigation is done.
+        parser.switchController(mainMenuController);
     }
 
     private void handleEnterChapter(String chapterName) {
         // TODO: implement after Adventure is done.
+        view.displayError("Adventure is not implemented yet.");
     }
 
     private void handleGreenhouse() {
-        // TODO: implement after Greenhouse is done.
+        parser.switchController(new GreenhouseController(user, userDatabase, this));
     }
 
     private void handleTravelLog() {
         // TODO: implement after TravelLog is done.
+        view.displayError("Travel log is not implemented yet.");
     }
 
     private void handleLeaderboard() {
         // TODO: implement after Leaderboard is done.
+        view.displayError("Leaderboard is not implemented yet.");
     }
 
     private void handleCoinWallet() {
-        // TODO: implement after wallet system is done.
+        getGameView().showCoinWallet(user.getCoins());
     }
 
     private void handleGemWallet() {
-        // TODO: implement after wallet system is done.
+        getGameView().showGemWallet(user.getDiamonds());
     }
 
     private void handleCheatAdd(String n, String type) {
-        // TODO: implement after cheat system is done.
+        int amount;
+        try {
+            amount = Integer.parseInt(n);
+        } catch (NumberFormatException e) {
+            view.displayError("Invalid cheat amount.");
+            return;
+        }
+
+        if ("coin".equalsIgnoreCase(type)) {
+            user.addCoins(amount);
+        } else if ("diamond".equalsIgnoreCase(type)) {
+            user.addDiamonds(amount);
+        } else {
+            view.displayError("Invalid cheat type.");
+            return;
+        }
+        userDatabase.saveUserWallet(user);
+        getGameView().showCheatAdded(type, amount);
+    }
+
+    private GameView getGameView() {
+        return (GameView) view;
     }
 }
