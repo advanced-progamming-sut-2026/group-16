@@ -84,4 +84,9 @@ public class ProfileViewCli extends CliView implements ProfileView {
     public void promptNewPassword() {
         displayMessage("Please enter your new password.");
     }
+
+    @Override
+    public void errorInvalidCommand() {
+        displayError("Invalid profile command.");
+    }
 }

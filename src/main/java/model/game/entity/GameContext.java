@@ -1,5 +1,6 @@
 package model.game.entity;
 
+import model.game.board.tile.Tile;
 import model.game.entity.plant.Plant;
 import model.game.entity.plant.PlantCategory;
 import model.game.entity.plant.PlantCovering;
@@ -20,6 +21,14 @@ public interface GameContext {
     int getRowCount();
 
     int getColCount();
+
+    default Tile getTileAt(int col, int row) {
+        return null;
+    }
+
+    default boolean areZombiesImmuneToChill() {
+        return false;
+    }
 
     Plant getPlantAt(int col, int row);
 

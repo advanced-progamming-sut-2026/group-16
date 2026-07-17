@@ -31,7 +31,6 @@ public class GreenhouseViewCli extends CliView implements GreenhouseView {
         displayMessage("Growth accelerated for pot at (" + x + ", " + y + ") using " + diamondsSpent + " diamond(s).");
     }
 
-    // ====================== ERROR METHODS ======================
 
     // general greenhouse errors
     @Override
@@ -72,5 +71,10 @@ public class GreenhouseViewCli extends CliView implements GreenhouseView {
     @Override
     public void errorInvalidPotLocation(int x, int y) {
         displayError("Invalid pot location (" + x + ", " + y + ").");
+    }
+
+    @Override
+    public void errorInvalidCommand() {
+        displayError("Invalid greenhouse command.");
     }
 }

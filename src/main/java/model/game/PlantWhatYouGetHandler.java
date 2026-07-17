@@ -1,4 +1,10 @@
 package model.game;
 
-public class PlantWhatYouGetHandler implements SpecialLevelHandler{
+import model.adventure.LevelType;
+
+public final class PlantWhatYouGetHandler implements SpecialLevelHandler {
+    @Override
+    public LevelType getLevelType() {
+        return LevelType.PLANT_WHAT_YOU_GET;
+    }
 }

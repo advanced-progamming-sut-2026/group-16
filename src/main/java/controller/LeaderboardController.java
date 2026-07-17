@@ -1,5 +1,7 @@
 package controller;
 
+import view.api.LeaderboardView;
+
 public class LeaderboardController extends ViewController {
     @Override
     public void displayMenu() {
@@ -9,6 +11,10 @@ public class LeaderboardController extends ViewController {
     @Override
     public void handleCommand(String input) {
         // TODO: implement after LeaderboardMenuCommands is defined.
-        view.displayError("Invalid leaderboard command.");
+        getLeaderboardView().errorInvalidCommand();
+    }
+
+    private LeaderboardView getLeaderboardView() {
+        return (LeaderboardView) view;
     }
 }

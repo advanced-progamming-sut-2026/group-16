@@ -1,4 +1,4 @@
 package model.game.mode;
 
-public class ZombotanyMode extends AdventureMode {
+public class ZombotanyMode extends GameMode {
 }

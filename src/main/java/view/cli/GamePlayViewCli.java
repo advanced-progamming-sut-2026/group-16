@@ -18,15 +18,14 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
     // sun produced command
     @Override
     public void showSunProduced(Plant plant, int x, int y) {
-        // TODO: implement after the Plant class is done.
-        // displayMessage("plant " + plant.getType() + " produced a sun at (" + x + ", " + y + ")");
+        displayMessage("plant " + plant.getName() + " produced a sun at (" + x + ", " + y + ")");
     }
 
     // sun dropped command
     @Override
     public void showSunDropped(Sun sun, int x, int y) {
-        // TODO: implement after the Sun class is done.
-        // displayMessage("New " + /* sun type */ " sun is dropping at position (" + x + ", " + y + ")");
+        displayMessage("New " + sun.getType().name().toLowerCase()
+                + " sun is dropping at position (" + x + ", " + y + ")");
     }
 
     // sun reached ground command
@@ -62,8 +61,7 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
     // plant destroyed command
     @Override
     public void showPlantDestroyed(Plant plant, int x, int y) {
-        // TODO: implement after the Plant class is done.
-        // displayMessage("Plant " + plant.getType() + " at (" + x + ", " + y + ") is destroyed.");
+        displayMessage("Plant " + plant.getName() + " at (" + x + ", " + y + ") is destroyed.");
     }
 
     // lawn mower triggered command
@@ -168,7 +166,27 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
     // zombies info command
     @Override
     public void showZombiesInfo(List<Zombie> zombies) {
-        // TODO: implement after the Zombie class is done.
+        if (zombies == null || zombies.isEmpty()) {
+            displayMessage("No zombies on the board.");
+            return;
+        }
+        for (Zombie zombie : zombies) {
+            displayMessage(zombie.getType() + ":");
+            displayMessage("position: " + String.format("%.1f", zombie.getX())
+                    + ", " + zombie.getRow());
+            displayMessage("health: " + zombie.getHealth());
+            displayMessage("armor:");
+            for (var armor : zombie.getArmorLayers()) {
+                if (!armor.isDestroyed()) {
+                    displayMessage(armor.getType() + ": " + armor.getHealth());
+                }
+            }
+            displayMessage("effects:");
+            if (zombie.getFreezeTicksRemaining() > 0) {
+                displayMessage("frozen: "
+                        + String.format("%.1fs", zombie.getFreezeTicksRemaining() / 10.0));
+            }
+        }
     }
 
     // cheat spawn-zombie command
@@ -178,7 +196,6 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
                 + " is spawned at (" + String.format("%.1f", x) + ", " + (int) y + ")");
     }
 
-    // ====================== ERROR METHODS ======================
 
     // plant selection errors
     @Override
@@ -259,5 +276,51 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
     @Override
     public void errorGameNotStarted() {
         displayError("Please start the game first using 'start game'.");
+    }
+
+    @Override
+    public void errorInvalidCommand() {
+        displayError("Invalid gameplay command.");
+    }
+
+    @Override
+    public void errorInvalidTickCount() {
+        displayError("Invalid tick count.");
+    }
+
+    @Override
+    public void errorNegativeTickCount() {
+        displayError("Tick count must be non-negative.");
+    }
+
+    @Override
+    public void errorNoSunAt(int col, int row) {
+        displayError("No sun at (" + col + ", " + row + ").");
+    }
+
+    @Override
+    public void errorInvalidSunCount() {
+        displayError("Invalid sun count.");
+    }
+
+    @Override
+    public void errorInvalidZombieLocation() {
+        displayError("Invalid zombie location.");
+    }
+
+    @Override
+    public void errorZombieSpawnFailed(String message) {
+        displayError(message);
+    }
+
+    @Override
+    public void showLawnMowerKilledZombie(String zombieType) {
+        displayMessage("- " + zombieType);
+    }
+
+    @Override
+    public void showGraveCreated(int col, int row, String lootType) {
+        String detail = "NONE".equals(lootType) ? "" : " (loot: " + lootType + ")";
+        displayMessage("A grave appeared at (" + col + ", " + row + ")" + detail + ".");
     }
 }

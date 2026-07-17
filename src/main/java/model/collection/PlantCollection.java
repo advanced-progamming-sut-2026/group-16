@@ -118,8 +118,10 @@ public final class PlantCollection {
             return;
         }
         addCoins(reward.getCoins());
-        if (reward.getSeedPacketPlantId() != null && reward.getSeedPacketCount() > 0) {
-            addSeedPackets(reward.getSeedPacketPlantId(), reward.getSeedPacketCount());
+        String seedPlant = reward.getSeedPacketPlantId();
+        if (seedPlant != null && reward.getSeedPacketCount() > 0
+                && !"ANY".equalsIgnoreCase(seedPlant)) {
+            addSeedPackets(seedPlant, reward.getSeedPacketCount());
         }
         if (reward.getUnlockTargetId() != null
                 && !"RANDOM_PLANT".equals(reward.getUnlockTargetId())) {

@@ -14,7 +14,8 @@ public class MainMenuController extends ViewController {
     private final RegistrationController registrationController;
     private final UserDatabase userDatabase;
 
-    public MainMenuController(User activeUser, RegistrationController registrationController, UserDatabase userDatabase) {
+    public
+    MainMenuController(User activeUser, RegistrationController registrationController, UserDatabase userDatabase) {
         this.activeUser = activeUser;
         this.registrationController = registrationController;
         this.userDatabase = userDatabase;
@@ -45,7 +46,8 @@ public class MainMenuController extends ViewController {
     private void handleMenuEnter(String menuName) {
         switch (normalizeMenuName(menuName)) {
             case "game" -> parser.switchController(new GameController(activeUser, userDatabase, this));
-            case "settings" -> parser.switchController(new SettingController());
+            case "settings" -> parser.switchController(
+                    new SettingController(activeUser, userDatabase, this));
             case "news" -> parser.switchController(new NewsController());
             case "profile" -> {
                 ProfileController profileController = new ProfileController();

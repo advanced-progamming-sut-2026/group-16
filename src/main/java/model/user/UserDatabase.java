@@ -57,6 +57,8 @@ public class UserDatabase {
             stmt.execute(sql);
             stmt.execute(plantSql);
             UserProgressStore.createTables();
+            QuestProgressStore.createTables();
+            AdventureProgressStore.createTables();
         } catch (SQLException e) {
             throw new RuntimeException("Could not create the database.", e);
         }
@@ -91,6 +93,7 @@ public class UserDatabase {
             }
             replacePlantProgress(conn, user);
             UserProgressStore.initializeUserProgress(conn, user);
+            AdventureProgressStore.save(conn, user);
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not register user.", e);
@@ -183,7 +186,45 @@ public class UserDatabase {
         user.setSecurityAnswerHash(rs.getString("securityAnswerHash"));
         user.setPlantProgress(loadPlantProgress(conn, user.getId()));
         UserProgressStore.loadUserProgress(conn, user);
+        AdventureProgressStore.load(conn, user);
         return user;
+    }
+
+    public void saveAdventureProgress(User user) {
+        if (user == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            AdventureProgressStore.save(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save adventure progress.", e);
+        }
+    }
+
+    public void loadQuestProgress(User user, model.quest.QuestTracker tracker) {
+        if (user == null || tracker == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            QuestProgressStore.loadQuestProgress(conn, user, tracker);
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not load quest progress.", e);
+        }
+    }
+
+    public void saveQuestProgress(User user) {
+        if (user == null || user.getQuestTracker() == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            QuestProgressStore.saveQuestProgress(conn, user, user.getQuestTracker());
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save quest progress.", e);
+        }
     }
 
     public void savePlantProgress(User user) {

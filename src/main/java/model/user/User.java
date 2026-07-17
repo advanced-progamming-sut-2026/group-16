@@ -1,6 +1,7 @@
 package model.user;
 
 import model.collection.PlayerPlantProgress;
+import model.quest.QuestTracker;
 import util.HashUtil;
 
 import java.time.LocalDate;
@@ -22,11 +23,14 @@ public class User {
     private int coins;
     private int diamonds;
     private int plantFood;
+    private int difficultyLevel = 3;
+    private final ChapterProgress chapterProgress = new ChapterProgress();
     private final List<GreenhousePot> greenhousePots = new ArrayList<>();
     private final Set<String> storedBoosts = new LinkedHashSet<>();
     private String dailyOfferPlant;
     private LocalDate dailyOfferDate;
     private boolean dailyOfferPurchased;
+    private QuestTracker questTracker;
 
     public User() {
 
@@ -173,6 +177,33 @@ public class User {
 
     public void setPlantFood(int plantFood) {
         this.plantFood = Math.max(0, plantFood);
+    }
+
+    public int getDifficultyLevel() {
+        return difficultyLevel;
+    }
+
+    public void setDifficultyLevel(int difficultyLevel) {
+        this.difficultyLevel = Math.max(1, Math.min(5, difficultyLevel));
+    }
+
+    public ChapterProgress getChapterProgress() {
+        return chapterProgress;
+    }
+
+    public QuestTracker getQuestTracker() {
+        return questTracker;
+    }
+
+    public void setQuestTracker(QuestTracker questTracker) {
+        this.questTracker = questTracker;
+    }
+
+    public QuestTracker ensureQuestTracker() {
+        if (questTracker == null) {
+            questTracker = model.quest.QuestService.createTrackerFor(this, null);
+        }
+        return questTracker;
     }
 
     public List<GreenhousePot> getGreenhousePots() {

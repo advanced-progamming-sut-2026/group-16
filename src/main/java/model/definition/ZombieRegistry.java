@@ -6,6 +6,7 @@ import model.definition.zombie.ZombieDefinition;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,9 +35,29 @@ public final class ZombieRegistry {
         }
     }
 
+    public void loadFromJson(InputStream input) throws IOException {
+        List<ZombieDefinition> loaded = mapper.readValue(
+                input,
+                mapper.getTypeFactory().constructCollectionType(List.class, ZombieDefinition.class)
+        );
+        for (ZombieDefinition def : loaded) {
+            definitions.put(def.getAlias(), def);
+        }
+    }
+
     public void loadArmorFromJson(String filePath) throws IOException {
         List<ArmorDefinition> loaded = mapper.readValue(
                 new File(filePath),
+                mapper.getTypeFactory().constructCollectionType(List.class, ArmorDefinition.class)
+        );
+        for (ArmorDefinition def : loaded) {
+            armorDefinitions.put(def.getAlias(), def);
+        }
+    }
+
+    public void loadArmorFromJson(InputStream input) throws IOException {
+        List<ArmorDefinition> loaded = mapper.readValue(
+                input,
                 mapper.getTypeFactory().constructCollectionType(List.class, ArmorDefinition.class)
         );
         for (ArmorDefinition def : loaded) {

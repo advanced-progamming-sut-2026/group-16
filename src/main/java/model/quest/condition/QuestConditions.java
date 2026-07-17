@@ -43,6 +43,23 @@ public final class QuestConditions {
         public String describe() {
             return "Collect " + targetSun + " sun in a single session (collected: " + collected + ")";
         }
+
+        @Override
+        public String serializeProgress() {
+            return Integer.toString(collected);
+        }
+
+        @Override
+        public void deserializeProgress(String data) {
+            if (data == null || data.isBlank()) {
+                return;
+            }
+            try {
+                collected = Integer.parseInt(data.trim());
+            } catch (NumberFormatException ignored) {
+                // keep default
+            }
+        }
     }
 
     // ======================================================================
@@ -79,6 +96,23 @@ public final class QuestConditions {
         @Override
         public String describe() {
             return "Kill " + targetCount + " zombies in chapter " + chapterId + " (killed: " + killed + ")";
+        }
+
+        @Override
+        public String serializeProgress() {
+            return Integer.toString(killed);
+        }
+
+        @Override
+        public void deserializeProgress(String data) {
+            if (data == null || data.isBlank()) {
+                return;
+            }
+            try {
+                killed = Integer.parseInt(data.trim());
+            } catch (NumberFormatException ignored) {
+                // keep default
+            }
         }
     }
 
@@ -244,9 +278,6 @@ public final class QuestConditions {
         // plantTypeAt[row][col] — injected by controller before GameFinished
         private String[][] boardSnapshot;
 
-        /**
-         * Call this before publishing GameFinished so the condition can evaluate.
-         */
         public void setBoardSnapshot(String[][] board) {
             this.boardSnapshot = board;
         }
@@ -452,6 +483,23 @@ public final class QuestConditions {
         @Override
         public String describe() {
             return "Win " + requiredWins + " consecutive levels (streak: " + streak + ")";
+        }
+
+        @Override
+        public String serializeProgress() {
+            return Integer.toString(streak);
+        }
+
+        @Override
+        public void deserializeProgress(String data) {
+            if (data == null || data.isBlank()) {
+                return;
+            }
+            try {
+                streak = Integer.parseInt(data.trim());
+            } catch (NumberFormatException ignored) {
+                // keep default
+            }
         }
     }
 

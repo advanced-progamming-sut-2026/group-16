@@ -1,5 +1,6 @@
 package model.game.entity.zombie.behavior;
 
+import model.game.SlipperyTile;
 import model.game.entity.*;
 import model.game.entity.plant.Plant;
 import model.game.entity.plant.PlantCategory;
@@ -72,12 +73,35 @@ public final class MovementBehavior implements ZombieBehavior {
         double stepPerTick = zombie.getCurrentSpeed() / context.getTicksPerSecond();
         if (zombie.isMovingRight()) {
             zombie.moveRight(stepPerTick);
-            return;
+        } else {
+            zombie.moveLeft(stepPerTick);
         }
-        zombie.moveLeft(stepPerTick);
+        applySlipperyTile(zombie, context);
 
-        if (zombie.getX() <= 0.0) {
+        if (!zombie.isMovingRight() && zombie.getX() <= 0.0) {
             context.onZombieReachedHouse(zombie);
         }
+    }
+
+    private void applySlipperyTile(Zombie zombie, GameContext context) {
+        if (zombie.isDodoBypass()) {
+            return;
+        }
+        int col = (int) Math.floor(zombie.getX());
+        int row = zombie.getRow();
+        var tile = context.getTileAt(col, row);
+        if (!(tile instanceof SlipperyTile slippery)) {
+            return;
+        }
+        int newRow = row;
+        if (slippery.getDirection() == model.game.SlipperyTile.SlipDirection.UP) {
+            newRow = row - 1;
+        } else {
+            newRow = row + 1;
+        }
+        if (newRow < 0 || newRow >= context.getRowCount()) {
+            return;
+        }
+        zombie.setRow(newRow);
     }
 }

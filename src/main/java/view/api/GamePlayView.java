@@ -6,7 +6,7 @@ import model.item.Sun;
 
 import java.util.List;
 
-public interface GamePlayView {
+public interface GamePlayView extends View {
 
     void showAdvanceTime(int ticks);
 
@@ -62,7 +62,6 @@ public interface GamePlayView {
 
     void showCheatSpawnZombie(String zombieType, double x, double y);
 
-    // ====================== ERROR METHODS ======================
 
     void errorPlantNotSelected(String type);
 
@@ -93,4 +92,22 @@ public interface GamePlayView {
     void errorNotEnoughDiamonds();
 
     void errorGameNotStarted();
+
+    void errorInvalidCommand();
+
+    void errorInvalidTickCount();
+
+    void errorNegativeTickCount();
+
+    void errorNoSunAt(int col, int row);
+
+    void errorInvalidSunCount();
+
+    void errorInvalidZombieLocation();
+
+    void errorZombieSpawnFailed(String message);
+
+    void showLawnMowerKilledZombie(String zombieType);
+
+    void showGraveCreated(int col, int row, String lootType);
 }

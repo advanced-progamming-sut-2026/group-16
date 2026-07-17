@@ -1,16 +1,37 @@
 package controller;
 
 import model.command.TravelLogMenuCommands;
+import model.quest.Quest;
+import model.quest.QuestTracker;
+import model.user.User;
+import view.api.TravelLogView;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 
 public class TravelLogController extends ViewController {
+    private final User user;
+    private final GameController gameController;
+
+    public TravelLogController(User user, GameController gameController) {
+        this.user = user;
+        this.gameController = gameController;
+    }
+
+    @Override
+    public void displayMenu() {
+        getTravelLogView().showCurrentMenu();
+        handleTravelLogPage("daily");
+    }
+
     @Override
     public void handleCommand(String input) {
         for (TravelLogMenuCommands cmd : TravelLogMenuCommands.values()) {
             Matcher matcher = cmd.getMatcher(input);
-            if (matcher == null)
+            if (matcher == null) {
                 continue;
+            }
 
             switch (cmd) {
                 case MENU_SHOW_CURRENT -> handleShowCurrent();
@@ -19,18 +40,62 @@ public class TravelLogController extends ViewController {
             }
             return;
         }
-        view.displayError("Invalid travel log command.");
+        getTravelLogView().errorInvalidCommand();
     }
 
     private void handleShowCurrent() {
-        // TODO: implement after TravelLog is done.
+        getTravelLogView().showCurrentMenu();
     }
 
     private void handleMenuExit() {
-        // TODO: implement after menu navigation is done.
+        parser.switchController(gameController);
     }
 
     private void handleTravelLogPage(String pageName) {
-        // TODO: implement after TravelLog is done.
+        if (pageName == null || pageName.isBlank()) {
+            getTravelLogView().errorPageNameRequired();
+            return;
+        }
+        String page = pageName.trim().toLowerCase();
+        QuestTracker tracker = user.ensureQuestTracker();
+        List<Quest> quests;
+        String title;
+        switch (page) {
+            case "daily" -> {
+                quests = tracker.getDailyQuests();
+                title = "Daily";
+            }
+            case "main" -> {
+                quests = tracker.getMainQuests();
+                title = "Main";
+            }
+            case "epic", "epic challenge", "epic-challenge" -> {
+                quests = tracker.getEpicQuests();
+                title = "Epic";
+            }
+            default -> {
+                getTravelLogView().errorUnknownPage(pageName);
+                return;
+            }
+        }
+        List<String> lines = new ArrayList<>();
+        for (Quest quest : quests) {
+            lines.add(formatQuestLine(quest));
+        }
+        getTravelLogView().showTravelLogPage(title, lines);
+    }
+
+    private static String formatQuestLine(Quest quest) {
+        String status = quest.isCompleted() ? "DONE" : "OPEN";
+        return String.format("%s | %s | %s | %s | Reward: %s",
+                quest.getId(),
+                quest.getTitle(),
+                quest.getProgressDescription(),
+                status,
+                quest.getReward().describe());
+    }
+
+    private TravelLogView getTravelLogView() {
+        return (TravelLogView) view;
     }
 }

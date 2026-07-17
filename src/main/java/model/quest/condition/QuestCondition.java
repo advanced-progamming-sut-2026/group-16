@@ -10,4 +10,12 @@ public interface QuestCondition {
     void reset();
 
     String describe();
+
+    default String serializeProgress() {
+        return "";
+    }
+
+    default void deserializeProgress(String data) {
+
+    }
 }
