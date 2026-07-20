@@ -1,7 +1,7 @@
 package view.api;
 
 public interface MainMenuView extends View {
-    void showMainMenu(String nickname);
+    void showMainMenu(String nickname, boolean hasUnreadNews);
 
     void showCurrentMenu();
 

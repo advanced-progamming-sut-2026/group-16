@@ -47,12 +47,52 @@ public final class UserProgressStore {
                     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
                 );
                 """;
+        String newsSql = """
+                CREATE TABLE IF NOT EXISTS user_news (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    userId INTEGER NOT NULL,
+                    type TEXT NOT NULL,
+                    subject TEXT,
+                    message TEXT NOT NULL,
+                    createdAtMillis INTEGER NOT NULL,
+                    isRead INTEGER NOT NULL CHECK(isRead IN (0, 1)),
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                );
+                """;
+        String zombiesSql = """
+                CREATE TABLE IF NOT EXISTS user_unlocked_zombies (
+                    userId INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    PRIMARY KEY (userId, name),
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                );
+                """;
+        String levelsSql = """
+                CREATE TABLE IF NOT EXISTS user_unlocked_levels (
+                    userId INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    PRIMARY KEY (userId, name),
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                );
+                """;
+        String minigamesSql = """
+                CREATE TABLE IF NOT EXISTS user_unlocked_minigames (
+                    userId INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    PRIMARY KEY (userId, name),
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                );
+                """;
 
         try (Connection conn = DatabaseUtil.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(walletSql);
             stmt.execute(potSql);
             stmt.execute(boostSql);
+            stmt.execute(newsSql);
+            stmt.execute(zombiesSql);
+            stmt.execute(levelsSql);
+            stmt.execute(minigamesSql);
         } catch (SQLException e) {
             throw new RuntimeException("Could not create user progress tables.", e);
         }
@@ -67,6 +107,10 @@ public final class UserProgressStore {
         loadWallet(conn, user);
         loadGreenhousePots(conn, user);
         loadStoredBoosts(conn, user);
+        loadNews(conn, user);
+        loadUnlockSet(conn, user, "user_unlocked_zombies", user.getUnlockedZombies());
+        loadUnlockSet(conn, user, "user_unlocked_levels", user.getUnlockedLevels());
+        loadUnlockSet(conn, user, "user_unlocked_minigames", user.getUnlockedMinigames());
         if (user.getGreenhousePots().isEmpty()) {
             for (int y = 1; y <= 4; y++) {
                 for (int x = 1; x <= 5; x++) {
@@ -80,6 +124,10 @@ public final class UserProgressStore {
         saveWallet(conn, user);
         saveGreenhousePots(conn, user);
         saveStoredBoosts(conn, user);
+        saveNews(conn, user);
+        saveUnlockSet(conn, user, "user_unlocked_zombies", user.getUnlockedZombies());
+        saveUnlockSet(conn, user, "user_unlocked_levels", user.getUnlockedLevels());
+        saveUnlockSet(conn, user, "user_unlocked_minigames", user.getUnlockedMinigames());
     }
 
     private static void loadWallet(Connection conn, User user) throws SQLException {
@@ -203,6 +251,88 @@ public final class UserProgressStore {
             for (String plantType : user.getStoredBoosts()) {
                 insert.setLong(1, user.getId());
                 insert.setString(2, plantType);
+                insert.addBatch();
+            }
+            insert.executeBatch();
+        }
+    }
+
+    private static void loadNews(Connection conn, User user) throws SQLException {
+        String sql = """
+                SELECT id, type, subject, message, createdAtMillis, isRead
+                FROM user_news
+                WHERE userId = ?
+                ORDER BY createdAtMillis ASC, id ASC
+                """;
+        user.getNewsItems().clear();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setLong(1, user.getId());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    NewsItem item = new NewsItem(
+                            NewsType.valueOf(rs.getString("type")),
+                            rs.getString("subject"),
+                            rs.getString("message"),
+                            rs.getLong("createdAtMillis"),
+                            rs.getInt("isRead") == 1
+                    );
+                    item.setId(rs.getLong("id"));
+                    user.getNewsItems().add(item);
+                }
+            }
+        }
+        NewsManager.syncNextIdFrom(user.getNewsItems());
+    }
+
+    private static void saveNews(Connection conn, User user) throws SQLException {
+        try (PreparedStatement delete = conn.prepareStatement("DELETE FROM user_news WHERE userId = ?")) {
+            delete.setLong(1, user.getId());
+            delete.executeUpdate();
+        }
+        String sql = """
+                INSERT INTO user_news (id, userId, type, subject, message, createdAtMillis, isRead)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """;
+        try (PreparedStatement insert = conn.prepareStatement(sql)) {
+            for (NewsItem item : user.getNewsItems()) {
+                insert.setLong(1, item.getId());
+                insert.setLong(2, user.getId());
+                insert.setString(3, item.getType().name());
+                insert.setString(4, item.getSubject());
+                insert.setString(5, item.getMessage());
+                insert.setLong(6, item.getCreatedAtMillis());
+                insert.setInt(7, item.isRead() ? 1 : 0);
+                insert.addBatch();
+            }
+            insert.executeBatch();
+        }
+    }
+
+    private static void loadUnlockSet(Connection conn, User user, String tableName, java.util.Set<String> target)
+            throws SQLException {
+        target.clear();
+        String sql = "SELECT name FROM " + tableName + " WHERE userId = ? ORDER BY name";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setLong(1, user.getId());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    target.add(rs.getString("name"));
+                }
+            }
+        }
+    }
+
+    private static void saveUnlockSet(Connection conn, User user, String tableName, java.util.Set<String> values)
+            throws SQLException {
+        try (PreparedStatement delete = conn.prepareStatement("DELETE FROM " + tableName + " WHERE userId = ?")) {
+            delete.setLong(1, user.getId());
+            delete.executeUpdate();
+        }
+        String sql = "INSERT INTO " + tableName + " (userId, name) VALUES (?, ?)";
+        try (PreparedStatement insert = conn.prepareStatement(sql)) {
+            for (String name : values) {
+                insert.setLong(1, user.getId());
+                insert.setString(2, name);
                 insert.addBatch();
             }
             insert.executeBatch();

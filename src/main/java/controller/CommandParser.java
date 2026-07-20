@@ -10,6 +10,7 @@ import view.cli.GamePlayViewCli;
 import view.cli.GameViewCli;
 import view.cli.GreenhouseViewCli;
 import view.cli.MainMenuViewCli;
+import view.cli.NewsViewCli;
 import view.cli.PlantSelectionViewCli;
 import view.cli.ProfileViewCli;
 import view.cli.ShopViewCli;
@@ -23,6 +24,7 @@ public class CommandParser {
     private final GameViewCli gameView;
     private final GreenhouseViewCli greenhouseView;
     private final MainMenuViewCli mainMenuView;
+    private final NewsViewCli newsView;
     private final ProfileViewCli profileView;
     private final ShopViewCli shopView;
     private final AdventureViewCli adventureView;
@@ -39,6 +41,7 @@ public class CommandParser {
         gameView = new GameViewCli();
         greenhouseView = new GreenhouseViewCli();
         mainMenuView = new MainMenuViewCli();
+        newsView = new NewsViewCli();
         profileView = new ProfileViewCli();
         shopView = new ShopViewCli();
         adventureView = new AdventureViewCli();
@@ -136,6 +139,8 @@ public class CommandParser {
             newController.setView(travelLogView);
         } else if (newController instanceof SettingController) {
             newController.setView(settingView);
+        } else if (newController instanceof NewsController) {
+            newController.setView(newsView);
         } else if (newController.getView() == null) {
             newController.setView(authView);
         }

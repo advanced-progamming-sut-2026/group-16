@@ -23,7 +23,7 @@ public class MainMenuController extends ViewController {
 
     @Override
     public void displayMenu() {
-        getMainMenuView().showMainMenu(activeUser.getNickname());
+        getMainMenuView().showMainMenu(activeUser.getNickname(), activeUser.hasUnreadNews());
     }
 
     @Override
@@ -48,7 +48,7 @@ public class MainMenuController extends ViewController {
             case "game" -> parser.switchController(new GameController(activeUser, userDatabase, this));
             case "settings" -> parser.switchController(
                     new SettingController(activeUser, userDatabase, this));
-            case "news" -> parser.switchController(new NewsController());
+            case "news" -> parser.switchController(new NewsController(activeUser, userDatabase, this));
             case "profile" -> {
                 ProfileController profileController = new ProfileController();
                 profileController.setMainMenuController(this);

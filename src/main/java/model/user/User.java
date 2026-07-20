@@ -31,6 +31,10 @@ public class User {
     private LocalDate dailyOfferDate;
     private boolean dailyOfferPurchased;
     private QuestTracker questTracker;
+    private final List<NewsItem> newsItems = new ArrayList<>();
+    private final Set<String> unlockedZombies = new LinkedHashSet<>();
+    private final Set<String> unlockedLevels = new LinkedHashSet<>();
+    private final Set<String> unlockedMinigames = new LinkedHashSet<>();
 
     public User() {
 
@@ -268,6 +272,26 @@ public class User {
 
     public void setDailyOfferPurchased(boolean dailyOfferPurchased) {
         this.dailyOfferPurchased = dailyOfferPurchased;
+    }
+
+    public List<NewsItem> getNewsItems() {
+        return newsItems;
+    }
+
+    public boolean hasUnreadNews() {
+        return new NewsManager().hasUnread(this);
+    }
+
+    public Set<String> getUnlockedZombies() {
+        return unlockedZombies;
+    }
+
+    public Set<String> getUnlockedLevels() {
+        return unlockedLevels;
+    }
+
+    public Set<String> getUnlockedMinigames() {
+        return unlockedMinigames;
     }
 
     @Override
