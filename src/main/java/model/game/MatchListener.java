@@ -59,4 +59,13 @@ public interface MatchListener {
 
     default void onConveyorBeltPlantArrived(String plantName) {
     }
+
+    default void onProtectedSeedDestroyed(Plant plant, int x, int y) {
+    }
+
+    default void onTimedWarTimeUp() {
+    }
+
+    default void onTimedWarGoalReached(TimedWarMode mode, int progress) {
+    }
 }

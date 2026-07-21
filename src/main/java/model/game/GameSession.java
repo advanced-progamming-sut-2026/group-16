@@ -54,6 +54,12 @@ public final class GameSession {
     private final List<String> conveyorBeltPlants = new ArrayList<>();
     private boolean conveyorBeltActive;
     private final Set<String> levelLockedPlants = new HashSet<>();
+    private final Set<String> protectedSeedPlantIds = new HashSet<>();
+    private final List<SeedPlacement> protectedSeedPlacements = new ArrayList<>();
+    private boolean timedWarActive;
+    private TimedWarRules timedWarRules;
+    private int timedWarTicksElapsed;
+    private int timedWarProgress;
     private SpecialLevelHandler activeSpecialLevelHandler;
 
     private final List<LawnMower> lawnMowers = new ArrayList<>();
@@ -262,6 +268,78 @@ public final class GameSession {
 
     public boolean isLevelLockedPlant(String plantName) {
         return plantName != null && levelLockedPlants.contains(plantName);
+    }
+
+    public Plant placeProtectedSeed(String plantName, int col, int row) {
+        PlantDefinition definition = plantRegistry.getDefinition(plantName);
+        if (definition == null) {
+            throw new IllegalArgumentException("Unknown plant: " + plantName);
+        }
+        Plant plant = plantFactory.create(definition, 1, col, row);
+        board.placePlant(plant);
+        plant.onPlanted(context);
+        protectedSeedPlantIds.add(plant.getId());
+        protectedSeedPlacements.add(new SeedPlacement(plantName, col, row));
+        return plant;
+    }
+
+    public boolean isProtectedSeed(Plant plant) {
+        return plant != null && protectedSeedPlantIds.contains(plant.getId());
+    }
+
+    public List<SeedPlacement> getProtectedSeedPlacements() {
+        return List.copyOf(protectedSeedPlacements);
+    }
+
+    public List<Integer> getDangerRows() {
+        Set<Integer> rows = new LinkedHashSet<>();
+        for (SeedPlacement placement : protectedSeedPlacements) {
+            rows.add(placement.getRow());
+        }
+        return List.copyOf(rows);
+    }
+
+    public void activateTimedWar(TimedWarRules rules) {
+        if (rules == null || !rules.isActiveRules()) {
+            timedWarActive = false;
+            timedWarRules = null;
+            timedWarTicksElapsed = 0;
+            timedWarProgress = 0;
+            return;
+        }
+        timedWarActive = true;
+        timedWarRules = rules;
+        timedWarTicksElapsed = 0;
+        timedWarProgress = 0;
+    }
+
+    public boolean isTimedWarActive() {
+        return timedWarActive;
+    }
+
+    public TimedWarRules getTimedWarRules() {
+        return timedWarRules;
+    }
+
+    public int getTimedWarProgress() {
+        return timedWarProgress;
+    }
+
+    public int getTimedWarRemainingTicks() {
+        if (!timedWarActive || timedWarRules == null) {
+            return 0;
+        }
+        return Math.max(0, timedWarRules.getDurationTicks() - timedWarTicksElapsed);
+    }
+
+    public boolean isTimedWarGoalMet() {
+        return timedWarActive && timedWarRules != null && timedWarRules.isGoalMet(timedWarProgress);
+    }
+
+    public void advanceTimedWarTick() {
+        if (timedWarActive) {
+            timedWarTicksElapsed++;
+        }
     }
 
     public void setChapterId(String chapterId) {
@@ -673,7 +751,13 @@ public final class GameSession {
     }
 
     public void spawnSunItem(Sun sun) {
+        if (sun == null) {
+            return;
+        }
         sunItems.add(sun);
+        if (timedWarActive && timedWarRules != null && timedWarRules.getMode() == TimedWarMode.SUN) {
+            timedWarProgress += Math.max(0, sun.getValue());
+        }
     }
 
     public Plant createClone(Plant source, int col, int row) {
@@ -740,6 +824,9 @@ public final class GameSession {
         zombie.runDeathBehaviors(context);
         if (!killedZombieIds.add(zombie.getId())) {
             return;
+        }
+        if (timedWarActive && timedWarRules != null && timedWarRules.getMode() == TimedWarMode.KILL) {
+            timedWarProgress++;
         }
         if (matchListener != null) {
             matchListener.onZombieDied(zombie.getType(), zombie.getX(), zombie.getRow());
@@ -823,6 +910,9 @@ public final class GameSession {
 
     private void checkWinCondition() {
         if (matchResult != MatchResult.IN_PROGRESS || waveManager == null) {
+            return;
+        }
+        if (timedWarActive) {
             return;
         }
         if (waveManager.areAllWavesCleared() && getLivingZombieCount() == 0) {

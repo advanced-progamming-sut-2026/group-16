@@ -1,5 +1,8 @@
 package controller;
 
+import model.App;
+import model.adventure.ChapterId;
+import model.user.User;
 import model.user.UserDatabase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -160,6 +163,98 @@ class CliAdventureSmokeTest {
                 "menu exit"
         );
 
+        assertDoesNotThrow(() -> {
+            for (String line : gameplayInputs) {
+                parser.parseAndExecute(line);
+            }
+        });
+
+        assertInstanceOf(AdventureController.class, parser.getCurrentController());
+    }
+
+    @Test
+    @Order(4)
+    void saveOurSeedsLevelPlacesProtectedSeedsAndEntersGameplay() {
+        CommandParser parser = new CommandParser();
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+
+        User user = App.getInstance().getCurrentUser();
+        assertNotNull(user);
+        user.getChapterProgress().setUnlockedChapter(ChapterId.FROSTBITE_CAVES);
+        UserDatabase.getInstance().saveAdventureProgress(user);
+
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu enter chapter -c Frostbite Caves");
+        parser.parseAndExecute("start level -n 2");
+        assertInstanceOf(PlantSelectionController.class, parser.getCurrentController());
+
+        List<String> selectionInputs = List.of(
+                "show available plants",
+                "add plant -t Sunflower",
+                "add plant -t Peashooter",
+                "start game"
+        );
+        assertDoesNotThrow(() -> {
+            for (String line : selectionInputs) {
+                parser.parseAndExecute(line);
+            }
+        });
+
+        assertInstanceOf(SaveOurSeedsLevelController.class, parser.getCurrentController());
+
+        List<String> gameplayInputs = List.of(
+                "show map",
+                "cheat add -n 500 suns",
+                "plant plant -t Peashooter -l (0, 0)",
+                "menu exit"
+        );
+        assertDoesNotThrow(() -> {
+            for (String line : gameplayInputs) {
+                parser.parseAndExecute(line);
+            }
+        });
+
+        assertInstanceOf(AdventureController.class, parser.getCurrentController());
+    }
+
+    @Test
+    @Order(5)
+    void timedWarLevelEntersGameplayWithTimerStatus() {
+        CommandParser parser = new CommandParser();
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+
+        User user = App.getInstance().getCurrentUser();
+        assertNotNull(user);
+        user.getChapterProgress().setUnlockedChapter(ChapterId.FROSTBITE_CAVES);
+        UserDatabase.getInstance().saveAdventureProgress(user);
+
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu enter chapter -c Frostbite Caves");
+        parser.parseAndExecute("start level -n 3");
+        assertInstanceOf(PlantSelectionController.class, parser.getCurrentController());
+
+        List<String> selectionInputs = List.of(
+                "show available plants",
+                "add plant -t Sunflower",
+                "add plant -t Peashooter",
+                "start game"
+        );
+        assertDoesNotThrow(() -> {
+            for (String line : selectionInputs) {
+                parser.parseAndExecute(line);
+            }
+        });
+
+        assertInstanceOf(TimedWarLevelController.class, parser.getCurrentController());
+
+        List<String> gameplayInputs = List.of(
+                "show map",
+                "cheat add -n 500 suns",
+                "plant plant -t Peashooter -l (0, 0)",
+                "menu exit"
+        );
         assertDoesNotThrow(() -> {
             for (String line : gameplayInputs) {
                 parser.parseAndExecute(line);
