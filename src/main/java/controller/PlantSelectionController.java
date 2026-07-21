@@ -8,6 +8,7 @@ import model.command.PlantSelectionMenuCommands;
 import model.definition.PlantRegistry;
 import model.definition.ZombieRegistry;
 import model.game.GameSession;
+import model.game.entity.plant.PlantCategory;
 import model.game.mode.AdventureMode;
 import model.quest.QuestTracker;
 import model.user.User;
@@ -16,11 +17,7 @@ import view.api.PlantSelectionView;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 
 public class PlantSelectionController extends ViewController {
@@ -94,12 +91,22 @@ public class PlantSelectionController extends ViewController {
     }
 
     protected void handleShowAvailablePlants() {
-        getViewApi().showAvailablePlants(user.getPlantProgress().getUnlockedPlantNames());
+        List<String> available = user.getPlantProgress().getUnlockedPlantNames();
+        if (level.getType() == LevelType.PLANT_WHAT_YOU_GET) {
+            available = available.stream()
+                    .filter(name -> !isSunProducer(name))
+                    .toList();
+        }
+        getViewApi().showAvailablePlants(available);
     }
 
     protected void handleAddPlant(String type) {
         if (plantRegistry.getDefinition(type) == null) {
             getViewApi().errorPlantNotFound(type);
+            return;
+        }
+        if (level.getType() == LevelType.PLANT_WHAT_YOU_GET && isSunProducer(type)) {
+            getViewApi().errorSunProducerBanned(type);
             return;
         }
         if (!user.getPlantProgress().isOwned(type)) {
@@ -116,6 +123,12 @@ public class PlantSelectionController extends ViewController {
         }
         selected.add(type);
         getViewApi().showPlantAdded(type);
+    }
+
+    private boolean isSunProducer(String plantName) {
+        var definition = plantRegistry.getDefinition(plantName);
+        return definition != null
+                && PlantCategory.SUN_PRODUCER.name().equalsIgnoreCase(definition.getCategory());
     }
 
     private void handleRemovePlant(String type) {
@@ -165,10 +178,10 @@ public class PlantSelectionController extends ViewController {
         getViewApi().showGameStarted();
         GamePlayController gameplay = level.getType() == LevelType.NORMAL
                 ? new GamePlayController(
-                        user, userDatabase, adventureController, mode, session, chapter, level, boosted)
+                user, userDatabase, adventureController, mode, session, chapter, level, boosted)
                 : SpecialLevelControllerFactory.create(
-                        level.getType(), user, userDatabase, adventureController, mode, session, chapter, level,
-                        boosted);
+                level.getType(), user, userDatabase, adventureController, mode, session, chapter, level,
+                boosted);
         parser.switchController(gameplay);
         session.start();
     }

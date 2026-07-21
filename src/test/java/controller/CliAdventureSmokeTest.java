@@ -378,6 +378,37 @@ class CliAdventureSmokeTest {
                 output);
     }
 
+    @Test
+    @Order(9)
+    void plantWhatYouGetLevelBansSunflowersAndUsesPrepPhase() {
+        CommandParser parser = new CommandParser();
+        loginAndUnlockChapter(parser, ChapterId.DARK_AGES);
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu enter chapter -c Dark Ages");
+        parser.parseAndExecute("start level -n 3");
+
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(captured));
+        try {
+            parser.parseAndExecute("add plant -t Sunflower");
+            parser.parseAndExecute("add plant -t Peashooter");
+            parser.parseAndExecute("add plant -t Wall-nut");
+            parser.parseAndExecute("start game");
+            assertInstanceOf(PlantWhatYouGetLevelController.class, parser.getCurrentController());
+            parser.parseAndExecute("plant plant -t Peashooter -l (4, 2)");
+            parser.parseAndExecute("plant plant -t Peashooter -l (5, 2)");
+            parser.parseAndExecute("start zombie waves");
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        String output = captured.toString();
+        assertTrue(output.contains("not allowed in Plant What You Get"), output);
+        assertTrue(output.contains("Plant What You Get"), output);
+        assertTrue(output.contains("Zombie waves started"), output);
+    }
+
     private static void loginAndUnlockBigWaveBeach(CommandParser parser) {
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
