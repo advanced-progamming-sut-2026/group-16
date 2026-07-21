@@ -61,6 +61,7 @@ public final class GameSession {
     private TimedWarRules timedWarRules;
     private int timedWarTicksElapsed;
     private int timedWarProgress;
+    private Integer deadLineColumn;
     private SpecialLevelHandler activeSpecialLevelHandler;
 
     private final List<LawnMower> lawnMowers = new ArrayList<>();
@@ -341,6 +342,25 @@ public final class GameSession {
         if (timedWarActive) {
             timedWarTicksElapsed++;
         }
+    }
+
+    public void activateDeadLine(int column) {
+        if (column < 0 || column >= board.getCols()) {
+            throw new IllegalArgumentException(
+                    "dead line column must be between 0 and " + (board.getCols() - 1));
+        }
+        deadLineColumn = column;
+    }
+
+    public boolean isDeadLineActive() {
+        return deadLineColumn != null;
+    }
+
+    public int getDeadLineColumn() {
+        if (deadLineColumn == null) {
+            throw new IllegalStateException("dead line is not active");
+        }
+        return deadLineColumn;
     }
 
     public void setChapterId(String chapterId) {

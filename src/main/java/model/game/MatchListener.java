@@ -2,7 +2,6 @@ package model.game;
 
 import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
-import model.item.Sun;
 import model.item.SunType;
 
 import java.util.List;
@@ -67,5 +66,8 @@ public interface MatchListener {
     }
 
     default void onTimedWarGoalReached(TimedWarMode mode, int progress) {
+    }
+
+    default void onDeadLineBreached(int column, String zombieType) {
     }
 }
