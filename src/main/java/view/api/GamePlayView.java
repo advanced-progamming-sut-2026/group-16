@@ -87,6 +87,8 @@ public interface GamePlayView extends View {
 
     void errorNoPlantToPluck(int x, int y);
 
+    void errorCannotPluckProtectedSeed(int x, int y);
+
     void errorNoPlantFood();
 
     void errorCannotFeedHere(int x, int y);

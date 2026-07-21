@@ -20,6 +20,7 @@ import model.quest.event.GameEventBus;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +55,8 @@ public final class GameSession {
     private final List<String> conveyorBeltPlants = new ArrayList<>();
     private boolean conveyorBeltActive;
     private final Set<String> levelLockedPlants = new HashSet<>();
+    private final Set<String> protectedSeedPlantIds = new HashSet<>();
+    private final List<SeedPlacement> protectedSeedPlacements = new ArrayList<>();
     private SpecialLevelHandler activeSpecialLevelHandler;
 
     private final List<LawnMower> lawnMowers = new ArrayList<>();
@@ -262,6 +265,35 @@ public final class GameSession {
 
     public boolean isLevelLockedPlant(String plantName) {
         return plantName != null && levelLockedPlants.contains(plantName);
+    }
+
+    public Plant placeProtectedSeed(String plantName, int col, int row) {
+        PlantDefinition definition = plantRegistry.getDefinition(plantName);
+        if (definition == null) {
+            throw new IllegalArgumentException("Unknown plant: " + plantName);
+        }
+        Plant plant = plantFactory.create(definition, 1, col, row);
+        board.placePlant(plant);
+        plant.onPlanted(context);
+        protectedSeedPlantIds.add(plant.getId());
+        protectedSeedPlacements.add(new SeedPlacement(plantName, col, row));
+        return plant;
+    }
+
+    public boolean isProtectedSeed(Plant plant) {
+        return plant != null && protectedSeedPlantIds.contains(plant.getId());
+    }
+
+    public List<SeedPlacement> getProtectedSeedPlacements() {
+        return List.copyOf(protectedSeedPlacements);
+    }
+
+    public List<Integer> getDangerRows() {
+        Set<Integer> rows = new LinkedHashSet<>();
+        for (SeedPlacement placement : protectedSeedPlacements) {
+            rows.add(placement.getRow());
+        }
+        return List.copyOf(rows);
     }
 
     public void setChapterId(String chapterId) {
@@ -718,6 +750,7 @@ public final class GameSession {
         if (plant == null || destroyedPlantIds.contains(plant.getId())) {
             return false;
         }
+        boolean wasProtectedSeed = protectedSeedPlantIds.contains(plant.getId());
         destroyedPlantIds.add(plant.getId());
         board.removePlant(plant);
         if (countsAsLoss) {
@@ -726,6 +759,12 @@ public final class GameSession {
         eventBus.publish(new GameEvent.PlantDestroyed(
                 plant.getName(),
                 plant.getCategory().name()));
+        if (countsAsLoss && wasProtectedSeed) {
+            if (matchListener != null) {
+                matchListener.onProtectedSeedDestroyed(plant, plant.getCol(), plant.getRow());
+            }
+            loseMatch();
+        }
         return true;
     }
 
@@ -875,6 +914,9 @@ public final class GameSession {
     public boolean pluckPlant(int col, int row) {
         Plant plant = board.getPlantAt(col, row);
         if (plant == null) {
+            return false;
+        }
+        if (isProtectedSeed(plant)) {
             return false;
         }
         return removePlantFromBoard(plant, false);
