@@ -51,6 +51,9 @@ public final class GameSession {
     private final int zombieDifficulty;
     private final Random random;
     private Set<String> selectedLoadout = Set.of();
+    private final List<String> conveyorBeltPlants = new ArrayList<>();
+    private boolean conveyorBeltActive;
+    private SpecialLevelHandler activeSpecialLevelHandler;
 
     private final List<LawnMower> lawnMowers = new ArrayList<>();
     private WaveManager waveManager;
@@ -219,6 +222,32 @@ public final class GameSession {
         return selectedLoadout;
     }
 
+    public void setActiveSpecialLevelHandler(SpecialLevelHandler handler) {
+        this.activeSpecialLevelHandler = handler;
+    }
+
+    public SpecialLevelHandler getActiveSpecialLevelHandler() {
+        return activeSpecialLevelHandler;
+    }
+
+    public void activateConveyorBelt() {
+        conveyorBeltActive = true;
+    }
+
+    public boolean isConveyorBeltActive() {
+        return conveyorBeltActive;
+    }
+
+    public void addConveyorBeltPlant(String plantName) {
+        if (plantName != null) {
+            conveyorBeltPlants.add(plantName);
+        }
+    }
+
+    public List<String> getConveyorBeltPlants() {
+        return List.copyOf(conveyorBeltPlants);
+    }
+
     public void setChapterId(String chapterId) {
         this.chapterId = chapterId;
     }
@@ -346,7 +375,11 @@ public final class GameSession {
         if (level < 1 || level > definition.getMaxLevel()) {
             return PlantPlacementResult.INVALID_LEVEL;
         }
-        if (!selectedLoadout.isEmpty() && !selectedLoadout.contains(plantName)) {
+        if (conveyorBeltActive) {
+            if (!conveyorBeltPlants.contains(plantName)) {
+                return PlantPlacementResult.NOT_ON_CONVEYOR_BELT;
+            }
+        } else if (!selectedLoadout.isEmpty() && !selectedLoadout.contains(plantName)) {
             return PlantPlacementResult.NOT_IN_LOADOUT;
         }
         PlantStatsAtLevel stats = new PlantStatsAtLevel(definition, level);
@@ -372,6 +405,9 @@ public final class GameSession {
                 row,
                 plant.hasTag(PlantTag.NIGHT) || plant.hasTag(PlantTag.SHROOM)));
         eventBus.publish(new GameEvent.SunSpent(stats.cost()));
+        if (conveyorBeltActive) {
+            conveyorBeltPlants.remove(plantName);
+        }
         return PlantPlacementResult.SUCCESS;
     }
 
@@ -550,6 +586,9 @@ public final class GameSession {
             waveManager.publishClearedWaves(this);
         }
         checkWinCondition();
+        if (activeSpecialLevelHandler != null) {
+            activeSpecialLevelHandler.onTick(this);
+        }
     }
 
     private void tickSkySun() {

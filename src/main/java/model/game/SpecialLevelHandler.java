@@ -12,6 +12,9 @@ public interface SpecialLevelHandler {
     default void onWaveStarted(GameSession session, int waveNumber) {
     }
 
+    default void onTick(GameSession session) {
+    }
+
     default void onLevelWon(GameSession session) {
     }
 

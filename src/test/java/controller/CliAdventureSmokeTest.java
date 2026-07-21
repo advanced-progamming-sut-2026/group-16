@@ -90,13 +90,32 @@ class CliAdventureSmokeTest {
 
     @Test
     @Order(2)
-    void specialLevelIsRejectedAndStaysOnAdventureMenu() {
+    void conveyorBeltLevelSkipsPlantSelectionAndEntersGameplayDirectly() {
         CommandParser parser = new CommandParser();
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
         parser.parseAndExecute("menu enter game");
         parser.parseAndExecute("menu enter chapter -c Ancient Egypt");
         parser.parseAndExecute("start level -n 2");
+
+        assertInstanceOf(ConveyBeltLevelController.class, parser.getCurrentController());
+
+        List<String> inputs = List.of(
+                "show map",
+                "show sun amount",
+                "cheat add -n 500 suns",
+                "plant plant -t Peashooter -l (0, 0)",
+                "advance time -t 130 ticks",
+                "show map",
+                "menu exit"
+        );
+
+        assertDoesNotThrow(() -> {
+            for (String line : inputs) {
+                parser.parseAndExecute(line);
+            }
+        });
+
         assertInstanceOf(AdventureController.class, parser.getCurrentController());
     }
 }
