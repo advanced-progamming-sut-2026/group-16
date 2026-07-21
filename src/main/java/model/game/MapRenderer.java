@@ -22,8 +22,11 @@ public final class MapRenderer {
         sb.append("Wave: ").append(wave)
                 .append(" | Sun: ").append(session.getSunBalance())
                 .append(" | PlantFood: ").append(session.getPlantFoodCount())
-                .append(" | Result: ").append(session.getMatchResult())
-                .append('\n');
+                .append(" | Result: ").append(session.getMatchResult());
+        if (session.isDeadLineActive()) {
+            sb.append(" | Dead line: column ").append(session.getDeadLineColumn());
+        }
+        sb.append('\n');
 
         GameBoard board = session.getBoard();
         List<LawnMower> mowers = session.getLawnMowers();
@@ -107,7 +110,11 @@ public final class MapRenderer {
         GameBoard board = session.getBoard();
         Tile tile = board.getTile(col, row);
         List<String> parts = new ArrayList<>();
-        parts.add(tileLabel(tile));
+        if (session.isDeadLineActive() && col == session.getDeadLineColumn()) {
+            parts.add("DL");
+        } else {
+            parts.add(tileLabel(tile));
+        }
         Plant ground = board.getGroundPlantAt(col, row);
         Plant overlay = board.getOverlayPlantAt(col, row);
         if (ground != null) {

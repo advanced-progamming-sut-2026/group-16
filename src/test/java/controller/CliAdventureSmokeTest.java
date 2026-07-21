@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import util.StayLoggedInStorage;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -19,6 +21,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class CliAdventureSmokeTest {
@@ -309,5 +312,50 @@ class CliAdventureSmokeTest {
         });
 
         assertInstanceOf(AdventureController.class, parser.getCurrentController());
+    }
+
+    @Test
+    @Order(7)
+    void deadLineLevelLosesWhenZombieCrossesLine() {
+        CommandParser parser = new CommandParser();
+        loginAndUnlockBigWaveBeach(parser);
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu enter chapter -c Big Wave Beach");
+        parser.parseAndExecute("start level -n 3");
+        parser.parseAndExecute("add plant -t Sunflower");
+        parser.parseAndExecute("add plant -t Peashooter");
+        parser.parseAndExecute("start game");
+
+        assertInstanceOf(DeadLineLevelController.class, parser.getCurrentController());
+
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(captured));
+        try {
+            parser.parseAndExecute("show map");
+            parser.parseAndExecute("cheat spawn-zombie -t ZombieDefault -l 2, 0");
+            parser.parseAndExecute("advance time -t 1 ticks");
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        String output = captured.toString();
+        assertTrue(output.contains("Dead line"), output);
+        assertTrue(output.contains("crossed the dead line"), output);
+        assertInstanceOf(AdventureController.class, parser.getCurrentController());
+    }
+
+    private static void loginAndUnlockBigWaveBeach(CommandParser parser) {
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        if (!(parser.getCurrentController() instanceof MainMenuController)) {
+            parser.parseAndExecute("register -u " + USERNAME + " -p " + PASSWORD + " " + PASSWORD
+                    + " -n SmokePlayer -e smoke@example.com -g male");
+            parser.parseAndExecute("pick question -q 1 -a fluffy -c fluffy");
+            parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        }
+        User user = App.getInstance().getCurrentUser();
+        user.getChapterProgress().setUnlockedChapter(ChapterId.BIG_WAVE_BEACH);
+        UserDatabase.getInstance().saveAdventureProgress(user);
     }
 }
