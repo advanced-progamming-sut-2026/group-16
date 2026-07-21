@@ -260,6 +260,11 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
         displayError("There is no plant to pluck at (" + x + ", " + y + ").");
     }
 
+    @Override
+    public void errorCannotPluckProtectedSeed(int x, int y) {
+        displayError("Cannot pluck a protected seed at (" + x + ", " + y + ").");
+    }
+
     // plant food errors
     @Override
     public void errorNoPlantFood() {

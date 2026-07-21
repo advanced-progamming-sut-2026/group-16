@@ -24,6 +24,7 @@ public class CommandParser {
     private final ConveyBeltLevelViewCli conveyBeltLevelView;
     private final LockedPlantsSelectionViewCli lockedPlantsSelectionView;
     private final LockedPlantsLevelViewCli lockedPlantsLevelView;
+    private final SaveOurSeedsLevelViewCli saveOurSeedsLevelView;
     private final TravelLogViewCli travelLogView;
     private final SettingViewCli settingView;
     private final RegistrationController registrationController;
@@ -46,6 +47,7 @@ public class CommandParser {
         conveyBeltLevelView = new ConveyBeltLevelViewCli();
         lockedPlantsSelectionView = new LockedPlantsSelectionViewCli();
         lockedPlantsLevelView = new LockedPlantsLevelViewCli();
+        saveOurSeedsLevelView = new SaveOurSeedsLevelViewCli();
         travelLogView = new TravelLogViewCli();
         settingView = new SettingViewCli();
 
@@ -140,6 +142,8 @@ public class CommandParser {
             newController.setView(plantSelectionView);
         } else if (newController instanceof ConveyBeltLevelController) {
             newController.setView(conveyBeltLevelView);
+        } else if (newController instanceof SaveOurSeedsLevelController) {
+            newController.setView(saveOurSeedsLevelView);
         } else if (newController instanceof SpecialLevelController) {
             newController.setView(specialLevelView);
         } else if (newController instanceof GamePlayController) {

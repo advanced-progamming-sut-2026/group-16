@@ -59,4 +59,7 @@ public interface MatchListener {
 
     default void onConveyorBeltPlantArrived(String plantName) {
     }
+
+    default void onProtectedSeedDestroyed(Plant plant, int x, int y) {
+    }
 }

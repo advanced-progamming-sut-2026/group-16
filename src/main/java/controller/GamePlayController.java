@@ -164,6 +164,11 @@ public class GamePlayController extends ViewController implements MatchListener 
     private void handlePluckPlant(String x, String y) {
         int col = parseCoord(x);
         int row = parseCoord(y);
+        Plant plant = session.getBoard().getPlantAt(col, row);
+        if (plant != null && session.isProtectedSeed(plant)) {
+            getGamePlayView().errorCannotPluckProtectedSeed(col, row);
+            return;
+        }
         if (!session.pluckPlant(col, row)) {
             getGamePlayView().errorNoPlantToPluck(col, row);
             return;
