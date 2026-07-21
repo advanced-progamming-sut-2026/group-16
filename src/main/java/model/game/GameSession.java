@@ -53,6 +53,7 @@ public final class GameSession {
     private Set<String> selectedLoadout = Set.of();
     private final List<String> conveyorBeltPlants = new ArrayList<>();
     private boolean conveyorBeltActive;
+    private final Set<String> levelLockedPlants = new HashSet<>();
     private SpecialLevelHandler activeSpecialLevelHandler;
 
     private final List<LawnMower> lawnMowers = new ArrayList<>();
@@ -248,6 +249,21 @@ public final class GameSession {
         return List.copyOf(conveyorBeltPlants);
     }
 
+    public void activateLockedPlants(LockedPlantsRules rules) {
+        levelLockedPlants.clear();
+        if (rules != null) {
+            levelLockedPlants.addAll(rules.getLockedPlants());
+        }
+    }
+
+    public Set<String> getLevelLockedPlants() {
+        return Set.copyOf(levelLockedPlants);
+    }
+
+    public boolean isLevelLockedPlant(String plantName) {
+        return plantName != null && levelLockedPlants.contains(plantName);
+    }
+
     public void setChapterId(String chapterId) {
         this.chapterId = chapterId;
     }
@@ -379,6 +395,8 @@ public final class GameSession {
             if (!conveyorBeltPlants.contains(plantName)) {
                 return PlantPlacementResult.NOT_ON_CONVEYOR_BELT;
             }
+        } else if (!levelLockedPlants.isEmpty() && levelLockedPlants.contains(plantName)) {
+            return PlantPlacementResult.LEVEL_PLANT_LOCKED;
         } else if (!selectedLoadout.isEmpty() && !selectedLoadout.contains(plantName)) {
             return PlantPlacementResult.NOT_IN_LOADOUT;
         }

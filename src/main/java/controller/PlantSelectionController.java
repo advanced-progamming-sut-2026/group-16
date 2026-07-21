@@ -25,15 +25,15 @@ import java.util.regex.Matcher;
 
 public class PlantSelectionController extends ViewController {
 
-    private final User user;
-    private final UserDatabase userDatabase;
-    private final AdventureController adventureController;
-    private final ChapterConfig chapter;
-    private final LevelConfig level;
-    private final List<String> selected = new ArrayList<>();
-    private final Set<String> boosted = new LinkedHashSet<>();
-    private final PlantRegistry plantRegistry;
-    private final ZombieRegistry zombieRegistry;
+    protected final User user;
+    protected final UserDatabase userDatabase;
+    protected final AdventureController adventureController;
+    protected final ChapterConfig chapter;
+    protected final LevelConfig level;
+    protected final List<String> selected = new ArrayList<>();
+    protected final Set<String> boosted = new LinkedHashSet<>();
+    protected final PlantRegistry plantRegistry;
+    protected final ZombieRegistry zombieRegistry;
 
     public PlantSelectionController(User user,
                                     UserDatabase userDatabase,
@@ -93,11 +93,11 @@ public class PlantSelectionController extends ViewController {
         getViewApi().showAllPlants(names);
     }
 
-    private void handleShowAvailablePlants() {
+    protected void handleShowAvailablePlants() {
         getViewApi().showAvailablePlants(user.getPlantProgress().getUnlockedPlantNames());
     }
 
-    private void handleAddPlant(String type) {
+    protected void handleAddPlant(String type) {
         if (plantRegistry.getDefinition(type) == null) {
             getViewApi().errorPlantNotFound(type);
             return;
@@ -148,7 +148,7 @@ public class PlantSelectionController extends ViewController {
         getViewApi().showPlantBoosted(type);
     }
 
-    private void handleStartGame() {
+    protected void handleStartGame() {
         if (selected.isEmpty()) {
             getViewApi().errorLoadoutEmpty();
             return;
@@ -173,7 +173,7 @@ public class PlantSelectionController extends ViewController {
         session.start();
     }
 
-    private PlantSelectionView getViewApi() {
+    protected PlantSelectionView getViewApi() {
         return (PlantSelectionView) view;
     }
 

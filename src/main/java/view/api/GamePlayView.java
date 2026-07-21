@@ -67,6 +67,8 @@ public interface GamePlayView extends View {
 
     void errorPlantNotOnConveyorBelt(String type);
 
+    void errorLevelPlantLocked(String type);
+
     void errorPlantAlreadySelected(String type);
 
     void errorPlantLocked(String type);
