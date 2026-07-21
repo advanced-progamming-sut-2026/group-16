@@ -153,6 +153,7 @@ public class GamePlayController extends ViewController implements MatchListener 
             case UNKNOWN_PLANT -> getGamePlayView().errorPlantNotFound(plantType);
             case NOT_IN_LOADOUT -> getGamePlayView().errorPlantNotSelected(plantType);
             case NOT_ON_CONVEYOR_BELT -> getGamePlayView().errorPlantNotOnConveyorBelt(plantType);
+            case LEVEL_PLANT_LOCKED -> getGamePlayView().errorLevelPlantLocked(plantType);
             case ON_COOLDOWN -> getGamePlayView().errorPlantOnCooldown(plantType);
             case INSUFFICIENT_SUN -> getGamePlayView().errorNotEnoughSun();
             case OUT_OF_BOUNDS -> getGamePlayView().errorInvalidLocation(col, row);

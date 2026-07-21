@@ -8,6 +8,8 @@ import model.command.AdventureMenuCommands;
 import model.definition.PlantRegistry;
 import model.definition.ZombieRegistry;
 import model.game.GameSession;
+import model.game.LockedPlantsRules;
+import model.game.LockedPlantsRulesFactory;
 import model.game.mode.AdventureMode;
 import model.quest.QuestTracker;
 import model.user.ChapterProgress;
@@ -94,6 +96,19 @@ public class AdventureController extends ViewController {
         }
         if (level.getType() == LevelType.CONVEYOR_BELT) {
             startConveyorBeltLevel(chapter, level);
+            return;
+        }
+        if (level.getType() == LevelType.LOCKED_PLANTS) {
+            PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+            LockedPlantsRules rules = LockedPlantsRulesFactory.create(
+                    level,
+                    chapter.getId(),
+                    plantRegistry,
+                    user.getPlantProgress().getUnlockedPlantNames(),
+                    new Random());
+            LockedPlantsSelectionController selection = new LockedPlantsSelectionController(
+                    user, userDatabase, this, chapter, level, rules);
+            parser.switchController(selection);
             return;
         }
         PlantSelectionController selection = new PlantSelectionController(

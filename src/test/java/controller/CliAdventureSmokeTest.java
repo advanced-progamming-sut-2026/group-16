@@ -118,4 +118,54 @@ class CliAdventureSmokeTest {
 
         assertInstanceOf(AdventureController.class, parser.getCurrentController());
     }
+
+    @Test
+    @Order(3)
+    void lockedPlantsLevelKeepsSelectionWithRestrictionsAndEntersGameplay() {
+        CommandParser parser = new CommandParser();
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu cheat add 10000 coins");
+        parser.parseAndExecute("menu enter collection");
+        parser.parseAndExecute("menu collection purchase-plant -p Twin Sunflower");
+        parser.parseAndExecute("menu collection purchase-plant -p Repeater");
+        parser.parseAndExecute("menu exit");
+        parser.parseAndExecute("menu enter chapter -c Ancient Egypt");
+        parser.parseAndExecute("start level -n 3");
+
+        assertInstanceOf(LockedPlantsSelectionController.class, parser.getCurrentController());
+
+        List<String> selectionInputs = List.of(
+                "show available plants",
+                "add plant -t Peashooter",
+                "add plant -t Repeater",
+                "add plant -t Wall-nut"
+        );
+
+        assertDoesNotThrow(() -> {
+            for (String line : selectionInputs) {
+                parser.parseAndExecute(line);
+            }
+        });
+
+        assertInstanceOf(LockedPlantsSelectionController.class, parser.getCurrentController());
+        parser.parseAndExecute("start game");
+        assertInstanceOf(LockedPlantsLevelController.class, parser.getCurrentController());
+
+        List<String> gameplayInputs = List.of(
+                "show map",
+                "cheat add -n 500 suns",
+                "plant plant -t Wall-nut -l (0, 0)",
+                "menu exit"
+        );
+
+        assertDoesNotThrow(() -> {
+            for (String line : gameplayInputs) {
+                parser.parseAndExecute(line);
+            }
+        });
+
+        assertInstanceOf(AdventureController.class, parser.getCurrentController());
+    }
 }

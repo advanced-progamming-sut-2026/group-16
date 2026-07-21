@@ -209,6 +209,11 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
     }
 
     @Override
+    public void errorLevelPlantLocked(String type) {
+        displayError("Plant " + type + " is locked for this level.");
+    }
+
+    @Override
     public void errorPlantAlreadySelected(String type) {
         displayError("Plant " + type + " is already selected.");
     }
