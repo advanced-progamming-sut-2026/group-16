@@ -20,6 +20,7 @@ import model.quest.event.GameEventBus;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -802,6 +803,7 @@ public final class GameSession {
         if (plant == null || destroyedPlantIds.contains(plant.getId())) {
             return false;
         }
+        boolean wasProtectedSeed = protectedSeedPlantIds.contains(plant.getId());
         destroyedPlantIds.add(plant.getId());
         board.removePlant(plant);
         if (countsAsLoss) {
@@ -810,6 +812,12 @@ public final class GameSession {
         eventBus.publish(new GameEvent.PlantDestroyed(
                 plant.getName(),
                 plant.getCategory().name()));
+        if (countsAsLoss && wasProtectedSeed) {
+            if (matchListener != null) {
+                matchListener.onProtectedSeedDestroyed(plant, plant.getCol(), plant.getRow());
+            }
+            loseMatch();
+        }
         return true;
     }
 
@@ -965,6 +973,9 @@ public final class GameSession {
     public boolean pluckPlant(int col, int row) {
         Plant plant = board.getPlantAt(col, row);
         if (plant == null) {
+            return false;
+        }
+        if (isProtectedSeed(plant)) {
             return false;
         }
         return removePlantFromBoard(plant, false);
