@@ -62,6 +62,7 @@ public final class GameSession {
     private int timedWarTicksElapsed;
     private int timedWarProgress;
     private Integer deadLineColumn;
+    private Integer loveYourPlantsMaxLoss;
     private SpecialLevelHandler activeSpecialLevelHandler;
 
     private final List<LawnMower> lawnMowers = new ArrayList<>();
@@ -361,6 +362,31 @@ public final class GameSession {
             throw new IllegalStateException("dead line is not active");
         }
         return deadLineColumn;
+    }
+
+    public void activateLoveYourPlants(int maxLoss) {
+        if (maxLoss < 1) {
+            throw new IllegalArgumentException("maxLoss must be at least 1");
+        }
+        loveYourPlantsMaxLoss = maxLoss;
+    }
+
+    public boolean isLoveYourPlantsActive() {
+        return loveYourPlantsMaxLoss != null;
+    }
+
+    public int getLoveYourPlantsMaxLoss() {
+        if (loveYourPlantsMaxLoss == null) {
+            throw new IllegalStateException("love your plants mode is not active");
+        }
+        return loveYourPlantsMaxLoss;
+    }
+
+    public int getLoveYourPlantsRemaining() {
+        if (loveYourPlantsMaxLoss == null) {
+            throw new IllegalStateException("love your plants mode is not active");
+        }
+        return Math.max(0, loveYourPlantsMaxLoss - plantsLost);
     }
 
     public void setChapterId(String chapterId) {
@@ -828,6 +854,12 @@ public final class GameSession {
         board.removePlant(plant);
         if (countsAsLoss) {
             plantsLost++;
+            if (activeSpecialLevelHandler != null) {
+                activeSpecialLevelHandler.onPlantLost(this, plant);
+            }
+            if (matchListener != null) {
+                matchListener.onPlantDestroyed(plant, plant.getCol(), plant.getRow());
+            }
         }
         eventBus.publish(new GameEvent.PlantDestroyed(
                 plant.getName(),

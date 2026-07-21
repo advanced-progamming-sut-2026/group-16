@@ -26,6 +26,12 @@ public final class MapRenderer {
         if (session.isDeadLineActive()) {
             sb.append(" | Dead line: column ").append(session.getDeadLineColumn());
         }
+        if (session.isLoveYourPlantsActive()) {
+            sb.append(" | Plants lost: ")
+                    .append(session.getPlantsLost())
+                    .append('/')
+                    .append(session.getLoveYourPlantsMaxLoss());
+        }
         sb.append('\n');
 
         GameBoard board = session.getBoard();

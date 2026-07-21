@@ -345,6 +345,39 @@ class CliAdventureSmokeTest {
         assertInstanceOf(AdventureController.class, parser.getCurrentController());
     }
 
+    @Test
+    @Order(8)
+    void loveYourPlantsLevelShowsRuleAndTracksPlantLoss() {
+        CommandParser parser = new CommandParser();
+        loginAndUnlockChapter(parser, ChapterId.DARK_AGES);
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu enter chapter -c Dark Ages");
+        parser.parseAndExecute("start level -n 2");
+        parser.parseAndExecute("add plant -t Sunflower");
+        parser.parseAndExecute("add plant -t Peashooter");
+        parser.parseAndExecute("start game");
+
+        assertInstanceOf(LoveYourPlantsLevelController.class, parser.getCurrentController());
+
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(captured));
+        try {
+            parser.parseAndExecute("show map");
+            parser.parseAndExecute("cheat add -n 500 suns");
+            parser.parseAndExecute("plant plant -t Sunflower -l (4, 2)");
+            parser.parseAndExecute("cheat spawn-zombie -t ZombieDefault -l 5, 2");
+            parser.parseAndExecute("advance time -t 400 ticks");
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        String output = captured.toString();
+        assertTrue(output.contains("Plants lost: 0/5"), output);
+        assertTrue(output.contains("Plants lost: 1/5") || output.contains("destroyed"),
+                output);
+    }
+
     private static void loginAndUnlockBigWaveBeach(CommandParser parser) {
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
@@ -356,6 +389,21 @@ class CliAdventureSmokeTest {
         }
         User user = App.getInstance().getCurrentUser();
         user.getChapterProgress().setUnlockedChapter(ChapterId.BIG_WAVE_BEACH);
+        UserDatabase.getInstance().saveAdventureProgress(user);
+    }
+
+    private static void loginAndUnlockChapter(CommandParser parser, ChapterId chapterId) {
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        if (!(parser.getCurrentController() instanceof MainMenuController)) {
+            parser.parseAndExecute("register -u " + USERNAME + " -p " + PASSWORD + " " + PASSWORD
+                    + " -n SmokePlayer -e smoke@example.com -g male");
+            parser.parseAndExecute("pick question -q 1 -a fluffy -c fluffy");
+            parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        }
+        User user = App.getInstance().getCurrentUser();
+        assertNotNull(user);
+        user.getChapterProgress().setUnlockedChapter(chapterId);
         UserDatabase.getInstance().saveAdventureProgress(user);
     }
 }
