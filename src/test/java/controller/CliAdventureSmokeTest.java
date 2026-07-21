@@ -263,4 +263,51 @@ class CliAdventureSmokeTest {
 
         assertInstanceOf(AdventureController.class, parser.getCurrentController());
     }
+
+    @Test
+    @Order(6)
+    void nightOpsLevelUsesDedicatedControllerAndRunsWithoutCrashing() {
+        CommandParser parser = new CommandParser();
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        App.getInstance().getCurrentUser().getChapterProgress()
+                .setUnlockedChapter(ChapterId.BIG_WAVE_BEACH);
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu enter chapter -c Big Wave Beach");
+        parser.parseAndExecute("start level -n 2");
+
+        assertInstanceOf(PlantSelectionController.class, parser.getCurrentController());
+
+        List<String> inputs = List.of(
+                "show available plants",
+                "add plant -t Sunflower",
+                "add plant -t Peashooter",
+                "start game"
+        );
+
+        assertDoesNotThrow(() -> {
+            for (String line : inputs) {
+                parser.parseAndExecute(line);
+            }
+        });
+
+        assertInstanceOf(NightOpsLevelController.class, parser.getCurrentController());
+
+        List<String> gameplayInputs = List.of(
+                "show map",
+                "show sun amount",
+                "plant plant -t Sunflower -l (0, 0)",
+                "advance time -t 240 ticks",
+                "show sun amount",
+                "menu exit"
+        );
+
+        assertDoesNotThrow(() -> {
+            for (String line : gameplayInputs) {
+                parser.parseAndExecute(line);
+            }
+        });
+
+        assertInstanceOf(AdventureController.class, parser.getCurrentController());
+    }
 }
