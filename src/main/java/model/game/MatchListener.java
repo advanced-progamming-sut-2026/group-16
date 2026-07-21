@@ -56,4 +56,7 @@ public interface MatchListener {
 
     default void onRadioactiveSunExploded(int x, int y) {
     }
+
+    default void onConveyorBeltPlantArrived(String plantName) {
+    }
 }

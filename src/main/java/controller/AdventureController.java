@@ -1,14 +1,23 @@
 package controller;
 
+import model.App;
 import model.adventure.ChapterConfig;
 import model.adventure.LevelConfig;
 import model.adventure.LevelType;
 import model.command.AdventureMenuCommands;
+import model.definition.PlantRegistry;
+import model.definition.ZombieRegistry;
+import model.game.GameSession;
+import model.game.mode.AdventureMode;
+import model.quest.QuestTracker;
 import model.user.ChapterProgress;
 import model.user.User;
 import model.user.UserDatabase;
 import view.api.AdventureView;
 
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.regex.Matcher;
 
 public class AdventureController extends ViewController {
@@ -83,9 +92,30 @@ public class AdventureController extends ViewController {
             getAdventureView().errorSpecialNotImplemented(level.getType().name());
             return;
         }
+        if (level.getType() == LevelType.CONVEYOR_BELT) {
+            startConveyorBeltLevel(chapter, level);
+            return;
+        }
         PlantSelectionController selection = new PlantSelectionController(
                 user, userDatabase, this, chapter, level);
         parser.switchController(selection);
+    }
+
+    private void startConveyorBeltLevel(ChapterConfig chapter, LevelConfig level) {
+        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombieRegistry = PlantSelectionController.loadZombieRegistry();
+        AdventureMode mode = new AdventureMode(
+                chapter, level, plantRegistry, zombieRegistry, user.getDifficultyLevel(), new Random());
+        GameSession session = mode.createSession();
+        QuestTracker tracker = user.ensureQuestTracker();
+        tracker.registerOn(session.getEventBus());
+        tracker.beginSession();
+        session.attachQuestTracker(tracker);
+        List<String> availablePlants = user.getPlantProgress().getUnlockedPlantNames();
+        ConveyBeltLevelController gameplay = new ConveyBeltLevelController(
+                user, userDatabase, this, mode, session, chapter, level, Set.of(), availablePlants);
+        parser.switchController(gameplay);
+        session.start();
     }
 
     private void handleShowProgress() {

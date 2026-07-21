@@ -204,6 +204,11 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
     }
 
     @Override
+    public void errorPlantNotOnConveyorBelt(String type) {
+        displayError("Plant " + type + " has not arrived on the conveyor belt yet.");
+    }
+
+    @Override
     public void errorPlantAlreadySelected(String type) {
         displayError("Plant " + type + " is already selected.");
     }

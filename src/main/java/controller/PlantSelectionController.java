@@ -177,7 +177,7 @@ public class PlantSelectionController extends ViewController {
         return (PlantSelectionView) view;
     }
 
-    private static ZombieRegistry loadZombieRegistry() {
+    static ZombieRegistry loadZombieRegistry() {
         ZombieRegistry registry = new ZombieRegistry();
         try (InputStream zombies = PlantSelectionController.class.getClassLoader()
                 .getResourceAsStream("zombies.json");

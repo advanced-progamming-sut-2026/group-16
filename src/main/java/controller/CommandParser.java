@@ -21,6 +21,7 @@ public class CommandParser {
     private final PlantSelectionViewCli plantSelectionView;
     private final GamePlayViewCli gamePlayView;
     private final SpecialLevelViewCli specialLevelView;
+    private final ConveyBeltLevelViewCli conveyBeltLevelView;
     private final TravelLogViewCli travelLogView;
     private final SettingViewCli settingView;
     private final RegistrationController registrationController;
@@ -40,6 +41,7 @@ public class CommandParser {
         plantSelectionView = new PlantSelectionViewCli();
         gamePlayView = new GamePlayViewCli();
         specialLevelView = new SpecialLevelViewCli();
+        conveyBeltLevelView = new ConveyBeltLevelViewCli();
         travelLogView = new TravelLogViewCli();
         settingView = new SettingViewCli();
 
@@ -128,6 +130,8 @@ public class CommandParser {
             newController.setView(adventureView);
         } else if (newController instanceof PlantSelectionController) {
             newController.setView(plantSelectionView);
+        } else if (newController instanceof ConveyBeltLevelController) {
+            newController.setView(conveyBeltLevelView);
         } else if (newController instanceof SpecialLevelController) {
             newController.setView(specialLevelView);
         } else if (newController instanceof GamePlayController) {
