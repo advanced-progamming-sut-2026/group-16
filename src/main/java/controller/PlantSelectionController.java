@@ -3,6 +3,7 @@ package controller;
 import model.App;
 import model.adventure.ChapterConfig;
 import model.adventure.LevelConfig;
+import model.adventure.LevelType;
 import model.command.PlantSelectionMenuCommands;
 import model.definition.PlantRegistry;
 import model.definition.ZombieRegistry;
@@ -162,8 +163,12 @@ public class PlantSelectionController extends ViewController {
         tracker.beginSession();
         session.attachQuestTracker(tracker);
         getViewApi().showGameStarted();
-        GamePlayController gameplay = new GamePlayController(
-                user, userDatabase, adventureController, mode, session, chapter, level, boosted);
+        GamePlayController gameplay = level.getType() == LevelType.NORMAL
+                ? new GamePlayController(
+                        user, userDatabase, adventureController, mode, session, chapter, level, boosted)
+                : SpecialLevelControllerFactory.create(
+                        level.getType(), user, userDatabase, adventureController, mode, session, chapter, level,
+                        boosted);
         parser.switchController(gameplay);
         session.start();
     }
