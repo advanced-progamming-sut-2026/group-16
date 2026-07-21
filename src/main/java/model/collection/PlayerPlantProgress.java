@@ -37,12 +37,16 @@ public final class PlayerPlantProgress {
         return ownedPlants.get(plantName);
     }
 
-    public void unlock(String plantName) {
+    public boolean unlock(String plantName) {
         OwnedPlant owned = getOrCreate(plantName);
+        if (owned.isUnlocked()) {
+            return false;
+        }
         owned.setUnlocked(true);
         if (owned.getLevel() < 1) {
             owned.setLevel(1);
         }
+        return true;
     }
 
     public boolean isOwned(String plantName) {

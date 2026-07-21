@@ -4,9 +4,12 @@ import view.api.MainMenuView;
 
 public class MainMenuViewCli extends CliView implements MainMenuView {
     @Override
-    public void showMainMenu(String nickname) {
+    public void showMainMenu(String nickname, boolean hasUnreadNews) {
         displayMessage("Main menu");
         displayMessage("Welcome, " + nickname + "!");
+        if (hasUnreadNews) {
+            displayMessage("News: unread");
+        }
     }
 
     @Override

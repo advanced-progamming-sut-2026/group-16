@@ -94,6 +94,15 @@ public final class PlantCollection {
         return true;
     }
 
+    public PurchaseResult purchaseWithResult(String plantName) {
+        if (!canPurchase(plantName)) {
+            return new PurchaseResult(false, false);
+        }
+        coins -= PURCHASE_COST_COINS;
+        boolean newlyUnlocked = progress.unlock(plantName);
+        return new PurchaseResult(true, newlyUnlocked);
+    }
+
     public int getCoins() {
         return coins;
     }
@@ -114,8 +123,12 @@ public final class PlantCollection {
     }
 
     public void applyQuestReward(QuestReward reward) {
+        applyQuestRewardWithResult(reward);
+    }
+
+    public QuestRewardResult applyQuestRewardWithResult(QuestReward reward) {
         if (reward == null) {
-            return;
+            return new QuestRewardResult(null);
         }
         addCoins(reward.getCoins());
         String seedPlant = reward.getSeedPacketPlantId();
@@ -123,13 +136,15 @@ public final class PlantCollection {
                 && !"ANY".equalsIgnoreCase(seedPlant)) {
             addSeedPackets(seedPlant, reward.getSeedPacketCount());
         }
+        String newlyUnlockedPlant = null;
         if (reward.getUnlockTargetId() != null
                 && !"RANDOM_PLANT".equals(reward.getUnlockTargetId())) {
             PlantDefinition definition = resolveDefinition(reward.getUnlockTargetId());
-            if (definition != null) {
-                progress.unlock(definition.getName());
+            if (definition != null && progress.unlock(definition.getName())) {
+                newlyUnlockedPlant = definition.getName();
             }
         }
+        return new QuestRewardResult(newlyUnlockedPlant);
     }
 
     public PlayerPlantProgress getProgress() {
@@ -146,5 +161,11 @@ public final class PlantCollection {
         } catch (NumberFormatException ignored) {
             return null;
         }
+    }
+
+    public record PurchaseResult(boolean success, boolean newlyUnlocked) {
+    }
+
+    public record QuestRewardResult(String newlyUnlockedPlant) {
     }
 }

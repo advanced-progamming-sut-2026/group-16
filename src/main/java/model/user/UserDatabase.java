@@ -247,6 +247,16 @@ public class UserDatabase {
         }
     }
 
+    public void saveUserNews(User user) {
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            UserProgressStore.saveUserProgress(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save user news.", e);
+        }
+    }
+
     private void replacePlantProgress(Connection conn, User user) throws SQLException {
         try (PreparedStatement delete = conn.prepareStatement(
                 "DELETE FROM user_plants WHERE userId = ?")) {
