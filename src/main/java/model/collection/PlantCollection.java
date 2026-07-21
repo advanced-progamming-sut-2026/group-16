@@ -1,8 +1,8 @@
 package model.collection;
 
+import model.definition.PlantLevelStats;
 import model.definition.PlantRegistry;
 import model.definition.UpgradeCost;
-import model.definition.PlantLevelStats;
 import model.definition.plant.PlantDefinition;
 import model.quest.reward.QuestReward;
 
@@ -94,13 +94,70 @@ public final class PlantCollection {
         return true;
     }
 
+    public PurchaseFailure getPurchaseFailure(String plantName) {
+        PlantDefinition definition = registry.getDefinition(plantName);
+        if (definition == null) {
+            return PurchaseFailure.UNKNOWN_PLANT;
+        }
+        if (progress.isOwned(plantName)) {
+            return PurchaseFailure.ALREADY_OWNED;
+        }
+        if (coins < PURCHASE_COST_COINS) {
+            return PurchaseFailure.INSUFFICIENT_COINS;
+        }
+        return null;
+    }
+
     public PurchaseResult purchaseWithResult(String plantName) {
-        if (!canPurchase(plantName)) {
-            return new PurchaseResult(false, false);
+        PurchaseFailure failure = getPurchaseFailure(plantName);
+        if (failure != null) {
+            return new PurchaseResult(false, false, failure);
         }
         coins -= PURCHASE_COST_COINS;
         boolean newlyUnlocked = progress.unlock(plantName);
-        return new PurchaseResult(true, newlyUnlocked);
+        return new PurchaseResult(true, newlyUnlocked, null);
+    }
+
+    public UpgradeFailure getUpgradeFailure(String plantName) {
+        PlantDefinition definition = registry.getDefinition(plantName);
+        if (definition == null) {
+            return UpgradeFailure.UNKNOWN_PLANT;
+        }
+        OwnedPlant owned = progress.getOwnedPlant(plantName).orElse(null);
+        if (owned == null || !owned.isUnlocked()) {
+            return UpgradeFailure.NOT_OWNED;
+        }
+        int nextLevel = owned.getLevel() + 1;
+        if (nextLevel > definition.getMaxLevel() || nextLevel > progress.getMaxLevel()) {
+            return UpgradeFailure.MAX_LEVEL;
+        }
+        UpgradeCost cost = UpgradeCost.forLevel(definition, nextLevel);
+        if (coins < cost.getCoins()) {
+            return UpgradeFailure.INSUFFICIENT_COINS;
+        }
+        if (owned.getSeedPackets() < cost.getSeedPackets()) {
+            return UpgradeFailure.INSUFFICIENT_SEED_PACKETS;
+        }
+        return null;
+    }
+
+    public UpgradeResult upgradeWithResult(String plantName) {
+        UpgradeFailure failure = getUpgradeFailure(plantName);
+        if (failure != null) {
+            return new UpgradeResult(false, ownedLevel(plantName), failure);
+        }
+        PlantDefinition definition = registry.getDefinition(plantName);
+        OwnedPlant owned = progress.getMutablePlant(plantName);
+        int nextLevel = owned.getLevel() + 1;
+        UpgradeCost cost = UpgradeCost.forLevel(definition, nextLevel);
+        coins -= cost.getCoins();
+        owned.consumeSeedPackets(cost.getSeedPackets());
+        owned.setLevel(nextLevel);
+        return new UpgradeResult(true, nextLevel, null);
+    }
+
+    private int ownedLevel(String plantName) {
+        return progress.getOwnedPlant(plantName).map(OwnedPlant::getLevel).orElse(0);
     }
 
     public int getCoins() {
@@ -163,7 +220,24 @@ public final class PlantCollection {
         }
     }
 
-    public record PurchaseResult(boolean success, boolean newlyUnlocked) {
+    public enum PurchaseFailure {
+        UNKNOWN_PLANT,
+        ALREADY_OWNED,
+        INSUFFICIENT_COINS
+    }
+
+    public enum UpgradeFailure {
+        UNKNOWN_PLANT,
+        NOT_OWNED,
+        MAX_LEVEL,
+        INSUFFICIENT_COINS,
+        INSUFFICIENT_SEED_PACKETS
+    }
+
+    public record PurchaseResult(boolean success, boolean newlyUnlocked, PurchaseFailure failure) {
+    }
+
+    public record UpgradeResult(boolean success, int newLevel, UpgradeFailure failure) {
     }
 
     public record QuestRewardResult(String newlyUnlockedPlant) {

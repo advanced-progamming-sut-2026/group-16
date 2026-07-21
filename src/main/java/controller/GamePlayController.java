@@ -11,9 +11,10 @@ import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
 import model.game.mode.AdventureMode;
 import model.item.SunType;
+import model.quest.QuestTracker;
+import model.user.UnlockService;
 import model.user.User;
 import model.user.UserDatabase;
-import model.quest.QuestTracker;
 import view.api.GamePlayView;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public class GamePlayController extends ViewController implements MatchListener 
     private final ChapterConfig chapter;
     private final LevelConfig level;
     private final Set<String> boostedPlants;
+    private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
 
     public GamePlayController(User user,
@@ -344,6 +346,9 @@ public class GamePlayController extends ViewController implements MatchListener 
 
     @Override
     public void onZombieSpawned(String type, int wave, int lane, int cost) {
+        if (unlockService.unlockZombie(user, type)) {
+            userDatabase.saveUserWallet(user);
+        }
         getGamePlayView().showZombieSpawned(type, wave, lane, cost);
     }
 
