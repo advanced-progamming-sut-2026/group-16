@@ -73,4 +73,7 @@ public interface MatchListener {
 
     default void onLoveYourPlantsLimitReached(int plantsLost, int maxAllowed) {
     }
+
+    default void onPlantWhatYouGetWavesStarted() {
+    }
 }

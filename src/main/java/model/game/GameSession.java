@@ -63,6 +63,8 @@ public final class GameSession {
     private int timedWarProgress;
     private Integer deadLineColumn;
     private Integer loveYourPlantsMaxLoss;
+    private boolean plantWhatYouGetActive;
+    private boolean prepPhaseActive;
     private SpecialLevelHandler activeSpecialLevelHandler;
 
     private final List<LawnMower> lawnMowers = new ArrayList<>();
@@ -389,6 +391,33 @@ public final class GameSession {
         return Math.max(0, loveYourPlantsMaxLoss - plantsLost);
     }
 
+    public void activatePlantWhatYouGet(int startingSun) {
+        if (startingSun < 0) {
+            throw new IllegalArgumentException("startingSun must not be negative");
+        }
+        setSunBalance(startingSun);
+        skySunSystem.setEnabled(false);
+        setWavesAutoStart(false);
+        plantWhatYouGetActive = true;
+        prepPhaseActive = true;
+    }
+
+    public boolean isPlantWhatYouGetActive() {
+        return plantWhatYouGetActive;
+    }
+
+    public boolean isPrepPhaseActive() {
+        return prepPhaseActive;
+    }
+
+    public void endPrepPhase() {
+        prepPhaseActive = false;
+    }
+
+    public void setSunBalance(int amount) {
+        sunBalance = Math.max(0, amount);
+    }
+
     public void setChapterId(String chapterId) {
         this.chapterId = chapterId;
     }
@@ -503,8 +532,15 @@ public final class GameSession {
     }
 
     public void startZombieWaves() {
+        boolean endingPrep = prepPhaseActive && plantWhatYouGetActive;
+        if (endingPrep) {
+            endPrepPhase();
+        }
         if (waveManager != null) {
             waveManager.startWaves(this);
+        }
+        if (endingPrep && matchListener != null) {
+            matchListener.onPlantWhatYouGetWavesStarted();
         }
     }
 
@@ -526,7 +562,7 @@ public final class GameSession {
             return PlantPlacementResult.NOT_IN_LOADOUT;
         }
         PlantStatsAtLevel stats = new PlantStatsAtLevel(definition, level);
-        if (!cooldownTracker.isReady(plantName)) {
+        if (!prepPhaseActive && !cooldownTracker.isReady(plantName)) {
             return PlantPlacementResult.ON_COOLDOWN;
         }
         if (sunBalance < stats.cost()) {
@@ -540,7 +576,9 @@ public final class GameSession {
         sunBalance -= stats.cost();
         board.placePlant(plant);
         plant.onPlanted(context);
-        cooldownTracker.startCooldown(plantName, plant.getStats().recharge(), TICKS_PER_SECOND);
+        if (!prepPhaseActive) {
+            cooldownTracker.startCooldown(plantName, plant.getStats().recharge(), TICKS_PER_SECOND);
+        }
         eventBus.publish(new GameEvent.PlantPlanted(
                 plant.getName(),
                 plant.getCategory().name(),

@@ -29,6 +29,7 @@ public class CommandParser {
     private final NightOpsLevelViewCli nightOpsLevelView;
     private final DeadLineLevelViewCli deadLineLevelView;
     private final LoveYourPlantsLevelViewCli loveYourPlantsLevelView;
+    private final PlantWhatYouGetLevelViewCli plantWhatYouGetLevelView;
     private final TravelLogViewCli travelLogView;
     private final SettingViewCli settingView;
     private final RegistrationController registrationController;
@@ -56,6 +57,7 @@ public class CommandParser {
         nightOpsLevelView = new NightOpsLevelViewCli();
         deadLineLevelView = new DeadLineLevelViewCli();
         loveYourPlantsLevelView = new LoveYourPlantsLevelViewCli();
+        plantWhatYouGetLevelView = new PlantWhatYouGetLevelViewCli();
         travelLogView = new TravelLogViewCli();
         settingView = new SettingViewCli();
 
@@ -160,6 +162,8 @@ public class CommandParser {
             newController.setView(deadLineLevelView);
         } else if (newController instanceof LoveYourPlantsLevelController) {
             newController.setView(loveYourPlantsLevelView);
+        } else if (newController instanceof PlantWhatYouGetLevelController) {
+            newController.setView(plantWhatYouGetLevelView);
         } else if (newController instanceof SpecialLevelController) {
             newController.setView(specialLevelView);
         } else if (newController instanceof GamePlayController) {

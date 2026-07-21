@@ -28,6 +28,8 @@ public interface PlantSelectionView extends View {
 
     void errorPlantLocked(String type);
 
+    void errorSunProducerBanned(String type);
+
     void errorLoadoutFull(int maxSlots);
 
     void errorCannotBoostPlant(String type);

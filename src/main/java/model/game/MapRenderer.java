@@ -32,6 +32,13 @@ public final class MapRenderer {
                     .append('/')
                     .append(session.getLoveYourPlantsMaxLoss());
         }
+        if (session.isPlantWhatYouGetActive()) {
+            if (session.isPrepPhaseActive()) {
+                sb.append(" | Prep: plant freely, then: start zombie waves");
+            } else {
+                sb.append(" | Combat started");
+            }
+        }
         sb.append('\n');
 
         GameBoard board = session.getBoard();

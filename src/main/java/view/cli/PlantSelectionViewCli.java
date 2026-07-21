@@ -76,6 +76,11 @@ public class PlantSelectionViewCli extends CliView implements PlantSelectionView
     }
 
     @Override
+    public void errorSunProducerBanned(String type) {
+        displayError("Sun producers like Sunflower are not allowed in Plant What You Get.");
+    }
+
+    @Override
     public void errorLoadoutFull(int maxSlots) {
         displayError("Loadout is full (max " + maxSlots + " plants).");
     }
