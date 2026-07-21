@@ -26,6 +26,7 @@ public class CommandParser {
     private final LockedPlantsLevelViewCli lockedPlantsLevelView;
     private final SaveOurSeedsLevelViewCli saveOurSeedsLevelView;
     private final TimedWarLevelViewCli timedWarLevelView;
+    private final NightOpsLevelViewCli nightOpsLevelView;
     private final TravelLogViewCli travelLogView;
     private final SettingViewCli settingView;
     private final RegistrationController registrationController;
@@ -50,6 +51,7 @@ public class CommandParser {
         lockedPlantsLevelView = new LockedPlantsLevelViewCli();
         saveOurSeedsLevelView = new SaveOurSeedsLevelViewCli();
         timedWarLevelView = new TimedWarLevelViewCli();
+        nightOpsLevelView = new NightOpsLevelViewCli();
         travelLogView = new TravelLogViewCli();
         settingView = new SettingViewCli();
 
@@ -148,6 +150,8 @@ public class CommandParser {
             newController.setView(saveOurSeedsLevelView);
         } else if (newController instanceof TimedWarLevelController) {
             newController.setView(timedWarLevelView);
+        } else if (newController instanceof NightOpsLevelController) {
+            newController.setView(nightOpsLevelView);
         } else if (newController instanceof SpecialLevelController) {
             newController.setView(specialLevelView);
         } else if (newController instanceof GamePlayController) {

@@ -4,6 +4,7 @@ import model.adventure.ChapterConfig;
 import model.adventure.ChapterId;
 import model.adventure.ChapterRules;
 import model.adventure.LevelConfig;
+import model.adventure.LevelType;
 import model.definition.PlantRegistry;
 import model.definition.ZombieRegistry;
 import model.game.GameSession;
@@ -77,10 +78,11 @@ public class AdventureMode extends GameMode {
         session.setChapterId(chapter.getId().getKey());
         session.setLevelId(chapter.getId().getKey() + "-L" + level.getIndex());
         session.setNightLevel(chapter.getId() == ChapterId.DARK_AGES
-                || level.getType() == model.adventure.LevelType.NIGHT_OPS);
+                || level.getType() == LevelType.NIGHT_OPS);
 
         ChapterRules rules = chapter.getRules();
-        session.getSkySunSystem().setEnabled(rules.isSkySunEnabled());
+        session.getSkySunSystem().setEnabled(
+                rules.isSkySunEnabled() && level.getType() != LevelType.NIGHT_OPS);
         session.setZombiesImmuneToChill(rules.areZombiesImmuneToChill());
         session.applyUserDifficulty(difficultyLevel);
 
