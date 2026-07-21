@@ -70,4 +70,7 @@ public interface MatchListener {
 
     default void onDeadLineBreached(int column, String zombieType) {
     }
+
+    default void onLoveYourPlantsLimitReached(int plantsLost, int maxAllowed) {
+    }
 }

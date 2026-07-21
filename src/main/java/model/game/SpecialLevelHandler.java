@@ -1,6 +1,7 @@
 package model.game;
 
 import model.adventure.LevelType;
+import model.game.entity.plant.Plant;
 
 public interface SpecialLevelHandler {
 
@@ -13,6 +14,9 @@ public interface SpecialLevelHandler {
     }
 
     default void onTick(GameSession session) {
+    }
+
+    default void onPlantLost(GameSession session, Plant plant) {
     }
 
     default void onLevelWon(GameSession session) {
