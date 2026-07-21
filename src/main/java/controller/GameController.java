@@ -6,6 +6,7 @@ import model.user.User;
 import model.user.UserDatabase;
 import view.api.GameView;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 
 public class GameController extends ViewController {
@@ -49,7 +50,12 @@ public class GameController extends ViewController {
     }
 
     private void handleMenuEnter(String menuName) {
-        getGameView().errorNotImplemented("menu enter");
+        String normalized = menuName.trim().toLowerCase(Locale.ROOT);
+        if ("collection".equals(normalized)) {
+            parser.switchController(new CollectionController(user, userDatabase, this));
+            return;
+        }
+        getGameView().errorNotImplemented("menu enter " + menuName);
     }
 
     private void handleShowCurrent() {

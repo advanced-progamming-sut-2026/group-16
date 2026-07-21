@@ -4,23 +4,13 @@ import model.App;
 import model.user.User;
 import model.user.UserDatabase;
 import util.StayLoggedInStorage;
-import view.cli.AdventureViewCli;
-import view.cli.AuthViewCli;
-import view.cli.GamePlayViewCli;
-import view.cli.GameViewCli;
-import view.cli.GreenhouseViewCli;
-import view.cli.MainMenuViewCli;
-import view.cli.NewsViewCli;
-import view.cli.PlantSelectionViewCli;
-import view.cli.ProfileViewCli;
-import view.cli.ShopViewCli;
-import view.cli.TravelLogViewCli;
-import view.cli.SettingViewCli;
+import view.cli.*;
 
 import java.util.Scanner;
 
 public class CommandParser {
     private final AuthViewCli authView;
+    private final CollectionViewCli collectionView;
     private final GameViewCli gameView;
     private final GreenhouseViewCli greenhouseView;
     private final MainMenuViewCli mainMenuView;
@@ -38,6 +28,7 @@ public class CommandParser {
     public CommandParser() {
         UserDatabase userDatabase = UserDatabase.getInstance();
         authView = new AuthViewCli();
+        collectionView = new CollectionViewCli();
         gameView = new GameViewCli();
         greenhouseView = new GreenhouseViewCli();
         mainMenuView = new MainMenuViewCli();
@@ -125,6 +116,8 @@ public class CommandParser {
             newController.setView(profileView);
         } else if (newController instanceof GameController) {
             newController.setView(gameView);
+        } else if (newController instanceof CollectionController) {
+            newController.setView(collectionView);
         } else if (newController instanceof GreenhouseController) {
             newController.setView(greenhouseView);
         } else if (newController instanceof ShopController) {

@@ -106,4 +106,48 @@ class PlantCollectionTest {
         assertTrue(details.getTags().contains("PEA"));
         assertFalse(details.getNextUpgradeSummary().isBlank());
     }
+
+    @Test
+    void purchaseFailureDetectsUnknownAlreadyOwnedAndInsufficientCoins() {
+        assertEquals(PlantCollection.PurchaseFailure.UNKNOWN_PLANT,
+                collection.getPurchaseFailure("Not A Plant"));
+        collection.purchase("Cherry Bomb");
+        assertEquals(PlantCollection.PurchaseFailure.ALREADY_OWNED,
+                collection.getPurchaseFailure("Cherry Bomb"));
+        PlantCollection poor = new PlantCollection(registry, new PlayerPlantProgress(), 100);
+        assertEquals(PlantCollection.PurchaseFailure.INSUFFICIENT_COINS,
+                poor.getPurchaseFailure("Cherry Bomb"));
+    }
+
+    @Test
+    void upgradeFailureDetectsAllDocErrorCases() {
+        assertEquals(PlantCollection.UpgradeFailure.UNKNOWN_PLANT,
+                collection.getUpgradeFailure("Missing Plant"));
+        assertEquals(PlantCollection.UpgradeFailure.NOT_OWNED,
+                collection.getUpgradeFailure("Cherry Bomb"));
+        collection.addSeedPackets("Peashooter", 100);
+        while (collection.canUpgrade("Peashooter")) {
+            collection.upgrade("Peashooter");
+        }
+        assertEquals(PlantCollection.UpgradeFailure.MAX_LEVEL,
+                collection.getUpgradeFailure("Peashooter"));
+    }
+
+    @Test
+    void upgradeWithResultSyncsLevelAndCoins() {
+        collection.addSeedPackets("Peashooter", 20);
+        int coinsBefore = collection.getCoins();
+        PlantCollection.UpgradeResult result = collection.upgradeWithResult("Peashooter");
+        assertTrue(result.success());
+        assertEquals(2, result.newLevel());
+        assertNull(result.failure());
+        assertTrue(collection.getCoins() < coinsBefore);
+    }
+
+    @Test
+    void upgradeWithResultReportsInsufficientSeedPackets() {
+        PlantCollection rich = new PlantCollection(registry, new PlayerPlantProgress(), 10_000);
+        assertEquals(PlantCollection.UpgradeFailure.INSUFFICIENT_SEED_PACKETS,
+                rich.getUpgradeFailure("Peashooter"));
+    }
 }
