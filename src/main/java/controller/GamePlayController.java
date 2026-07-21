@@ -290,6 +290,10 @@ public class GamePlayController extends ViewController implements MatchListener 
         return (GamePlayView) view;
     }
 
+    protected GameSession getSession() {
+        return session;
+    }
+
 
     @Override
     public void onSunProduced(Plant plant, int x, int y) {

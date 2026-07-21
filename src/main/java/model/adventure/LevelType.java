@@ -17,6 +17,6 @@ public enum LevelType {
     }
 
     public boolean isPlayableNow() {
-        return this == NORMAL;
+        return this != BOSS;
     }
 }

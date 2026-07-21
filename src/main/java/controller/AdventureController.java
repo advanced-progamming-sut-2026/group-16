@@ -79,10 +79,6 @@ public class AdventureController extends ViewController {
             getAdventureView().errorBossNotImplemented();
             return;
         }
-        if (level.getType().isSpecial()) {
-            getAdventureView().errorSpecialNotImplemented(level.getType().name());
-            return;
-        }
         if (!level.isPlayableNow()) {
             getAdventureView().errorSpecialNotImplemented(level.getType().name());
             return;
