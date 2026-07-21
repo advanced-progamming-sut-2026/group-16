@@ -1,5 +1,6 @@
 package controller;
 
+import model.adventure.AdventureRegistry;
 import model.command.GameMenuCommands;
 import model.user.User;
 import model.user.UserDatabase;
@@ -44,11 +45,11 @@ public class GameController extends ViewController {
             }
             return;
         }
-        view.displayError("Invalid game menu command.");
+        getGameView().errorInvalidCommand();
     }
 
     private void handleMenuEnter(String menuName) {
-        view.displayError("Only greenhouse path is implemented in this phase.");
+        getGameView().errorNotImplemented("menu enter");
     }
 
     private void handleShowCurrent() {
@@ -60,8 +61,17 @@ public class GameController extends ViewController {
     }
 
     private void handleEnterChapter(String chapterName) {
-        // TODO: implement after Adventure is done.
-        view.displayError("Adventure is not implemented yet.");
+        var chapter = AdventureRegistry.getInstance()
+                .getChapterByName(chapterName);
+        if (chapter == null) {
+            getGameView().errorUnknownChapter(chapterName);
+            return;
+        }
+        if (!user.getChapterProgress().isChapterUnlocked(chapter.getId())) {
+            getGameView().errorChapterLocked(chapter.getDisplayName());
+            return;
+        }
+        parser.switchController(new AdventureController(user, userDatabase, this, chapter));
     }
 
     private void handleGreenhouse() {
@@ -69,13 +79,12 @@ public class GameController extends ViewController {
     }
 
     private void handleTravelLog() {
-        // TODO: implement after TravelLog is done.
-        view.displayError("Travel log is not implemented yet.");
+        parser.switchController(new TravelLogController(user, this));
     }
 
     private void handleLeaderboard() {
         // TODO: implement after Leaderboard is done.
-        view.displayError("Leaderboard is not implemented yet.");
+        getGameView().errorLeaderboardNotImplemented();
     }
 
     private void handleCoinWallet() {
@@ -91,7 +100,7 @@ public class GameController extends ViewController {
         try {
             amount = Integer.parseInt(n);
         } catch (NumberFormatException e) {
-            view.displayError("Invalid cheat amount.");
+            getGameView().errorInvalidCheatAmount();
             return;
         }
 
@@ -100,7 +109,7 @@ public class GameController extends ViewController {
         } else if ("diamond".equalsIgnoreCase(type)) {
             user.addDiamonds(amount);
         } else {
-            view.displayError("Invalid cheat type.");
+            getGameView().errorInvalidCheatType();
             return;
         }
         userDatabase.saveUserWallet(user);

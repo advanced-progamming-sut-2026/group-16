@@ -1,6 +1,7 @@
 package controller;
 
 import model.command.CollectionMenuCommands;
+import view.api.CollectionView;
 
 import java.util.regex.Matcher;
 
@@ -26,7 +27,7 @@ public class CollectionController extends ViewController {
             }
             return;
         }
-        view.displayError("Invalid collection command.");
+        getCollectionView().errorInvalidCommand();
     }
 
 
@@ -68,5 +69,9 @@ public class CollectionController extends ViewController {
 
     private void handlePurchasePlant(String plantName) {
         // TODO: implement after Collection is done.
+    }
+
+    private CollectionView getCollectionView() {
+        return (CollectionView) view;
     }
 }

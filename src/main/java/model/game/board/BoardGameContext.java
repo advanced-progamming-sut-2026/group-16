@@ -1,9 +1,11 @@
 package model.game.board;
 
 import model.game.GameSession;
+import model.game.MatchListener;
 import model.game.board.tile.NormalTile;
 import model.game.board.tile.GraveTile;
 import model.game.board.tile.IceTile;
+import model.game.board.tile.Tile;
 import model.game.entity.GameContext;
 import model.game.entity.plant.Plant;
 import model.game.entity.plant.PlantCategory;
@@ -53,6 +55,19 @@ public final class BoardGameContext implements GameContext {
     @Override
     public int getColCount() {
         return session.getBoard().getCols();
+    }
+
+    @Override
+    public Tile getTileAt(int col, int row) {
+        if (!session.getBoard().inBounds(col, row)) {
+            return null;
+        }
+        return session.getBoard().getTile(col, row);
+    }
+
+    @Override
+    public boolean areZombiesImmuneToChill() {
+        return session.areZombiesImmuneToChill();
     }
 
     @Override
@@ -176,6 +191,10 @@ public final class BoardGameContext implements GameContext {
             }
         }
         session.spawnSunItem(new Sun(plant.getCol(), plant.getRow(), value, SunType.NORMAL, true));
+        MatchListener listener = session.getMatchListener();
+        if (listener != null) {
+            listener.onSunProduced(plant, plant.getCol(), plant.getRow());
+        }
     }
 
     @Override
@@ -219,7 +238,7 @@ public final class BoardGameContext implements GameContext {
         }
         if ("Grave Buster".equals(plant.getName())
                 && session.getBoard().getTile(centerCol, centerRow).isGrave()) {
-            session.getBoard().setTile(centerCol, centerRow, new NormalTile());
+            session.clearGraveAt(centerCol, centerRow);
         }
         if (plant.hasTag(PlantTag.FIRE)
                 || plant.getStats().hasSpecialModifier(PlantSpecialModifiers.MELT_AREA_3X3)) {

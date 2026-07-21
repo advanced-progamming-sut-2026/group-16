@@ -1,16 +1,35 @@
 package controller;
 
 import model.command.SettingMenuCommands;
+import model.user.User;
+import model.user.UserDatabase;
+import view.api.SettingView;
 
 import java.util.regex.Matcher;
 
 public class SettingController extends ViewController {
+    private final User user;
+    private final UserDatabase userDatabase;
+    private final MainMenuController mainMenuController;
+
+    public SettingController(User user, UserDatabase userDatabase, MainMenuController mainMenuController) {
+        this.user = user;
+        this.userDatabase = userDatabase;
+        this.mainMenuController = mainMenuController;
+    }
+
+    @Override
+    public void displayMenu() {
+        getSettingView().showSettingsMenu(user.getDifficultyLevel());
+    }
+
     @Override
     public void handleCommand(String input) {
         for (SettingMenuCommands cmd : SettingMenuCommands.values()) {
             Matcher matcher = cmd.getMatcher(input);
-            if (matcher == null)
+            if (matcher == null) {
                 continue;
+            }
 
             switch (cmd) {
                 case MENU_SHOW_CURRENT -> handleShowCurrent();
@@ -19,18 +38,35 @@ public class SettingController extends ViewController {
             }
             return;
         }
-        view.displayError("Invalid settings command.");
+        getSettingView().errorInvalidCommand();
     }
 
     private void handleShowCurrent() {
-        // TODO: implement after Settings is done.
+        getSettingView().showCurrentMenu(user.getDifficultyLevel());
     }
 
     private void handleMenuExit() {
-        // TODO: implement after menu navigation is done.
+        parser.switchController(mainMenuController);
     }
 
     private void handleChangeDifficulty(String difficultyLevel) {
-        // TODO: implement after Settings is done.
+        int level;
+        try {
+            level = Integer.parseInt(difficultyLevel.trim());
+        } catch (NumberFormatException e) {
+            getSettingView().errorInvalidDifficultyFormat();
+            return;
+        }
+        if (level < 1 || level > 5) {
+            getSettingView().errorDifficultyOutOfRange();
+            return;
+        }
+        user.setDifficultyLevel(level);
+        userDatabase.saveAdventureProgress(user);
+        getSettingView().showChangedDifficulty(user.getDifficultyLevel());
+    }
+
+    private SettingView getSettingView() {
+        return (SettingView) view;
     }
 }

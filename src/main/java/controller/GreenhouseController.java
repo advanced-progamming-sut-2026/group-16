@@ -44,7 +44,7 @@ public class GreenhouseController extends ViewController {
             }
             return;
         }
-        view.displayError("Invalid greenhouse command.");
+        getGreenhouseView().errorInvalidCommand();
     }
 
     private void handleShowCurrent() {

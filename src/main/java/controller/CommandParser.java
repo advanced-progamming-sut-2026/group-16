@@ -4,12 +4,17 @@ import model.App;
 import model.user.User;
 import model.user.UserDatabase;
 import util.StayLoggedInStorage;
+import view.cli.AdventureViewCli;
 import view.cli.AuthViewCli;
+import view.cli.GamePlayViewCli;
 import view.cli.GameViewCli;
 import view.cli.GreenhouseViewCli;
 import view.cli.MainMenuViewCli;
+import view.cli.PlantSelectionViewCli;
 import view.cli.ProfileViewCli;
 import view.cli.ShopViewCli;
+import view.cli.TravelLogViewCli;
+import view.cli.SettingViewCli;
 
 import java.util.Scanner;
 
@@ -20,6 +25,11 @@ public class CommandParser {
     private final MainMenuViewCli mainMenuView;
     private final ProfileViewCli profileView;
     private final ShopViewCli shopView;
+    private final AdventureViewCli adventureView;
+    private final PlantSelectionViewCli plantSelectionView;
+    private final GamePlayViewCli gamePlayView;
+    private final TravelLogViewCli travelLogView;
+    private final SettingViewCli settingView;
     private final RegistrationController registrationController;
     private ViewController currentController;
 
@@ -31,6 +41,11 @@ public class CommandParser {
         mainMenuView = new MainMenuViewCli();
         profileView = new ProfileViewCli();
         shopView = new ShopViewCli();
+        adventureView = new AdventureViewCli();
+        plantSelectionView = new PlantSelectionViewCli();
+        gamePlayView = new GamePlayViewCli();
+        travelLogView = new TravelLogViewCli();
+        settingView = new SettingViewCli();
 
         LoginController loginController = new LoginController(userDatabase);
         registrationController = new RegistrationController(userDatabase);
@@ -90,6 +105,10 @@ public class CommandParser {
         currentController.handleCommand(trimmed);
     }
 
+    public ViewController getCurrentController() {
+        return currentController;
+    }
+
     public void switchController(ViewController newController) {
         if (newController == null) {
             return;
@@ -107,6 +126,16 @@ public class CommandParser {
             newController.setView(greenhouseView);
         } else if (newController instanceof ShopController) {
             newController.setView(shopView);
+        } else if (newController instanceof AdventureController) {
+            newController.setView(adventureView);
+        } else if (newController instanceof PlantSelectionController) {
+            newController.setView(plantSelectionView);
+        } else if (newController instanceof GamePlayController) {
+            newController.setView(gamePlayView);
+        } else if (newController instanceof TravelLogController) {
+            newController.setView(travelLogView);
+        } else if (newController instanceof SettingController) {
+            newController.setView(settingView);
         } else if (newController.getView() == null) {
             newController.setView(authView);
         }

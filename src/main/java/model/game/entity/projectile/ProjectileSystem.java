@@ -12,6 +12,7 @@ import model.game.entity.GameContext;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public final class ProjectileSystem {
@@ -75,11 +76,11 @@ public final class ProjectileSystem {
     }
 
     public void tick(GameBoard board, List<Zombie> zombies, Consumer<Zombie> onZombieKilled) {
-        tick(board, zombies, onZombieKilled, null);
+        tick(board, zombies, (zombie, killer) -> onZombieKilled.accept(zombie), null);
     }
 
-    public void tick(GameBoard board, List<Zombie> zombies, Consumer<Zombie> onZombieKilled,
-                     GameContext context) {
+    public void tick(GameBoard board, List<Zombie> zombies,
+                     BiConsumer<Zombie, String> onZombieKilled, GameContext context) {
         ticking = true;
         try {
             Iterator<Projectile> iterator = projectiles.iterator();
@@ -119,7 +120,7 @@ public final class ProjectileSystem {
                         continue;
                     }
                     projectile.recordHit(hit.getId());
-                    applyHit(projectile, hit, board, zombies, onZombieKilled);
+                    applyHit(projectile, hit, board, zombies, onZombieKilled, context);
                     if (!projectile.canPierce()) {
                         iterator.remove();
                     } else {
@@ -243,7 +244,7 @@ public final class ProjectileSystem {
     }
 
     private void applyHit(Projectile projectile, Zombie zombie, GameBoard board, List<Zombie> zombies,
-                          Consumer<Zombie> onZombieKilled) {
+                          BiConsumer<Zombie, String> onZombieKilled, GameContext context) {
         int damage = projectile.getDamage();
         if (projectile.getEffect() == ProjectileEffect.FIRE) {
             damage *= 2;
@@ -257,10 +258,13 @@ public final class ProjectileSystem {
             zombie.takeDirectDamage(damage);
         } else if (projectile.getEffect() == ProjectileEffect.ICE
                 || projectile.getEffect() == ProjectileEffect.SNOWBALL) {
-            int chillExt = projectile.getSource() == null ? 0
-                    : (int) (projectile.getSource().getStats()
-                    .specialModifier(PlantSpecialModifiers.CHILL_DURATION_EXT) * 10);
-            zombie.applyChill(30 + chillExt);
+            boolean immune = context != null && context.areZombiesImmuneToChill();
+            if (!immune) {
+                int chillExt = projectile.getSource() == null ? 0
+                        : (int) (projectile.getSource().getStats()
+                        .specialModifier(PlantSpecialModifiers.CHILL_DURATION_EXT) * 10);
+                zombie.applyChill(30 + chillExt);
+            }
             zombie.takeDamage(damage);
         } else if (projectile.getEffect() == ProjectileEffect.BUTTER) {
             zombie.applyFreeze(20);
@@ -274,14 +278,15 @@ public final class ProjectileSystem {
                     .specialModifier(PlantSpecialModifiers.WARM_RADIUS_EXT);
             meltIceNear(board, zombie.getRow(), (int) zombie.getX(), warmRadius);
         }
-        applySplash(projectile, zombie, zombies, onZombieKilled);
+        String killer = projectile.getSource() == null ? null : projectile.getSource().getName();
+        applySplash(projectile, zombie, zombies, onZombieKilled, killer);
         if (zombie.isDead()) {
-            onZombieKilled.accept(zombie);
+            onZombieKilled.accept(zombie, killer);
         }
     }
 
     private void applySplash(Projectile projectile, Zombie primary, List<Zombie> zombies,
-                             Consumer<Zombie> onZombieKilled) {
+                             BiConsumer<Zombie, String> onZombieKilled, String killer) {
         Plant source = projectile.getSource();
         if (source == null || !source.getStats().hasSpecialModifier(PlantSpecialModifiers.SPLASH_DAMAGE_BUFF)) {
             return;
@@ -295,7 +300,7 @@ public final class ProjectileSystem {
                     && Math.abs(other.getX() - primary.getX()) <= 1.0) {
                 other.takeDamage(splashDamage);
                 if (other.isDead()) {
-                    onZombieKilled.accept(other);
+                    onZombieKilled.accept(other, killer);
                 }
             }
         }

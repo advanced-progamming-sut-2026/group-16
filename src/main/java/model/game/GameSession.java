@@ -6,6 +6,7 @@ import model.definition.plant.PlantDefinition;
 import model.game.board.BoardGameContext;
 import model.game.board.GameBoard;
 import model.game.board.PlantPlacementResult;
+import model.game.board.tile.GraveTile;
 import model.game.entity.plant.*;
 import model.game.entity.plant.ability.ExplosiveAbility;
 import model.game.entity.projectile.ProjectileSystem;
@@ -51,12 +52,25 @@ public final class GameSession {
     private final Random random;
     private Set<String> selectedLoadout = Set.of();
 
+    private final List<LawnMower> lawnMowers = new ArrayList<>();
+    private WaveManager waveManager;
+    private final SkySunSystem skySunSystem;
+    private MatchListener matchListener;
+    private MatchResult matchResult = MatchResult.IN_PROGRESS;
+    private boolean wavesAutoStart = true;
+    private boolean zombiesImmuneToChill;
+
     private int currentTick;
     private int sunBalance;
     private int plantFoodCount;
     private String chapterId = "default";
+    private String levelId = "level";
+    private boolean nightLevel;
+    private int plantsLost;
+    private int waveStartTick;
     private boolean running;
     private boolean tickingZombies;
+    private model.quest.QuestTracker attachedQuestTracker;
 
     public GameSession(PlantRegistry plantRegistry) {
         this(plantRegistry, new GameBoard(), 50);
@@ -117,6 +131,15 @@ public final class GameSession {
         this.context = new BoardGameContext(this);
         this.sunBalance = startingSun;
         this.plantFoodCount = 0;
+        this.skySunSystem = new SkySunSystem(this.random);
+        initLawnMowers();
+    }
+
+    private void initLawnMowers() {
+        lawnMowers.clear();
+        for (int row = 0; row < board.getRows(); row++) {
+            lawnMowers.add(new LawnMower(row));
+        }
     }
 
     public BoardGameContext getContext() {
@@ -204,16 +227,115 @@ public final class GameSession {
         return chapterId;
     }
 
+    public void setLevelId(String levelId) {
+        this.levelId = levelId == null ? "level" : levelId;
+    }
+
+    public String getLevelId() {
+        return levelId;
+    }
+
+    public void setNightLevel(boolean nightLevel) {
+        this.nightLevel = nightLevel;
+    }
+
+    public boolean isNightLevel() {
+        return nightLevel;
+    }
+
+    public int getPlantsLost() {
+        return plantsLost;
+    }
+
+    public void markWaveStarted() {
+        waveStartTick = currentTick;
+    }
+
+    public int getWaveStartTick() {
+        return waveStartTick;
+    }
+
+    public void attachQuestTracker(model.quest.QuestTracker questTracker) {
+        this.attachedQuestTracker = questTracker;
+    }
+
+    public MatchListener getMatchListener() {
+        return matchListener;
+    }
+
+    public void setMatchListener(MatchListener matchListener) {
+        this.matchListener = matchListener;
+    }
+
+    public MatchResult getMatchResult() {
+        return matchResult;
+    }
+
+    public List<LawnMower> getLawnMowers() {
+        return List.copyOf(lawnMowers);
+    }
+
+    public WaveManager getWaveManager() {
+        return waveManager;
+    }
+
+    public void setWaveManager(WaveManager waveManager) {
+        this.waveManager = waveManager;
+    }
+
+    public SkySunSystem getSkySunSystem() {
+        return skySunSystem;
+    }
+
+    public void setWavesAutoStart(boolean wavesAutoStart) {
+        this.wavesAutoStart = wavesAutoStart;
+    }
+
+    public boolean isWavesAutoStart() {
+        return wavesAutoStart;
+    }
+
+    public void setZombiesImmuneToChill(boolean zombiesImmuneToChill) {
+        this.zombiesImmuneToChill = zombiesImmuneToChill;
+    }
+
+    public boolean areZombiesImmuneToChill() {
+        return zombiesImmuneToChill;
+    }
+
     public boolean isRunning() {
         return running;
     }
 
     public void start() {
         running = true;
+        matchResult = MatchResult.IN_PROGRESS;
+        if (wavesAutoStart && waveManager != null && !waveManager.areWavesStarted()) {
+            waveManager.startWaves(this);
+        }
+        eventBus.publish(new GameEvent.GameStarted(levelId, chapterId, nightLevel));
     }
 
     public void stop() {
         running = false;
+    }
+
+    public void advanceTicks(int count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("tick count must be non-negative");
+        }
+        for (int i = 0; i < count; i++) {
+            if (!running) {
+                break;
+            }
+            tick();
+        }
+    }
+
+    public void startZombieWaves() {
+        if (waveManager != null) {
+            waveManager.startWaves(this);
+        }
     }
 
     public PlantPlacementResult tryPlant(String plantName, int col, int row, int level) {
@@ -254,12 +376,59 @@ public final class GameSession {
     }
 
     public boolean collectSun(Sun sun) {
-        if (sun == null || !sunItems.remove(sun)) {
+        if (sun == null || !sunItems.contains(sun)) {
+            return false;
+        }
+        if (sun.getType() == model.item.SunType.RADIOACTIVE && sun.isFalling()) {
+            sunItems.remove(sun);
+            explodeRadioactiveSun(sun.getCol(), sun.getRow());
+            return true;
+        }
+        if (!sunItems.remove(sun)) {
             return false;
         }
         sunBalance += sun.getValue();
         eventBus.publish(new GameEvent.SunCollected(sun.getValue()));
         return true;
+    }
+
+    public boolean collectSunAt(int col, int row) {
+        Sun target = null;
+        for (Sun sun : sunItems) {
+            if (sun.getCol() == col && sun.getRow() == row) {
+                target = sun;
+                break;
+            }
+        }
+        return collectSun(target);
+    }
+
+    private void explodeRadioactiveSun(int col, int row) {
+        if (matchListener != null) {
+            matchListener.onRadioactiveSunExploded(col, row);
+        }
+        for (Zombie zombie : getZombies()) {
+            if (!zombie.isAlive()) {
+                continue;
+            }
+            int zCol = (int) Math.floor(zombie.getX());
+            if (Math.abs(zCol - col) <= 2 && Math.abs(zombie.getRow() - row) <= 2) {
+                zombie.takeDirectDamage(150);
+                if (zombie.isDead()) {
+                    handleZombieKilled(zombie);
+                }
+            }
+        }
+        for (Plant plant : board.getAllPlants()) {
+            if (!plant.isAlive()) {
+                continue;
+            }
+            if (Math.abs(plant.getCol() - col) <= 1 && Math.abs(plant.getRow() - row) <= 1) {
+                plant.takeDamage(80);
+            }
+        }
+        cleanupDeadZombies();
+        cleanupDeadPlants();
     }
 
     public boolean usePlantFood(int col, int row) {
@@ -317,7 +486,7 @@ public final class GameSession {
     }
 
     public void tick() {
-        if (!running) {
+        if (!running || matchResult != MatchResult.IN_PROGRESS) {
             return;
         }
         currentTick++;
@@ -374,7 +543,23 @@ public final class GameSession {
         arcadeObstacles.removeIf(ArcadeObstacle::isDead);
         cleanupDeadZombies();
         tickSunItems();
+        tickSkySun();
         cleanupDeadPlants();
+        if (waveManager != null) {
+            waveManager.tick(this);
+            waveManager.publishClearedWaves(this);
+        }
+        checkWinCondition();
+    }
+
+    private void tickSkySun() {
+        Sun sun = skySunSystem.tick(currentTick, TICKS_PER_SECOND, board.getCols(), board.getRows());
+        if (sun != null) {
+            sunItems.add(sun);
+            if (matchListener != null) {
+                matchListener.onSunDropped(sun.getType(), sun.getCol(), sun.getRow());
+            }
+        }
     }
 
     private void checkArmedTraps(Zombie zombie) {
@@ -399,7 +584,10 @@ public final class GameSession {
         Iterator<Sun> iterator = sunItems.iterator();
         while (iterator.hasNext()) {
             Sun sun = iterator.next();
-            sun.tick();
+            boolean justLanded = sun.tick();
+            if (justLanded && matchListener != null) {
+                matchListener.onSunReachedGround(sun.getCol(), sun.getRow());
+            }
             if (sun.isExpired()) {
                 iterator.remove();
             }
@@ -409,6 +597,9 @@ public final class GameSession {
     private void cleanupDeadPlants() {
         for (Plant plant : board.getAllPlants()) {
             if (plant.isDead()) {
+                if (matchListener != null) {
+                    matchListener.onPlantDestroyed(plant, plant.getCol(), plant.getRow());
+                }
                 board.removePlant(plant);
             }
         }
@@ -463,11 +654,18 @@ public final class GameSession {
     }
 
     public boolean removePlantFromBoard(Plant plant) {
+        return removePlantFromBoard(plant, true);
+    }
+
+    public boolean removePlantFromBoard(Plant plant, boolean countsAsLoss) {
         if (plant == null || destroyedPlantIds.contains(plant.getId())) {
             return false;
         }
         destroyedPlantIds.add(plant.getId());
         board.removePlant(plant);
+        if (countsAsLoss) {
+            plantsLost++;
+        }
         eventBus.publish(new GameEvent.PlantDestroyed(
                 plant.getName(),
                 plant.getCategory().name()));
@@ -475,6 +673,10 @@ public final class GameSession {
     }
 
     public void handleZombieKilled(Zombie zombie) {
+        handleZombieKilled(zombie, null);
+    }
+
+    public void handleZombieKilled(Zombie zombie, String killerPlantType) {
         if (zombie == null || !zombie.isDead()) {
             return;
         }
@@ -482,17 +684,177 @@ public final class GameSession {
         if (!killedZombieIds.add(zombie.getId())) {
             return;
         }
+        if (matchListener != null) {
+            matchListener.onZombieDied(zombie.getType(), zombie.getX(), zombie.getRow());
+        }
+        if (zombie.isGlowing() && plantFoodCount < 3) {
+            plantFoodCount++;
+            if (matchListener != null) {
+                matchListener.onGlowingZombieDroppedFood(plantFoodCount);
+            }
+        }
+        rollZombieLootDrop();
+        double secondsSinceWave = Math.max(0, (currentTick - waveStartTick) / (double) TICKS_PER_SECOND);
         eventBus.publish(new GameEvent.ZombieKilled(
                 zombie.getType(),
-                null,
+                killerPlantType,
                 chapterId,
                 (int) zombie.getX(),
                 zombie.getRow(),
-                currentTick / (double) TICKS_PER_SECOND));
+                secondsSinceWave));
+    }
+
+    private void rollZombieLootDrop() {
+        if (random.nextInt(100) >= 10) {
+            return;
+        }
+        int roll = random.nextInt(3);
+        if (matchListener == null) {
+            return;
+        }
+        if (roll == 0) {
+            matchListener.onItemDropped("coin", 50);
+        } else if (roll == 1) {
+            matchListener.onItemDropped("diamond", 1);
+        } else {
+            matchListener.onItemDropped("pot", 1);
+        }
     }
 
     public void handleZombieReachedHouse(Zombie zombie) {
+        if (zombie == null || matchResult != MatchResult.IN_PROGRESS) {
+            return;
+        }
+        int row = zombie.getRow();
+        if (row < 0 || row >= lawnMowers.size()) {
+            loseMatch();
+            return;
+        }
+        LawnMower mower = lawnMowers.get(row);
+        if (mower.trigger()) {
+            List<Zombie> killed = new ArrayList<>();
+            for (Zombie candidate : List.copyOf(zombies)) {
+                if (!candidate.isAlive() || candidate.getRow() != row) {
+                    continue;
+                }
+                if (isBossZombie(candidate)) {
+                    continue;
+                }
+                candidate.takeDirectDamage(candidate.getHealth() + 99999);
+                handleZombieKilled(candidate);
+                killed.add(candidate);
+            }
+            if (!tickingZombies) {
+                zombies.removeIf(Zombie::isDead);
+            }
+            if (matchListener != null) {
+                matchListener.onLawnMowerTriggered(row + 1, killed);
+            }
+            eventBus.publish(new GameEvent.LawnMowerTriggered(row, killed.size()));
+        } else {
+            if (matchListener != null) {
+                matchListener.onLawnMowerFailed(row + 1);
+            }
+            loseMatch();
+        }
+    }
+
+    private static boolean isBossZombie(Zombie zombie) {
+        String type = zombie.getType();
+        return type != null && (type.contains("Gargantuar") || type.contains("King"));
+    }
+
+    private void checkWinCondition() {
+        if (matchResult != MatchResult.IN_PROGRESS || waveManager == null) {
+            return;
+        }
+        if (waveManager.areAllWavesCleared() && getLivingZombieCount() == 0) {
+            winMatch();
+        }
+    }
+
+    private int getLivingZombieCount() {
+        int count = 0;
+        for (Zombie zombie : zombies) {
+            if (zombie.isAlive()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public void winMatch() {
+        if (matchResult != MatchResult.IN_PROGRESS) {
+            return;
+        }
+        matchResult = MatchResult.WON;
         running = false;
+        if (attachedQuestTracker != null) {
+            attachedQuestTracker.prepareBoardSnapshots(this);
+        }
+        if (matchListener != null) {
+            matchListener.onWin();
+        }
+        eventBus.publish(new GameEvent.GameFinished(true, sunBalance, plantsLost,
+                currentTick / (long) TICKS_PER_SECOND));
+    }
+
+    public void loseMatch() {
+        if (matchResult != MatchResult.IN_PROGRESS) {
+            return;
+        }
+        matchResult = MatchResult.LOST;
+        running = false;
+        if (attachedQuestTracker != null) {
+            attachedQuestTracker.prepareBoardSnapshots(this);
+        }
+        if (matchListener != null) {
+            matchListener.onLose();
+        }
+        eventBus.publish(new GameEvent.GameFinished(false, sunBalance, plantsLost,
+                currentTick / (long) TICKS_PER_SECOND));
+    }
+
+    public boolean pluckPlant(int col, int row) {
+        Plant plant = board.getPlantAt(col, row);
+        if (plant == null) {
+            return false;
+        }
+        return removePlantFromBoard(plant, false);
+    }
+
+    public void nukeAllZombies() {
+        for (Zombie zombie : getZombies()) {
+            if (zombie.isAlive()) {
+                zombie.takeDirectDamage(zombie.getHealth() + 99999);
+                handleZombieKilled(zombie);
+            }
+        }
+        zombies.removeIf(Zombie::isDead);
+    }
+
+    public void removeAllCooldowns() {
+        cooldownTracker.resetAll();
+    }
+
+    public String renderMap() {
+        return MapRenderer.render(this);
+    }
+
+    public String renderPlantsStatus() {
+        return MapRenderer.plantsStatus(this);
+    }
+
+    public String renderTileStatus(int col, int row) {
+        return MapRenderer.tileStatus(this, col, row);
+    }
+
+    public void applyUserDifficulty(int difficultyLevel) {
+        int dl = Math.max(1, Math.min(5, difficultyLevel));
+        skySunSystem.setDifficultyScale(WaveManager.skySunIntervalScale(dl));
+        if (waveManager != null) {
+            waveManager.setWaveCostDifficultyScale(WaveManager.waveCostScale(dl));
+        }
     }
 
     public PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health) {
@@ -511,13 +873,34 @@ public final class GameSession {
     }
 
     public void registerHunterIceHit(Plant plant) {
+        addPlantFrostStack(plant);
+    }
+
+    public void addPlantFrostStack(Plant plant) {
         if (plant == null || !plant.isAlive()) {
             return;
         }
-        int hits = plant.addHostileIceStack("hunter");
+        int hits = plant.addHostileIceStack("frost");
         if (hits >= 3) {
             coverPlant(plant, PlantCovering.Type.HUNTER_ICE, 600);
             plant.clearHostileIce();
+        }
+    }
+
+    public void clearGraveAt(int col, int row) {
+        if (!board.inBounds(col, row) || !board.getTile(col, row).isGrave()) {
+            return;
+        }
+        var tile = board.getTile(col, row);
+        GraveTile.Loot loot = GraveTile.Loot.NONE;
+        if (tile instanceof GraveTile grave) {
+            loot = grave.getLoot();
+        }
+        board.setTile(col, row, new model.game.board.tile.NormalTile());
+        if (loot == GraveTile.Loot.SUN_50) {
+            addSunBalance(50);
+        } else if (loot == GraveTile.Loot.PLANT_FOOD) {
+            addPlantFood(1);
         }
     }
 

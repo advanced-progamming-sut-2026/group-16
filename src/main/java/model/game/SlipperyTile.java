@@ -2,8 +2,25 @@ package model.game;
 
 import model.game.board.tile.Tile;
 
-public class SlipperyTile extends Tile {
-    enum SlipDirection {
+public final class SlipperyTile extends Tile {
 
+    public enum SlipDirection {
+        UP,
+        DOWN
+    }
+
+    private final SlipDirection direction;
+
+    public SlipperyTile(SlipDirection direction) {
+        this.direction = direction == null ? SlipDirection.UP : direction;
+    }
+
+    public SlipDirection getDirection() {
+        return direction;
+    }
+
+    @Override
+    public boolean blocksPlanting() {
+        return true;
     }
 }

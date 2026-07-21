@@ -1,5 +1,6 @@
 package model.quest;
 
+import model.adventure.ChapterId;
 import model.quest.condition.QuestConditions;
 import model.quest.reward.QuestReward;
 
@@ -32,7 +33,7 @@ public final class QuestFactory {
         all.add(createLawnMowerKills(10));
 
         // --- MAIN ---
-        all.add(createChapterHunter("ancient_egypt", 50));
+        all.add(createChapterHunter(ChapterId.ANCIENT_EGYPT.getKey(), 50));
         all.add(createLowPlantLoss(2));
 
         // --- EPIC CHALLENGE ---

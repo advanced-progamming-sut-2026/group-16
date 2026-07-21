@@ -64,7 +64,7 @@ public class ProfileController extends ViewController {
             return;
         }
 
-        view.displayError("Invalid profile command.");
+        getProfileView().errorInvalidCommand();
     }
 
     private void handleShowCurrent() {

@@ -27,7 +27,6 @@ public class ShopViewCli extends CliView implements ShopView {
         displayMessage(msg + ".");
     }
 
-    // ====================== ERROR METHODS ======================
 
     @Override
     public void errorInsufficientCoins() {

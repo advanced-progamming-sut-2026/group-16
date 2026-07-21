@@ -59,4 +59,9 @@ public class CollectionVIewCli extends CliView implements CollectionView {
     public void errorNotEnoughSeedCoinToPurchase() {
         displayError("You don't have enough coins to purchase.");
     }
+
+    @Override
+    public void errorInvalidCommand() {
+        displayError("Invalid collection command.");
+    }
 }

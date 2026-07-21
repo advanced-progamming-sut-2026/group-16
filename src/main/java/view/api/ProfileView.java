@@ -32,4 +32,6 @@ public interface ProfileView extends View {
     void promptNewEmail();
 
     void promptNewPassword();
+
+    void errorInvalidCommand();
 }

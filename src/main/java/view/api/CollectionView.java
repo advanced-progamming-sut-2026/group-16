@@ -23,4 +23,6 @@ public interface CollectionView extends View {
     void errorNotEnoughForUpgrade();
 
     void errorNotEnoughSeedCoinToPurchase();
+
+    void errorInvalidCommand();
 }

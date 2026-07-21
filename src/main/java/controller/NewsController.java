@@ -1,6 +1,7 @@
 package controller;
 
 import model.command.NewsMenuCommands;
+import view.api.NewsView;
 
 import java.util.regex.Matcher;
 
@@ -20,7 +21,7 @@ public class NewsController extends ViewController {
             }
             return;
         }
-        view.displayError("Invalid news command.");
+        getNewsView().errorInvalidCommand();
     }
 
     private void handleShowCurrent() {
@@ -37,5 +38,9 @@ public class NewsController extends ViewController {
 
     private void handleShowAll() {
         // TODO: implement after News is done.
+    }
+
+    private NewsView getNewsView() {
+        return (NewsView) view;
     }
 }

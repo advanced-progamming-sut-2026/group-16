@@ -26,4 +26,6 @@ public interface GreenhouseView extends View {
     void errorCannotAccelerateReadyPlant(int x, int y);
 
     void errorInvalidPotLocation(int x, int y);
+
+    void errorInvalidCommand();
 }

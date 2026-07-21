@@ -36,10 +36,9 @@ public final class Quest {
         this.reward = reward;
     }
 
+
     public void startSession() {
-        if (!completed) {
-            condition.reset();
-        }
+
     }
 
     public boolean onEvent(GameEvent event) {
@@ -50,6 +49,22 @@ public final class Quest {
             return true;
         }
         return false;
+    }
+
+    public QuestCondition getCondition() {
+        return condition;
+    }
+
+    public void restoreState(boolean completed, boolean rewardClaimed, String progressBlob) {
+        this.completed = completed;
+        this.rewardClaimed = rewardClaimed;
+        if (progressBlob != null && !progressBlob.isBlank()) {
+            condition.deserializeProgress(progressBlob);
+        }
+    }
+
+    public String exportProgressBlob() {
+        return condition.serializeProgress();
     }
 
     public String getId() {

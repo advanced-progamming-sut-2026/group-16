@@ -410,6 +410,10 @@ public final class Zombie extends Entity {
         this.trapImmune = dodoBypass;
     }
 
+    public boolean isDodoBypass() {
+        return dodoBypass;
+    }
+
     public boolean shouldBypass(Plant plant) {
         if (plant == null) {
             return false;
@@ -453,10 +457,6 @@ public final class Zombie extends Entity {
         MOVEMENT,
         ABILITY
     }
-
-//    public double getHealthRatio() {
-//        return (double) getHealth() / getMaxHealth();
-//    }
 
     @Override
     public String toString() {

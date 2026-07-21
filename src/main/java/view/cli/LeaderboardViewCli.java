@@ -7,4 +7,9 @@ public class LeaderboardViewCli extends CliView implements LeaderboardView {
     public void showLeaderboard() {
         // TODO: implement after the Leaderboard is done.
     }
+
+    @Override
+    public void errorInvalidCommand() {
+        displayError("Invalid leaderboard command.");
+    }
 }

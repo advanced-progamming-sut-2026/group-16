@@ -2,12 +2,17 @@ package model.item;
 
 public final class Sun {
 
+    public static final int FALL_TICKS = 50;
+    public static final int GROUND_LIFETIME_TICKS = Integer.MAX_VALUE / 4;
+
     private final int col;
     private final int row;
     private int value;
-    private final SunType type;
+    private SunType type;
     private int lifetimeTicks;
+    private int fallTicksRemaining;
     private final boolean fromPlant;
+    private boolean reachedGround;
 
     public Sun(int col, int row, int value, SunType type, boolean fromPlant) {
         this.col = col;
@@ -15,7 +20,15 @@ public final class Sun {
         this.value = value;
         this.type = type == null ? SunType.NORMAL : type;
         this.fromPlant = fromPlant;
-        this.lifetimeTicks = fromPlant ? Integer.MAX_VALUE / 2 : 50;
+        if (fromPlant) {
+            this.lifetimeTicks = Integer.MAX_VALUE / 2;
+            this.fallTicksRemaining = 0;
+            this.reachedGround = true;
+        } else {
+            this.lifetimeTicks = GROUND_LIFETIME_TICKS;
+            this.fallTicksRemaining = FALL_TICKS;
+            this.reachedGround = false;
+        }
     }
 
     public int getCol() {
@@ -40,6 +53,10 @@ public final class Sun {
         return type;
     }
 
+    public void setType(SunType type) {
+        this.type = type == null ? SunType.NORMAL : type;
+    }
+
     public boolean isFromPlant() {
         return fromPlant;
     }
@@ -48,13 +65,42 @@ public final class Sun {
         return lifetimeTicks;
     }
 
-    public void tick() {
-        if (!fromPlant && lifetimeTicks < Integer.MAX_VALUE / 4) {
+    public boolean isFalling() {
+        return !fromPlant && !reachedGround && fallTicksRemaining > 0;
+    }
+
+    public boolean hasReachedGround() {
+        return reachedGround;
+    }
+
+    public int getFallTicksRemaining() {
+        return fallTicksRemaining;
+    }
+
+    public boolean tick() {
+        if (fromPlant) {
+            return false;
+        }
+        if (!reachedGround) {
+            fallTicksRemaining--;
+            if (fallTicksRemaining <= 0) {
+                reachedGround = true;
+                if (type == SunType.RADIOACTIVE) {
+                    type = SunType.NORMAL;
+                    value = 25;
+                }
+                lifetimeTicks = GROUND_LIFETIME_TICKS;
+                return true;
+            }
+            return false;
+        }
+        if (lifetimeTicks < Integer.MAX_VALUE / 4) {
             lifetimeTicks--;
         }
+        return false;
     }
 
     public boolean isExpired() {
-        return !fromPlant && lifetimeTicks <= 0;
+        return !fromPlant && reachedGround && lifetimeTicks <= 0;
     }
 }

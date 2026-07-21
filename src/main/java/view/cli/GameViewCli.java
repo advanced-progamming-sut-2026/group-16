@@ -27,4 +27,39 @@ public class GameViewCli extends CliView implements GameView {
     public void showCheatAdded(String type, int amount) {
         displayMessage("Added " + amount + " " + type + "(s).");
     }
+
+    @Override
+    public void errorInvalidCommand() {
+        displayError("Invalid game menu command.");
+    }
+
+    @Override
+    public void errorNotImplemented(String feature) {
+        displayError("Only greenhouse path is implemented in this phase.");
+    }
+
+    @Override
+    public void errorUnknownChapter(String chapterName) {
+        displayError("Unknown chapter: " + chapterName);
+    }
+
+    @Override
+    public void errorChapterLocked(String chapterName) {
+        displayError("Chapter " + chapterName + " is locked.");
+    }
+
+    @Override
+    public void errorLeaderboardNotImplemented() {
+        displayError("Leaderboard is not implemented yet.");
+    }
+
+    @Override
+    public void errorInvalidCheatAmount() {
+        displayError("Invalid cheat amount.");
+    }
+
+    @Override
+    public void errorInvalidCheatType() {
+        displayError("Invalid cheat type.");
+    }
 }

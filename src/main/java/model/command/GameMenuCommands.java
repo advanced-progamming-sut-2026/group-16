@@ -4,10 +4,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public enum GameMenuCommands implements Command {
+    ENTER_CHAPTER("^menu enter chapter\\s+-c\\s+(?<chapterName>.+)$"),
     MENU_ENTER("^menu enter\\s+(?<menuName>.+)$"),
     MENU_SHOW_CURRENT("^menu show current$"),
     MENU_EXIT("^menu exit$"),
-    ENTER_CHAPTER("^menu enter chapter\\s+-c\\s+(?<chapterName>.+)$"),
     GREENHOUSE("^menu greenhouse$"),
     TRAVEL_LOG("^menu travel-log$"),
     LEADERBOARD("^menu leaderboard$"),
