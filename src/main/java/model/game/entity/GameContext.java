@@ -151,4 +151,7 @@ public interface GameContext {
     default List<ArcadeObstacle> getArcadeObstacles() {
         return List.of();
     }
+
+    default void dropSeedPacket(String plantName, int col, int row) {
+    }
 }

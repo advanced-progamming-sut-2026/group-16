@@ -15,5 +15,6 @@ public enum PlantPlacementResult {
     INSUFFICIENT_SUN,
     ON_COOLDOWN,
     UNKNOWN_PLANT,
-    INVALID_LEVEL
+    INVALID_LEVEL,
+    NO_SEED_PACKET
 }

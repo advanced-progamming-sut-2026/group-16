@@ -1,5 +1,6 @@
 package model.game;
 
+import model.game.entity.Vase;
 import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
 import model.item.SunType;
@@ -75,5 +76,17 @@ public interface MatchListener {
     }
 
     default void onPlantWhatYouGetWavesStarted() {
+    }
+
+    default void onVaseSmashed(int col, int row, Vase.Content content) {
+    }
+
+    default void onSeedPacketDropped(String plantName, int col, int row) {
+    }
+
+    default void onSeedPacketExpired(String plantName, int col, int row) {
+    }
+
+    default void onSeedPacketPlanted(String plantName, int col, int row) {
     }
 }

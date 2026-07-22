@@ -1,5 +1,7 @@
 package model.user;
 
+import model.minigame.MiniGameId;
+
 public final class UserProgressInitializer {
     private UserProgressInitializer() {
     }
@@ -18,5 +20,8 @@ public final class UserProgressInitializer {
         user.setDailyOfferPlant(null);
         user.setDailyOfferDate(null);
         user.setDailyOfferPurchased(false);
+        for (MiniGameId id : MiniGameId.values()) {
+            user.getUnlockedMinigames().add(id.getKey());
+        }
     }
 }
