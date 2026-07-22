@@ -8,6 +8,7 @@ import model.game.GameSession;
 import model.minigame.MiniGameId;
 import model.minigame.MiniGameRegistry;
 import model.minigame.MiniGameStageConfig;
+import model.minigame.mode.IZombieMode;
 import model.minigame.mode.VaseBreakerMode;
 import model.minigame.mode.WalnutBowlingMode;
 import model.user.User;
@@ -99,7 +100,6 @@ public class MiniGameHubController extends ViewController {
         boolean implemented = stages.stream().anyMatch(MiniGameStageConfig::isImplemented);
         if (!implemented) {
             switch (id) {
-                case I_ZOMBIE -> parser.switchController(new IZombieController(user, this));
                 case BEGHOULED -> parser.switchController(new BeghouledController(user, this));
                 case ZOMBOTANY -> parser.switchController(new ZombotanyController(user, this));
                 default -> getHubView().showComingSoon(id);
@@ -126,9 +126,14 @@ public class MiniGameHubController extends ViewController {
             String status = completed ? "DONE"
                     : stage.getStageIndex() <= playable ? "OPEN"
                     : "LOCKED";
-            String stageInfo = selectedGame == MiniGameId.WALNUT_BOWLING
-                    ? "waves=" + stage.getWaveCount() + " redLine=" + stage.getRedLineColumn()
-                    : "pots=" + stage.getPotCount();
+            String stageInfo;
+            if (selectedGame == MiniGameId.WALNUT_BOWLING) {
+                stageInfo = "waves=" + stage.getWaveCount() + " redLine=" + stage.getRedLineColumn();
+            } else if (selectedGame == MiniGameId.I_ZOMBIE) {
+                stageInfo = "sun=" + stage.getStartingSun() + " redLine=" + stage.getRedLineColumn();
+            } else {
+                stageInfo = "pots=" + stage.getPotCount();
+            }
             lines.add("Stage " + stage.getStageIndex() + " | " + stageInfo + " | " + status);
         }
         getHubView().showStages(selectedGame, lines);
@@ -163,8 +168,20 @@ public class MiniGameHubController extends ViewController {
         switch (selectedGame) {
             case VASE_BREAKER -> startVaseBreaker(stage);
             case WALNUT_BOWLING -> startWalnutBowling(stage);
+            case I_ZOMBIE -> startIZombie(stage);
             default -> getHubView().showComingSoon(selectedGame);
         }
+    }
+
+    private void startIZombie(MiniGameStageConfig stage) {
+        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombieRegistry = loadZombieRegistry();
+        IZombieMode mode = new IZombieMode(stage, plantRegistry, zombieRegistry, new Random());
+        GameSession session = mode.createSession();
+        IZombieController controller = new IZombieController(
+                user, userDatabase, this, mode, session, stage);
+        parser.switchController(controller);
+        session.start();
     }
 
     private void startWalnutBowling(MiniGameStageConfig stage) {

@@ -100,4 +100,7 @@ public interface MatchListener {
 
     default void onBowlingNutExploded(int col, int row) {
     }
+
+    default void onBrainEaten(int row) {
+    }
 }

@@ -67,6 +67,11 @@ public final class GameSession {
     private boolean walnutBowlingActive;
     private int walnutBowlingRedLineColumn = -1;
     private BowlingNutSystem bowlingNutSystem;
+    private boolean iZombieActive;
+    private int iZombiePlacementColumn = -1;
+    private List<String> iZombieZombiePool = List.of();
+    private Map<String, Integer> iZombieZombieCosts = Map.of();
+    private boolean[] iZombieBrainsEaten = new boolean[0];
     private final Set<String> levelLockedPlants = new HashSet<>();
     private final Set<String> protectedSeedPlantIds = new HashSet<>();
     private final List<SeedPlacement> protectedSeedPlacements = new ArrayList<>();
@@ -434,6 +439,117 @@ public final class GameSession {
             matchListener.onBowlingNutSpawned(plantName, col, row);
         }
         return PlantPlacementResult.SUCCESS;
+    }
+
+    public void activateIZombie(int placementColumn,
+                                List<String> zombiePool,
+                                Map<String, Integer> zombieCosts) {
+        iZombieActive = true;
+        iZombiePlacementColumn = Math.max(0, placementColumn);
+        iZombieZombiePool = zombiePool == null ? List.of() : List.copyOf(zombiePool);
+        iZombieZombieCosts = zombieCosts == null ? Map.of() : Map.copyOf(zombieCosts);
+        iZombieBrainsEaten = new boolean[board.getRows()];
+    }
+
+    public boolean isIZombieActive() {
+        return iZombieActive;
+    }
+
+    public int getIZombiePlacementColumn() {
+        return iZombiePlacementColumn;
+    }
+
+    public List<String> getIZombieZombiePool() {
+        return iZombieZombiePool;
+    }
+
+    public Map<String, Integer> getIZombieZombieCosts() {
+        return iZombieZombieCosts;
+    }
+
+    public boolean isIZombieBrainEaten(int row) {
+        return row >= 0 && row < iZombieBrainsEaten.length && iZombieBrainsEaten[row];
+    }
+
+    public int getIZombieBrainsEatenCount() {
+        int count = 0;
+        for (boolean eaten : iZombieBrainsEaten) {
+            if (eaten) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public boolean areAllIZombieBrainsEaten() {
+        if (!iZombieActive || iZombieBrainsEaten.length == 0) {
+            return false;
+        }
+        for (boolean eaten : iZombieBrainsEaten) {
+            if (!eaten) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public PlantPlacementResult tryPlaceZombie(String alias, int col, int row) {
+        if (!iZombieActive) {
+            return PlantPlacementResult.TILE_BLOCKED;
+        }
+        if (alias == null || alias.isBlank()) {
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        String trimmed = alias.trim();
+        if (!iZombieZombiePool.contains(trimmed)) {
+            return PlantPlacementResult.NOT_IN_LOADOUT;
+        }
+        if (!board.inBounds(col, row)) {
+            return PlantPlacementResult.OUT_OF_BOUNDS;
+        }
+        if (col <= iZombiePlacementColumn) {
+            return PlantPlacementResult.BEYOND_PLANTING_LINE;
+        }
+        Integer cost = iZombieZombieCosts.get(trimmed);
+        if (cost == null) {
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        if (sunBalance < cost) {
+            return PlantPlacementResult.INSUFFICIENT_SUN;
+        }
+        if (zombieFactory == null) {
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        try {
+            spawnZombieOfType(trimmed, row, col);
+        } catch (IllegalArgumentException e) {
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        sunBalance -= cost;
+        eventBus.publish(new GameEvent.SunSpent(cost));
+        return PlantPlacementResult.SUCCESS;
+    }
+
+    public Plant placeDefensePlant(String plantName, int col, int row) {
+        PlantDefinition definition = plantRegistry.getDefinition(plantName);
+        if (definition == null) {
+            throw new IllegalArgumentException("Unknown plant: " + plantName);
+        }
+        Plant plant = plantFactory.create(definition, 1, col, row);
+        board.placePlant(plant);
+        plant.onPlanted(context);
+        return plant;
+    }
+
+    public int getIZombieCheapestRosterCost() {
+        if (iZombieZombieCosts.isEmpty()) {
+            return Integer.MAX_VALUE;
+        }
+        int cheapest = Integer.MAX_VALUE;
+        for (int cost : iZombieZombieCosts.values()) {
+            cheapest = Math.min(cheapest, cost);
+        }
+        return cheapest;
     }
 
     public void activateLockedPlants(LockedPlantsRules rules) {
@@ -1164,6 +1280,22 @@ public final class GameSession {
             return;
         }
         int row = zombie.getRow();
+        if (iZombieActive) {
+            if (row >= 0 && row < iZombieBrainsEaten.length && !iZombieBrainsEaten[row]) {
+                iZombieBrainsEaten[row] = true;
+                if (matchListener != null) {
+                    matchListener.onBrainEaten(row);
+                }
+            }
+            if (zombie.isAlive()) {
+                zombie.takeDirectDamage(zombie.getHealth() + 99999);
+                handleZombieKilled(zombie);
+            }
+            if (!tickingZombies) {
+                zombies.removeIf(Zombie::isDead);
+            }
+            return;
+        }
         if (row < 0 || row >= lawnMowers.size()) {
             loseMatch();
             return;

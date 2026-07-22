@@ -5,6 +5,7 @@ import model.user.User;
 import model.user.UserDatabase;
 import util.StayLoggedInStorage;
 import view.cli.*;
+import view.cli.minigame.IZombieViewCli;
 import view.cli.minigame.MiniGameHubViewCli;
 import view.cli.minigame.StubMiniGameViewCli;
 import view.cli.minigame.VaseBreakerViewCli;
@@ -38,6 +39,7 @@ public class CommandParser {
     private final MiniGameHubViewCli miniGameHubView;
     private final VaseBreakerViewCli vaseBreakerView;
     private final WalnutBowlingViewCli walnutBowlingView;
+    private final IZombieViewCli iZombieView;
     private final StubMiniGameViewCli stubMiniGameView;
     private final SettingViewCli settingView;
     private final RegistrationController registrationController;
@@ -70,6 +72,7 @@ public class CommandParser {
         miniGameHubView = new MiniGameHubViewCli();
         vaseBreakerView = new VaseBreakerViewCli();
         walnutBowlingView = new WalnutBowlingViewCli();
+        iZombieView = new IZombieViewCli();
         stubMiniGameView = new StubMiniGameViewCli();
         settingView = new SettingViewCli();
 
@@ -188,8 +191,9 @@ public class CommandParser {
             newController.setView(vaseBreakerView);
         } else if (newController instanceof WalnutBowlingController) {
             newController.setView(walnutBowlingView);
-        } else if (newController instanceof IZombieController
-                || newController instanceof BeghouledController
+        } else if (newController instanceof IZombieController) {
+            newController.setView(iZombieView);
+        } else if (newController instanceof BeghouledController
                 || newController instanceof ZombotanyController) {
             newController.setView(stubMiniGameView);
         } else if (newController instanceof SettingController) {
