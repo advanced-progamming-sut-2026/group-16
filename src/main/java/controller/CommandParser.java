@@ -8,6 +8,7 @@ import view.cli.*;
 import view.cli.minigame.MiniGameHubViewCli;
 import view.cli.minigame.StubMiniGameViewCli;
 import view.cli.minigame.VaseBreakerViewCli;
+import view.cli.minigame.WalnutBowlingViewCli;
 
 import java.util.Scanner;
 
@@ -36,6 +37,7 @@ public class CommandParser {
     private final TravelLogViewCli travelLogView;
     private final MiniGameHubViewCli miniGameHubView;
     private final VaseBreakerViewCli vaseBreakerView;
+    private final WalnutBowlingViewCli walnutBowlingView;
     private final StubMiniGameViewCli stubMiniGameView;
     private final SettingViewCli settingView;
     private final RegistrationController registrationController;
@@ -67,6 +69,7 @@ public class CommandParser {
         travelLogView = new TravelLogViewCli();
         miniGameHubView = new MiniGameHubViewCli();
         vaseBreakerView = new VaseBreakerViewCli();
+        walnutBowlingView = new WalnutBowlingViewCli();
         stubMiniGameView = new StubMiniGameViewCli();
         settingView = new SettingViewCli();
 
@@ -183,8 +186,9 @@ public class CommandParser {
             newController.setView(miniGameHubView);
         } else if (newController instanceof VaseBreakerController) {
             newController.setView(vaseBreakerView);
-        } else if (newController instanceof WalnutBowlingController
-                || newController instanceof IZombieController
+        } else if (newController instanceof WalnutBowlingController) {
+            newController.setView(walnutBowlingView);
+        } else if (newController instanceof IZombieController
                 || newController instanceof BeghouledController
                 || newController instanceof ZombotanyController) {
             newController.setView(stubMiniGameView);

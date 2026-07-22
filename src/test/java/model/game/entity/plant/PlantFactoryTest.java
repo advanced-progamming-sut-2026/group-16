@@ -23,7 +23,7 @@ class PlantFactoryTest {
 
     @Test
     void allPlantsInstantiateWithoutError() {
-        assertEquals(69, registry.size());
+        assertEquals(70, registry.size());
         for (var def : registry.getAllDefinitions()) {
             Plant plant = assertDoesNotThrow(
                     () -> factory.createBaseLevel(def, 2, 1),

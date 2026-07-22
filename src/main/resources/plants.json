@@ -980,6 +980,22 @@
     ]
   },
   {
+    "id": 1381,
+    "name": "Giant Wall-nut",
+    "category": "WALL_NUT",
+    "tags": [],
+    "cost": 50,
+    "baseHp": 4000,
+    "damage": 0,
+    "actionInterval": 0.0,
+    "recharge": 20.0,
+    "abilityType": "PASSIVE_SHIELD",
+    "abilityValue": 0.0,
+    "plantFoodType": "GRANT_PERMANENT_ARMOR",
+    "plantFoodValue": 4000.0,
+    "upgrades": []
+  },
+  {
     "id": 50,
     "name": "Pumpkin",
     "category": "WALL_NUT",

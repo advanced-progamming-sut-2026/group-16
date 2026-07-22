@@ -15,7 +15,10 @@ public final class MiniGameRegistry {
                 MiniGameStageConfig.vaseBreaker(1),
                 MiniGameStageConfig.vaseBreaker(2),
                 MiniGameStageConfig.vaseBreaker(3)));
-        stages.put(MiniGameId.WALNUT_BOWLING, List.of(MiniGameStageConfig.placeholder(MiniGameId.WALNUT_BOWLING)));
+        stages.put(MiniGameId.WALNUT_BOWLING, List.of(
+                MiniGameStageConfig.walnutBowling(1),
+                MiniGameStageConfig.walnutBowling(2),
+                MiniGameStageConfig.walnutBowling(3)));
         stages.put(MiniGameId.I_ZOMBIE, List.of(MiniGameStageConfig.placeholder(MiniGameId.I_ZOMBIE)));
         stages.put(MiniGameId.BEGHOULED, List.of(MiniGameStageConfig.placeholder(MiniGameId.BEGHOULED)));
         stages.put(MiniGameId.ZOMBOTANY, List.of(MiniGameStageConfig.placeholder(MiniGameId.ZOMBOTANY)));

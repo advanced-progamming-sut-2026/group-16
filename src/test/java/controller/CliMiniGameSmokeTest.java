@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class CliVaseBreakerSmokeTest {
+class CliMiniGameSmokeTest {
 
     private static final Path DATABASE = Path.of("target", "cli-vasebreaker-smoke.db");
     private static final String USERNAME = "vase-smoke-user";
@@ -89,7 +89,7 @@ class CliVaseBreakerSmokeTest {
 
     @Test
     @Order(2)
-    void stubMiniGamesShowComingSoon() {
+    void walnutBowlingStartsAndPlantsNut() {
         CommandParser parser = new CommandParser();
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
@@ -97,7 +97,40 @@ class CliVaseBreakerSmokeTest {
         parser.parseAndExecute("menu travel-log");
         parser.parseAndExecute("travel log page minigames");
         parser.parseAndExecute("enter game -n walnut-bowling");
+        parser.parseAndExecute("show stages");
+        parser.parseAndExecute("start stage -n 1");
         assertInstanceOf(WalnutBowlingController.class, parser.getCurrentController());
+
+        WalnutBowlingController gameplay = (WalnutBowlingController) parser.getCurrentController();
+        String plant = gameplay.getSession().getConveyorBeltPlants().getFirst();
+        assertDoesNotThrow(() -> {
+            parser.parseAndExecute("plant plant -t " + plant + " -l (2, 0)");
+            parser.parseAndExecute("show map");
+            for (int i = 0; i < 500 && gameplay.getSession().getMatchResult()
+                    == model.game.MatchResult.IN_PROGRESS; i++) {
+                if (!gameplay.getSession().getZombies().isEmpty()) {
+                    gameplay.getSession().nukeAllZombies();
+                }
+                parser.parseAndExecute("advance time -t 5 ticks");
+            }
+        });
+
+        assertInstanceOf(MiniGameHubController.class, parser.getCurrentController());
+        User user = UserDatabase.getInstance().getUser(USERNAME);
+        assertTrue(user.getMiniGameProgress().isStageCompleted(MiniGameId.WALNUT_BOWLING, 1));
+    }
+
+    @Test
+    @Order(3)
+    void stubMiniGamesShowComingSoon() {
+        CommandParser parser = new CommandParser();
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu travel-log");
+        parser.parseAndExecute("travel log page minigames");
+        parser.parseAndExecute("enter game -n i-zombie");
+        assertInstanceOf(IZombieController.class, parser.getCurrentController());
         parser.parseAndExecute("menu exit");
         assertInstanceOf(MiniGameHubController.class, parser.getCurrentController());
     }
