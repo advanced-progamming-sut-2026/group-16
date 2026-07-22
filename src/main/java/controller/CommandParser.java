@@ -8,9 +8,9 @@ import view.cli.*;
 import view.cli.minigame.BeghouledViewCli;
 import view.cli.minigame.IZombieViewCli;
 import view.cli.minigame.MiniGameHubViewCli;
-import view.cli.minigame.StubMiniGameViewCli;
 import view.cli.minigame.VaseBreakerViewCli;
 import view.cli.minigame.WalnutBowlingViewCli;
+import view.cli.minigame.ZombotanyViewCli;
 
 import java.util.Scanner;
 
@@ -42,7 +42,7 @@ public class CommandParser {
     private final WalnutBowlingViewCli walnutBowlingView;
     private final IZombieViewCli iZombieView;
     private final BeghouledViewCli beghouledView;
-    private final StubMiniGameViewCli stubMiniGameView;
+    private final ZombotanyViewCli zombotanyView;
     private final SettingViewCli settingView;
     private final RegistrationController registrationController;
     private ViewController currentController;
@@ -76,7 +76,7 @@ public class CommandParser {
         walnutBowlingView = new WalnutBowlingViewCli();
         iZombieView = new IZombieViewCli();
         beghouledView = new BeghouledViewCli();
-        stubMiniGameView = new StubMiniGameViewCli();
+        zombotanyView = new ZombotanyViewCli();
         settingView = new SettingViewCli();
 
         LoginController loginController = new LoginController(userDatabase);
@@ -199,7 +199,7 @@ public class CommandParser {
         } else if (newController instanceof BeghouledController) {
             newController.setView(beghouledView);
         } else if (newController instanceof ZombotanyController) {
-            newController.setView(stubMiniGameView);
+            newController.setView(zombotanyView);
         } else if (newController instanceof SettingController) {
             newController.setView(settingView);
         } else if (newController instanceof NewsController) {

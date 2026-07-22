@@ -12,6 +12,7 @@ import model.minigame.mode.BeghouledMode;
 import model.minigame.mode.IZombieMode;
 import model.minigame.mode.VaseBreakerMode;
 import model.minigame.mode.WalnutBowlingMode;
+import model.minigame.mode.ZombotanyMode;
 import model.user.User;
 import model.user.UserDatabase;
 import view.api.minigame.MiniGameHubView;
@@ -100,11 +101,7 @@ public class MiniGameHubController extends ViewController {
         List<MiniGameStageConfig> stages = MiniGameRegistry.getInstance().getStages(id);
         boolean implemented = stages.stream().anyMatch(MiniGameStageConfig::isImplemented);
         if (!implemented) {
-            if (id == MiniGameId.ZOMBOTANY) {
-                parser.switchController(new ZombotanyController(user, this));
-            } else {
-                getHubView().showComingSoon(id);
-            }
+            getHubView().showComingSoon(id);
             return;
         }
         selectedGame = id;
@@ -134,6 +131,8 @@ public class MiniGameHubController extends ViewController {
                 stageInfo = "sun=" + stage.getStartingSun() + " redLine=" + stage.getRedLineColumn();
             } else if (selectedGame == MiniGameId.BEGHOULED) {
                 stageInfo = "matchTarget=" + stage.getMatchTarget();
+            } else if (selectedGame == MiniGameId.ZOMBOTANY) {
+                stageInfo = "waves=" + stage.getWaveCount() + " sun=" + stage.getStartingSun();
             } else {
                 stageInfo = "pots=" + stage.getPotCount();
             }
@@ -173,8 +172,20 @@ public class MiniGameHubController extends ViewController {
             case WALNUT_BOWLING -> startWalnutBowling(stage);
             case I_ZOMBIE -> startIZombie(stage);
             case BEGHOULED -> startBeghouled(stage);
+            case ZOMBOTANY -> startZombotany(stage);
             default -> getHubView().showComingSoon(selectedGame);
         }
+    }
+
+    private void startZombotany(MiniGameStageConfig stage) {
+        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombieRegistry = loadZombotanyZombieRegistry();
+        ZombotanyMode mode = new ZombotanyMode(stage, plantRegistry, zombieRegistry, new Random());
+        GameSession session = mode.createSession();
+        ZombotanyController controller = new ZombotanyController(
+                user, userDatabase, this, mode, session, stage);
+        parser.switchController(controller);
+        session.start();
     }
 
     private void startBeghouled(MiniGameStageConfig stage) {
@@ -229,6 +240,16 @@ public class MiniGameHubController extends ViewController {
             return registry;
         } catch (IOException e) {
             throw new RuntimeException("Could not load zombie registry", e);
+        }
+    }
+
+    static ZombieRegistry loadZombotanyZombieRegistry() {
+        try {
+            ZombieRegistry registry = loadZombieRegistry();
+            registry.loadFromJson("src/main/resources/zombotany-zombies.json");
+            return registry;
+        } catch (IOException e) {
+            throw new RuntimeException("Could not load zombotany zombie registry", e);
         }
     }
 

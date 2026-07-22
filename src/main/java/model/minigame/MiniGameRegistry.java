@@ -27,7 +27,10 @@ public final class MiniGameRegistry {
                 MiniGameStageConfig.beghouled(1),
                 MiniGameStageConfig.beghouled(2),
                 MiniGameStageConfig.beghouled(3)));
-        stages.put(MiniGameId.ZOMBOTANY, List.of(MiniGameStageConfig.placeholder(MiniGameId.ZOMBOTANY)));
+        stages.put(MiniGameId.ZOMBOTANY, List.of(
+                MiniGameStageConfig.zombotany(1),
+                MiniGameStageConfig.zombotany(2),
+                MiniGameStageConfig.zombotany(3)));
     }
 
     public static MiniGameRegistry getInstance() {
