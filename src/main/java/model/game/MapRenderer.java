@@ -29,6 +29,11 @@ public final class MapRenderer {
         if (session.isWalnutBowlingActive()) {
             sb.append(" | Red line: column ").append(session.getWalnutBowlingRedLineColumn());
         }
+        if (session.isIZombieActive()) {
+            sb.append(" | Placement line: column ").append(session.getIZombiePlacementColumn());
+            sb.append(" | Brains: ").append(session.getIZombieBrainsEatenCount())
+                    .append('/').append(session.getBoard().getRows());
+        }
         if (session.isLoveYourPlantsActive()) {
             sb.append(" | Plants lost: ")
                     .append(session.getPlantsLost())
@@ -47,9 +52,15 @@ public final class MapRenderer {
         GameBoard board = session.getBoard();
         List<LawnMower> mowers = session.getLawnMowers();
         for (int row = 0; row < board.getRows(); row++) {
-            boolean mowerReady = row < mowers.size() && !mowers.get(row).isUsed();
+            String rowMarker;
+            if (session.isIZombieActive()) {
+                rowMarker = session.isIZombieBrainEaten(row) ? " [Eaten]" : " [Brain]";
+            } else {
+                boolean mowerReady = row < mowers.size() && !mowers.get(row).isUsed();
+                rowMarker = mowerReady ? " [Mower]" : " [----]";
+            }
             sb.append("Row ").append(row + 1)
-                    .append(mowerReady ? " [Mower]" : " [----]")
+                    .append(rowMarker)
                     .append(": ");
             for (int col = 0; col < board.getCols(); col++) {
                 sb.append('[').append(cellLabel(session, col, row)).append(']');
@@ -130,6 +141,8 @@ public final class MapRenderer {
             parts.add("DL");
         } else if (session.isWalnutBowlingActive() && col == session.getWalnutBowlingRedLineColumn()) {
             parts.add("RL");
+        } else if (session.isIZombieActive() && col == session.getIZombiePlacementColumn()) {
+            parts.add("PL");
         } else {
             parts.add(tileLabel(tile));
         }

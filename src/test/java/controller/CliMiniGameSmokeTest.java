@@ -122,7 +122,7 @@ class CliMiniGameSmokeTest {
 
     @Test
     @Order(3)
-    void stubMiniGamesShowComingSoon() {
+    void iZombieStartsAndPlacesZombie() {
         CommandParser parser = new CommandParser();
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
@@ -130,7 +130,38 @@ class CliMiniGameSmokeTest {
         parser.parseAndExecute("menu travel-log");
         parser.parseAndExecute("travel log page minigames");
         parser.parseAndExecute("enter game -n i-zombie");
+        parser.parseAndExecute("show stages");
+        parser.parseAndExecute("start stage -n 1");
         assertInstanceOf(IZombieController.class, parser.getCurrentController());
+
+        IZombieController gameplay = (IZombieController) parser.getCurrentController();
+        assertDoesNotThrow(() -> {
+            parser.parseAndExecute("show zombies roster");
+            parser.parseAndExecute("place zombie -t ZombieImp -l (5, 0)");
+            parser.parseAndExecute("show map");
+            for (int row = 0; row < 5; row++) {
+                var zombie = gameplay.getSession().spawnZombieOfType("ZombieDefault", row, 0.1);
+                gameplay.getSession().handleZombieReachedHouse(zombie);
+            }
+            parser.parseAndExecute("advance time -t 1 ticks");
+        });
+
+        assertInstanceOf(MiniGameHubController.class, parser.getCurrentController());
+        User user = UserDatabase.getInstance().getUser(USERNAME);
+        assertTrue(user.getMiniGameProgress().isStageCompleted(MiniGameId.I_ZOMBIE, 1));
+    }
+
+    @Test
+    @Order(4)
+    void stubMiniGamesShowComingSoon() {
+        CommandParser parser = new CommandParser();
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu travel-log");
+        parser.parseAndExecute("travel log page minigames");
+        parser.parseAndExecute("enter game -n beghouled");
+        assertInstanceOf(BeghouledController.class, parser.getCurrentController());
         parser.parseAndExecute("menu exit");
         assertInstanceOf(MiniGameHubController.class, parser.getCurrentController());
     }
