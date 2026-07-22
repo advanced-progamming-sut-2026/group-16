@@ -1,0 +1,106 @@
+[
+  {
+    "aliases": [
+      "ZombiePeaShooter"
+    ],
+    "objclass": "ZombieZombotanyPeaProps",
+    "objdata": {
+      "CanSpawnPlantFood": true,
+      "Cost": 150,
+      "EatDPS": 100,
+      "Hitpoints": 190,
+      "Speed": 0.185,
+      "WavePointCost": 100,
+      "Weight": 1000,
+      "AttackDamage": 20,
+      "AttackCooldownSeconds": 1.5,
+      "AttackRange": 9.0,
+      "ZombieStats": [
+        {
+          "Type": "toughness",
+          "Value": "toughness1"
+        },
+        {
+          "Type": "speed",
+          "Value": "speed2"
+        }
+      ]
+    }
+  },
+  {
+    "aliases": [
+      "ZombieWallNut"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "CanSpawnPlantFood": true,
+      "Cost": 200,
+      "EatDPS": 100,
+      "Hitpoints": 1200,
+      "Speed": 0.15,
+      "WavePointCost": 200,
+      "Weight": 500,
+      "ZombieStats": [
+        {
+          "Type": "toughness",
+          "Value": "toughness4"
+        },
+        {
+          "Type": "speed",
+          "Value": "speed1"
+        }
+      ]
+    }
+  },
+  {
+    "aliases": [
+      "ZombieJalapeno"
+    ],
+    "objclass": "ZombieZombotanyJalapenoProps",
+    "objdata": {
+      "CanSpawnPlantFood": true,
+      "Cost": 175,
+      "EatDPS": 100,
+      "Hitpoints": 250,
+      "Speed": 0.185,
+      "WavePointCost": 150,
+      "Weight": 400,
+      "BurnCountdownSeconds": 10.0,
+      "ZombieStats": [
+        {
+          "Type": "toughness",
+          "Value": "toughness2"
+        },
+        {
+          "Type": "speed",
+          "Value": "speed2"
+        }
+      ]
+    }
+  },
+  {
+    "aliases": [
+      "ZombieSquash"
+    ],
+    "objclass": "ZombieZombotanySquashProps",
+    "objdata": {
+      "CanSpawnPlantFood": true,
+      "Cost": 175,
+      "EatDPS": 100,
+      "Hitpoints": 190,
+      "Speed": 0.55,
+      "WavePointCost": 150,
+      "Weight": 400,
+      "ZombieStats": [
+        {
+          "Type": "toughness",
+          "Value": "toughness1"
+        },
+        {
+          "Type": "speed",
+          "Value": "speed4"
+        }
+      ]
+    }
+  }
+]

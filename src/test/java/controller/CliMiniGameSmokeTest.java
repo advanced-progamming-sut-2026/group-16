@@ -153,7 +153,7 @@ class CliMiniGameSmokeTest {
 
     @Test
     @Order(4)
-    void stubMiniGamesShowComingSoon() {
+    void zombotanyStartsPlantsAndCompletesStage() {
         CommandParser parser = new CommandParser();
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
@@ -161,9 +161,27 @@ class CliMiniGameSmokeTest {
         parser.parseAndExecute("menu travel-log");
         parser.parseAndExecute("travel log page minigames");
         parser.parseAndExecute("enter game -n zombotany");
+        parser.parseAndExecute("show stages");
+        parser.parseAndExecute("start stage -n 1");
         assertInstanceOf(ZombotanyController.class, parser.getCurrentController());
-        parser.parseAndExecute("menu exit");
+
+        ZombotanyController gameplay = (ZombotanyController) parser.getCurrentController();
+        assertDoesNotThrow(() -> {
+            parser.parseAndExecute("show sun amount");
+            parser.parseAndExecute("plant plant -t Sunflower -l (1, 0)");
+            parser.parseAndExecute("show map");
+            for (int i = 0; i < 500 && gameplay.getSession().getMatchResult()
+                    == model.game.MatchResult.IN_PROGRESS; i++) {
+                if (!gameplay.getSession().getZombies().isEmpty()) {
+                    gameplay.getSession().nukeAllZombies();
+                }
+                parser.parseAndExecute("advance time -t 5 ticks");
+            }
+        });
+
         assertInstanceOf(MiniGameHubController.class, parser.getCurrentController());
+        User user = UserDatabase.getInstance().getUser(USERNAME);
+        assertTrue(user.getMiniGameProgress().isStageCompleted(MiniGameId.ZOMBOTANY, 1));
     }
 
     @Test

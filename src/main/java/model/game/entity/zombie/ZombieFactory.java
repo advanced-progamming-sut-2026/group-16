@@ -41,7 +41,10 @@ public final class ZombieFactory {
             Map.entry("ZombieDarkKingProps", ZombieFactory::configureKing),
             Map.entry("ZombieLostCityJaneProps", ZombieFactory::configureJane),
             Map.entry("ZombiePianoProps", ZombieFactory::configurePiano),
-            Map.entry("ZombieArcadeProps", ZombieFactory::configureArcade)
+            Map.entry("ZombieArcadeProps", ZombieFactory::configureArcade),
+            Map.entry("ZombieZombotanyPeaProps", ZombieFactory::configureZombotanyPea),
+            Map.entry("ZombieZombotanyJalapenoProps", ZombieFactory::configureZombotanyJalapeno),
+            Map.entry("ZombieZombotanySquashProps", ZombieFactory::configureZombotanySquash)
     );
 
     public ZombieFactory(ZombieRegistry registry) {
@@ -259,6 +262,23 @@ public final class ZombieFactory {
 
     private static void configureArcade(Zombie.Builder b, ZombieDefinition d) {
         b.addBehavior(new ArcadePushBehavior());
+    }
+
+    private static void configureZombotanyPea(Zombie.Builder b, ZombieDefinition d) {
+        b.addBehavior(new RangedAttackBehavior(
+                ZombieBehaviorDefaults.integer(d, "AttackDamage", 20),
+                ZombieBehaviorDefaults.ticks(d, "AttackCooldownSeconds", 1.5),
+                "pea",
+                ZombieBehaviorDefaults.number(d, "AttackRange", 9.0)));
+    }
+
+    private static void configureZombotanyJalapeno(Zombie.Builder b, ZombieDefinition d) {
+        b.addBehavior(new RowBurnBehavior(
+                ZombieBehaviorDefaults.ticks(d, "BurnCountdownSeconds", 10.0)));
+    }
+
+    private static void configureZombotanySquash(Zombie.Builder b, ZombieDefinition d) {
+        b.addBehavior(new ContactAttackBehavior(true, 1.0, true));
     }
 
     private static double contextRange(ZombieDefinition definition) {

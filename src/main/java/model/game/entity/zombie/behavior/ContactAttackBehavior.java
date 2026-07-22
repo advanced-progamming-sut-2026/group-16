@@ -9,11 +9,17 @@ public final class ContactAttackBehavior implements ZombieBehavior {
 
     private final boolean oneUse;
     private final double speedMultiplierAfterHit;
+    private final boolean selfDestructOnHit;
     private boolean used;
 
     public ContactAttackBehavior(boolean oneUse, double speedMultiplierAfterHit) {
+        this(oneUse, speedMultiplierAfterHit, false);
+    }
+
+    public ContactAttackBehavior(boolean oneUse, double speedMultiplierAfterHit, boolean selfDestructOnHit) {
         this.oneUse = oneUse;
         this.speedMultiplierAfterHit = speedMultiplierAfterHit;
+        this.selfDestructOnHit = selfDestructOnHit;
     }
 
     @Override
@@ -40,6 +46,10 @@ public final class ContactAttackBehavior implements ZombieBehavior {
         used = true;
         if (speedMultiplierAfterHit > 0 && speedMultiplierAfterHit != 1.0) {
             zombie.multiplySpeed(speedMultiplierAfterHit);
+        }
+        if (selfDestructOnHit) {
+            zombie.takeDirectDamage(zombie.getHealth());
+            context.onZombieKilled(zombie);
         }
     }
 
