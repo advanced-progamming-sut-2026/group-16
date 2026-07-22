@@ -8,6 +8,7 @@ import model.game.GameSession;
 import model.minigame.MiniGameId;
 import model.minigame.MiniGameRegistry;
 import model.minigame.MiniGameStageConfig;
+import model.minigame.mode.BeghouledMode;
 import model.minigame.mode.IZombieMode;
 import model.minigame.mode.VaseBreakerMode;
 import model.minigame.mode.WalnutBowlingMode;
@@ -99,10 +100,10 @@ public class MiniGameHubController extends ViewController {
         List<MiniGameStageConfig> stages = MiniGameRegistry.getInstance().getStages(id);
         boolean implemented = stages.stream().anyMatch(MiniGameStageConfig::isImplemented);
         if (!implemented) {
-            switch (id) {
-                case BEGHOULED -> parser.switchController(new BeghouledController(user, this));
-                case ZOMBOTANY -> parser.switchController(new ZombotanyController(user, this));
-                default -> getHubView().showComingSoon(id);
+            if (id == MiniGameId.ZOMBOTANY) {
+                parser.switchController(new ZombotanyController(user, this));
+            } else {
+                getHubView().showComingSoon(id);
             }
             return;
         }
@@ -131,6 +132,8 @@ public class MiniGameHubController extends ViewController {
                 stageInfo = "waves=" + stage.getWaveCount() + " redLine=" + stage.getRedLineColumn();
             } else if (selectedGame == MiniGameId.I_ZOMBIE) {
                 stageInfo = "sun=" + stage.getStartingSun() + " redLine=" + stage.getRedLineColumn();
+            } else if (selectedGame == MiniGameId.BEGHOULED) {
+                stageInfo = "matchTarget=" + stage.getMatchTarget();
             } else {
                 stageInfo = "pots=" + stage.getPotCount();
             }
@@ -169,8 +172,20 @@ public class MiniGameHubController extends ViewController {
             case VASE_BREAKER -> startVaseBreaker(stage);
             case WALNUT_BOWLING -> startWalnutBowling(stage);
             case I_ZOMBIE -> startIZombie(stage);
+            case BEGHOULED -> startBeghouled(stage);
             default -> getHubView().showComingSoon(selectedGame);
         }
+    }
+
+    private void startBeghouled(MiniGameStageConfig stage) {
+        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombieRegistry = loadZombieRegistry();
+        BeghouledMode mode = new BeghouledMode(stage, plantRegistry, zombieRegistry, new Random());
+        GameSession session = mode.createSession();
+        BeghouledController controller = new BeghouledController(
+                user, userDatabase, this, mode, session, stage);
+        parser.switchController(controller);
+        session.start();
     }
 
     private void startIZombie(MiniGameStageConfig stage) {

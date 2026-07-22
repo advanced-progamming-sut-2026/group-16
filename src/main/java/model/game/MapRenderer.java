@@ -34,6 +34,12 @@ public final class MapRenderer {
             sb.append(" | Brains: ").append(session.getIZombieBrainsEatenCount())
                     .append('/').append(session.getBoard().getRows());
         }
+        if (session.isBeghouledActive()) {
+            sb.append(" | Matches: ")
+                    .append(session.getBeghouledBoard().getMatchesMade())
+                    .append('/')
+                    .append(session.getBeghouledMatchTarget());
+        }
         if (session.isLoveYourPlantsActive()) {
             sb.append(" | Plants lost: ")
                     .append(session.getPlantsLost())
@@ -190,6 +196,9 @@ public final class MapRenderer {
     }
 
     private static String tileLabel(Tile tile) {
+        if (tile.isCrater()) {
+            return "X";
+        }
         if (tile instanceof model.game.board.tile.GraveTile grave) {
             return switch (grave.getLoot()) {
                 case SUN_50 -> "Gs";

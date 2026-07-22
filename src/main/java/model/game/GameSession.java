@@ -17,6 +17,10 @@ import model.game.entity.zombie.ZombieFactory;
 import model.item.Sun;
 import model.minigame.GroundSeedPacket;
 import model.minigame.MiniGameHandler;
+import model.minigame.beghouled.BeghouledBoard;
+import model.minigame.beghouled.BeghouledSwapResult;
+import model.minigame.beghouled.BeghouledUpgradeCatalog;
+import model.minigame.beghouled.BeghouledUpgradeResult;
 import model.minigame.bowling.BowlingNut;
 import model.minigame.bowling.BowlingNutSystem;
 import model.minigame.bowling.BowlingNutType;
@@ -72,6 +76,9 @@ public final class GameSession {
     private List<String> iZombieZombiePool = List.of();
     private Map<String, Integer> iZombieZombieCosts = Map.of();
     private boolean[] iZombieBrainsEaten = new boolean[0];
+    private boolean beghouledActive;
+    private int beghouledMatchTarget;
+    private final BeghouledBoard beghouledBoard = new BeghouledBoard();
     private final Set<String> levelLockedPlants = new HashSet<>();
     private final Set<String> protectedSeedPlantIds = new HashSet<>();
     private final List<SeedPlacement> protectedSeedPlacements = new ArrayList<>();
@@ -550,6 +557,48 @@ public final class GameSession {
             cheapest = Math.min(cheapest, cost);
         }
         return cheapest;
+    }
+
+    public void activateBeghouled(List<String> plantPool,
+                                  int matchTarget,
+                                  BeghouledUpgradeCatalog catalog) {
+        beghouledActive = true;
+        beghouledMatchTarget = Math.max(1, matchTarget);
+        beghouledBoard.configure(plantPool, catalog, random);
+        beghouledBoard.fillRandomly(this);
+    }
+
+    public boolean isBeghouledActive() {
+        return beghouledActive;
+    }
+
+    public BeghouledBoard getBeghouledBoard() {
+        return beghouledBoard;
+    }
+
+    public int getBeghouledMatchTarget() {
+        return beghouledMatchTarget;
+    }
+
+    public BeghouledSwapResult trySwapBeghouledPlants(int colA, int rowA, int colB, int rowB) {
+        if (!beghouledActive) {
+            return BeghouledSwapResult.failure(
+                    model.minigame.beghouled.BeghouledSwapOutcome.OUT_OF_BOUNDS);
+        }
+        BeghouledSwapResult result = beghouledBoard.trySwap(this, colA, rowA, colB, rowB);
+        if (result.outcome() == model.minigame.beghouled.BeghouledSwapOutcome.SUCCESS
+                && activeMiniGameHandler != null) {
+            activeMiniGameHandler.onTick(this);
+        }
+        return result;
+    }
+
+    public BeghouledUpgradeResult tryBeghouledUpgrade(String plantName) {
+        if (!beghouledActive) {
+            return BeghouledUpgradeResult.failure(
+                    model.minigame.beghouled.BeghouledUpgradeOutcome.UNKNOWN_UPGRADE);
+        }
+        return beghouledBoard.applyUpgrade(this, plantName);
     }
 
     public void activateLockedPlants(LockedPlantsRules rules) {
@@ -1207,6 +1256,9 @@ public final class GameSession {
             if (activeSpecialLevelHandler != null) {
                 activeSpecialLevelHandler.onPlantLost(this, plant);
             }
+            if (activeMiniGameHandler != null) {
+                activeMiniGameHandler.onPlantLost(this, plant);
+            }
             if (matchListener != null) {
                 matchListener.onPlantDestroyed(plant, plant.getCol(), plant.getRow());
             }
@@ -1338,7 +1390,7 @@ public final class GameSession {
         if (matchResult != MatchResult.IN_PROGRESS || waveManager == null) {
             return;
         }
-        if (timedWarActive) {
+        if (timedWarActive || beghouledActive) {
             return;
         }
         if (waveManager.areAllWavesCleared() && getLivingZombieCount() == 0) {

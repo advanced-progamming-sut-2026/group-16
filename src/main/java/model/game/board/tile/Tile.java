@@ -27,4 +27,8 @@ public abstract class Tile {
     public boolean isIce() {
         return false;
     }
+
+    public boolean isCrater() {
+        return false;
+    }
 }

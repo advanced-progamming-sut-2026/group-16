@@ -1,5 +1,8 @@
 package model.minigame;
 
+import model.minigame.beghouled.BeghouledUpgradeCatalog;
+import model.minigame.beghouled.BeghouledUpgradeRule;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +27,8 @@ public final class MiniGameStageConfig {
     private final List<String> conveyorPlantPool;
     private final Map<String, Integer> zombieSunCosts;
     private final int prePlantedPlantCount;
+    private final int matchTarget;
+    private final List<BeghouledUpgradeRule> upgrades;
 
     public MiniGameStageConfig(MiniGameId miniGameId,
                                int stageIndex,
@@ -81,6 +86,32 @@ public final class MiniGameStageConfig {
                                List<String> conveyorPlantPool,
                                Map<String, Integer> zombieSunCosts,
                                int prePlantedPlantCount) {
+        this(miniGameId, stageIndex, rows, cols, startingSun, potCount, plantSeedPotCount,
+                gargantuarPotCount, seedPacketExpiryTicks, plantSeedPool, zombiePool, implemented,
+                redLineColumn, waveCount, baseWaveCost, conveyorPlantPool, zombieSunCosts,
+                prePlantedPlantCount, 0, List.of());
+    }
+
+    public MiniGameStageConfig(MiniGameId miniGameId,
+                               int stageIndex,
+                               int rows,
+                               int cols,
+                               int startingSun,
+                               int potCount,
+                               int plantSeedPotCount,
+                               int gargantuarPotCount,
+                               int seedPacketExpiryTicks,
+                               List<String> plantSeedPool,
+                               List<String> zombiePool,
+                               boolean implemented,
+                               int redLineColumn,
+                               int waveCount,
+                               int baseWaveCost,
+                               List<String> conveyorPlantPool,
+                               Map<String, Integer> zombieSunCosts,
+                               int prePlantedPlantCount,
+                               int matchTarget,
+                               List<BeghouledUpgradeRule> upgrades) {
         if (miniGameId == null) {
             throw new IllegalArgumentException("miniGameId must not be null");
         }
@@ -107,6 +138,8 @@ public final class MiniGameStageConfig {
                 ? Map.of()
                 : Map.copyOf(zombieSunCosts);
         this.prePlantedPlantCount = Math.max(0, prePlantedPlantCount);
+        this.matchTarget = Math.max(0, matchTarget);
+        this.upgrades = upgrades == null ? List.of() : List.copyOf(upgrades);
     }
 
     public MiniGameId getMiniGameId() {
@@ -179,6 +212,14 @@ public final class MiniGameStageConfig {
 
     public int getPrePlantedPlantCount() {
         return prePlantedPlantCount;
+    }
+
+    public int getMatchTarget() {
+        return matchTarget;
+    }
+
+    public List<BeghouledUpgradeRule> getUpgrades() {
+        return upgrades;
     }
 
     public int getCheapestZombieCost() {
@@ -279,6 +320,33 @@ public final class MiniGameStageConfig {
                             "ZombieGargantuar", 300),
                     12);
             default -> throw new IllegalArgumentException("I, Zombie stages are 1-3");
+        };
+    }
+
+    public static MiniGameStageConfig beghouled(int stageIndex) {
+        return switch (stageIndex) {
+            case 1 -> new MiniGameStageConfig(
+                    MiniGameId.BEGHOULED, 1, 5, 9, 0,
+                    0, 0, 0, 100,
+                    List.of("Peashooter", "Sunflower", "Wall-nut", "Puff-shroom", "Cabbage-pult"),
+                    List.of("ZombieDefault"),
+                    true, -1, 500, 80, List.of(), Map.of(), 0,
+                    8, BeghouledUpgradeCatalog.stageOne().getRules());
+            case 2 -> new MiniGameStageConfig(
+                    MiniGameId.BEGHOULED, 2, 5, 9, 0,
+                    0, 0, 0, 100,
+                    List.of("Sunflower", "Repeater", "Wall-nut", "Fume-shroom", "Melon-pult"),
+                    List.of("ZombieDefault", "ZombieArmor1"),
+                    true, -1, 500, 100, List.of(), Map.of(), 0,
+                    12, BeghouledUpgradeCatalog.stageTwo().getRules());
+            case 3 -> new MiniGameStageConfig(
+                    MiniGameId.BEGHOULED, 3, 5, 9, 0,
+                    0, 0, 0, 100,
+                    List.of("Peashooter", "Repeater", "Tall-nut", "Cabbage-pult", "Melon-pult"),
+                    List.of("ZombieDefault", "ZombieArmor1", "ZombieArmor2"),
+                    true, -1, 500, 130, List.of(), Map.of(), 0,
+                    16, BeghouledUpgradeCatalog.stageThree().getRules());
+            default -> throw new IllegalArgumentException("Beghouled stages are 1-3");
         };
     }
 
