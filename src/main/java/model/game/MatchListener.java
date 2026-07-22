@@ -4,6 +4,7 @@ import model.game.entity.Vase;
 import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
 import model.item.SunType;
+import model.minigame.bowling.BowlingNutType;
 
 import java.util.List;
 
@@ -88,5 +89,15 @@ public interface MatchListener {
     }
 
     default void onSeedPacketPlanted(String plantName, int col, int row) {
+    }
+
+    default void onBowlingNutSpawned(String plantName, int col, int row) {
+    }
+
+    default void onBowlingNutHit(BowlingNutType type, String zombieType,
+                                 double x, double row) {
+    }
+
+    default void onBowlingNutExploded(int col, int row) {
     }
 }

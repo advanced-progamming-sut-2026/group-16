@@ -17,6 +17,9 @@ import model.game.entity.zombie.ZombieFactory;
 import model.item.Sun;
 import model.minigame.GroundSeedPacket;
 import model.minigame.MiniGameHandler;
+import model.minigame.bowling.BowlingNut;
+import model.minigame.bowling.BowlingNutSystem;
+import model.minigame.bowling.BowlingNutType;
 import model.quest.event.GameEvent;
 import model.quest.event.GameEventBus;
 
@@ -61,6 +64,9 @@ public final class GameSession {
     private Set<String> selectedLoadout = Set.of();
     private final List<String> conveyorBeltPlants = new ArrayList<>();
     private boolean conveyorBeltActive;
+    private boolean walnutBowlingActive;
+    private int walnutBowlingRedLineColumn = -1;
+    private BowlingNutSystem bowlingNutSystem;
     private final Set<String> levelLockedPlants = new HashSet<>();
     private final Set<String> protectedSeedPlantIds = new HashSet<>();
     private final List<SeedPlacement> protectedSeedPlacements = new ArrayList<>();
@@ -154,6 +160,7 @@ public final class GameSession {
         this.sunBalance = startingSun;
         this.plantFoodCount = 0;
         this.skySunSystem = new SkySunSystem(this.random);
+        this.bowlingNutSystem = new BowlingNutSystem(this.random);
         initLawnMowers();
     }
 
@@ -381,6 +388,52 @@ public final class GameSession {
 
     public List<String> getConveyorBeltPlants() {
         return List.copyOf(conveyorBeltPlants);
+    }
+
+    public void activateWalnutBowling(int redLineColumn) {
+        walnutBowlingActive = true;
+        walnutBowlingRedLineColumn = Math.max(0, redLineColumn);
+    }
+
+    public boolean isWalnutBowlingActive() {
+        return walnutBowlingActive;
+    }
+
+    public int getWalnutBowlingRedLineColumn() {
+        return walnutBowlingRedLineColumn;
+    }
+
+    public BowlingNutSystem getBowlingNutSystem() {
+        return bowlingNutSystem;
+    }
+
+    public PlantPlacementResult tryPlantBowlingNut(String plantName, int col, int row) {
+        if (!walnutBowlingActive) {
+            return PlantPlacementResult.TILE_BLOCKED;
+        }
+        BowlingNutType type = BowlingNutType.fromPlantName(plantName);
+        if (type == null) {
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        if (!board.inBounds(col, row)) {
+            return PlantPlacementResult.OUT_OF_BOUNDS;
+        }
+        if (col > walnutBowlingRedLineColumn) {
+            return PlantPlacementResult.BEYOND_PLANTING_LINE;
+        }
+        if (!conveyorBeltActive || !conveyorBeltPlants.contains(plantName)) {
+            return PlantPlacementResult.NOT_ON_CONVEYOR_BELT;
+        }
+        if (board.getGroundPlantAt(col, row) != null || board.getOverlayPlantAt(col, row) != null) {
+            return PlantPlacementResult.GROUND_OCCUPIED;
+        }
+        conveyorBeltPlants.remove(plantName);
+        BowlingNut nut = new BowlingNut(type, col, row);
+        bowlingNutSystem.spawn(nut);
+        if (matchListener != null) {
+            matchListener.onBowlingNutSpawned(plantName, col, row);
+        }
+        return PlantPlacementResult.SUCCESS;
     }
 
     public void activateLockedPlants(LockedPlantsRules rules) {
@@ -879,6 +932,9 @@ public final class GameSession {
         }
 
         projectileSystem.tick(board, zombies, this::handleZombieKilled, context);
+        if (walnutBowlingActive) {
+            bowlingNutSystem.tick(this);
+        }
         plantCoverings.removeIf(PlantCovering::isDead);
         arcadeObstacles.removeIf(ArcadeObstacle::isDead);
         cleanupDeadZombies();

@@ -16,6 +16,10 @@ public final class MiniGameStageConfig {
     private final List<String> plantSeedPool;
     private final List<String> zombiePool;
     private final boolean implemented;
+    private final int redLineColumn;
+    private final int waveCount;
+    private final int baseWaveCost;
+    private final List<String> conveyorPlantPool;
 
     public MiniGameStageConfig(MiniGameId miniGameId,
                                int stageIndex,
@@ -29,6 +33,27 @@ public final class MiniGameStageConfig {
                                List<String> plantSeedPool,
                                List<String> zombiePool,
                                boolean implemented) {
+        this(miniGameId, stageIndex, rows, cols, startingSun, potCount, plantSeedPotCount,
+                gargantuarPotCount, seedPacketExpiryTicks, plantSeedPool, zombiePool, implemented,
+                -1, 1, 100, List.of());
+    }
+
+    public MiniGameStageConfig(MiniGameId miniGameId,
+                               int stageIndex,
+                               int rows,
+                               int cols,
+                               int startingSun,
+                               int potCount,
+                               int plantSeedPotCount,
+                               int gargantuarPotCount,
+                               int seedPacketExpiryTicks,
+                               List<String> plantSeedPool,
+                               List<String> zombiePool,
+                               boolean implemented,
+                               int redLineColumn,
+                               int waveCount,
+                               int baseWaveCost,
+                               List<String> conveyorPlantPool) {
         if (miniGameId == null) {
             throw new IllegalArgumentException("miniGameId must not be null");
         }
@@ -47,6 +72,10 @@ public final class MiniGameStageConfig {
         this.plantSeedPool = plantSeedPool == null ? List.of() : List.copyOf(plantSeedPool);
         this.zombiePool = zombiePool == null ? List.of() : List.copyOf(zombiePool);
         this.implemented = implemented;
+        this.redLineColumn = redLineColumn;
+        this.waveCount = Math.max(1, waveCount);
+        this.baseWaveCost = Math.max(1, baseWaveCost);
+        this.conveyorPlantPool = conveyorPlantPool == null ? List.of() : List.copyOf(conveyorPlantPool);
     }
 
     public MiniGameId getMiniGameId() {
@@ -97,6 +126,22 @@ public final class MiniGameStageConfig {
         return implemented;
     }
 
+    public int getRedLineColumn() {
+        return redLineColumn;
+    }
+
+    public int getWaveCount() {
+        return waveCount;
+    }
+
+    public int getBaseWaveCost() {
+        return baseWaveCost;
+    }
+
+    public List<String> getConveyorPlantPool() {
+        return conveyorPlantPool;
+    }
+
     public static MiniGameStageConfig vaseBreaker(int stageIndex) {
         List<String> plants = List.of(
                 "Peashooter", "Sunflower", "Wall-nut", "Potato Mine", "Cabbage-pult");
@@ -115,6 +160,27 @@ public final class MiniGameStageConfig {
                     List.of("ZombieDefault", "ZombieArmor1", "ZombieArmor2", "ZombieArmor4"),
                     true);
             default -> throw new IllegalArgumentException("Vasebreaker stages are 1-3");
+        };
+    }
+
+    public static MiniGameStageConfig walnutBowling(int stageIndex) {
+        List<String> nuts = List.of("Wall-nut", "Explode-o-nut", "Giant Wall-nut");
+        return switch (stageIndex) {
+            case 1 -> new MiniGameStageConfig(
+                    MiniGameId.WALNUT_BOWLING, 1, 5, 9, 0,
+                    0, 0, 0, 100, List.of(), List.of("ZombieDefault"),
+                    true, 4, 2, 100, nuts);
+            case 2 -> new MiniGameStageConfig(
+                    MiniGameId.WALNUT_BOWLING, 2, 5, 9, 0,
+                    0, 0, 0, 100, List.of(),
+                    List.of("ZombieDefault", "ZombieArmor1"),
+                    true, 4, 3, 120, nuts);
+            case 3 -> new MiniGameStageConfig(
+                    MiniGameId.WALNUT_BOWLING, 3, 5, 9, 0,
+                    0, 0, 0, 100, List.of(),
+                    List.of("ZombieDefault", "ZombieArmor1", "ZombieArmor2"),
+                    true, 3, 4, 140, nuts);
+            default -> throw new IllegalArgumentException("Walnut bowling stages are 1-3");
         };
     }
 

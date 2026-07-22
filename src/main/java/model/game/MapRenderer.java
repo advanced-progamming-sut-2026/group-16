@@ -26,6 +26,9 @@ public final class MapRenderer {
         if (session.isDeadLineActive()) {
             sb.append(" | Dead line: column ").append(session.getDeadLineColumn());
         }
+        if (session.isWalnutBowlingActive()) {
+            sb.append(" | Red line: column ").append(session.getWalnutBowlingRedLineColumn());
+        }
         if (session.isLoveYourPlantsActive()) {
             sb.append(" | Plants lost: ")
                     .append(session.getPlantsLost())
@@ -125,6 +128,8 @@ public final class MapRenderer {
         List<String> parts = new ArrayList<>();
         if (session.isDeadLineActive() && col == session.getDeadLineColumn()) {
             parts.add("DL");
+        } else if (session.isWalnutBowlingActive() && col == session.getWalnutBowlingRedLineColumn()) {
+            parts.add("RL");
         } else {
             parts.add(tileLabel(tile));
         }
@@ -158,6 +163,15 @@ public final class MapRenderer {
         }
         if (session.getGroundSeedPacketAt(col, row) != null) {
             parts.add("Seed");
+        }
+        for (model.minigame.bowling.BowlingNut nut : session.getBowlingNutSystem().getNuts()) {
+            if ((int) Math.floor(nut.getX()) == col && (int) Math.round(nut.getRow()) == row) {
+                parts.add(switch (nut.getType()) {
+                    case STANDARD -> "Bn";
+                    case EXPLOSIVE -> "Be";
+                    case GIANT -> "Bg";
+                });
+            }
         }
         return String.join("|", parts);
     }

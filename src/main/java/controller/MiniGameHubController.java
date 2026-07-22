@@ -9,6 +9,7 @@ import model.minigame.MiniGameId;
 import model.minigame.MiniGameRegistry;
 import model.minigame.MiniGameStageConfig;
 import model.minigame.mode.VaseBreakerMode;
+import model.minigame.mode.WalnutBowlingMode;
 import model.user.User;
 import model.user.UserDatabase;
 import view.api.minigame.MiniGameHubView;
@@ -98,8 +99,6 @@ public class MiniGameHubController extends ViewController {
         boolean implemented = stages.stream().anyMatch(MiniGameStageConfig::isImplemented);
         if (!implemented) {
             switch (id) {
-                case WALNUT_BOWLING -> parser.switchController(
-                        new WalnutBowlingController(user, this));
                 case I_ZOMBIE -> parser.switchController(new IZombieController(user, this));
                 case BEGHOULED -> parser.switchController(new BeghouledController(user, this));
                 case ZOMBOTANY -> parser.switchController(new ZombotanyController(user, this));
@@ -127,8 +126,10 @@ public class MiniGameHubController extends ViewController {
             String status = completed ? "DONE"
                     : stage.getStageIndex() <= playable ? "OPEN"
                     : "LOCKED";
-            lines.add("Stage " + stage.getStageIndex() + " | pots=" + stage.getPotCount()
-                    + " | " + status);
+            String stageInfo = selectedGame == MiniGameId.WALNUT_BOWLING
+                    ? "waves=" + stage.getWaveCount() + " redLine=" + stage.getRedLineColumn()
+                    : "pots=" + stage.getPotCount();
+            lines.add("Stage " + stage.getStageIndex() + " | " + stageInfo + " | " + status);
         }
         getHubView().showStages(selectedGame, lines);
     }
@@ -155,11 +156,26 @@ public class MiniGameHubController extends ViewController {
             getHubView().errorStageLocked(stageIndex);
             return;
         }
-        if (!stage.isImplemented() || selectedGame != MiniGameId.VASE_BREAKER) {
+        if (!stage.isImplemented()) {
             getHubView().showComingSoon(selectedGame);
             return;
         }
-        startVaseBreaker(stage);
+        switch (selectedGame) {
+            case VASE_BREAKER -> startVaseBreaker(stage);
+            case WALNUT_BOWLING -> startWalnutBowling(stage);
+            default -> getHubView().showComingSoon(selectedGame);
+        }
+    }
+
+    private void startWalnutBowling(MiniGameStageConfig stage) {
+        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombieRegistry = loadZombieRegistry();
+        WalnutBowlingMode mode = new WalnutBowlingMode(stage, plantRegistry, zombieRegistry, new Random());
+        GameSession session = mode.createSession();
+        WalnutBowlingController controller = new WalnutBowlingController(
+                user, userDatabase, this, mode, session, stage);
+        parser.switchController(controller);
+        session.start();
     }
 
     private void startVaseBreaker(MiniGameStageConfig stage) {

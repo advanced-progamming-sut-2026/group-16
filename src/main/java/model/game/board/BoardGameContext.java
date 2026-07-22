@@ -207,6 +207,22 @@ public final class BoardGameContext implements GameContext {
         plant.setArmedTrap(true);
     }
 
+    public void explodeAt(int centerCol, int centerRow, int damage, double radius) {
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie.isDead()) {
+                continue;
+            }
+            double horizontalDistance = zombie.getX() - centerCol;
+            double verticalDistance = zombie.getRow() - centerRow;
+            if (Math.hypot(horizontalDistance, verticalDistance) <= radius) {
+                zombie.takeDamage(damage);
+                if (zombie.isDead()) {
+                    onZombieKilled(zombie);
+                }
+            }
+        }
+    }
+
     @Override
     public void explode(Plant plant, int damage, double radius) {
         radius += plant.getStats()
