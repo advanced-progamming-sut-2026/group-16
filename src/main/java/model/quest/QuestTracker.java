@@ -127,6 +127,24 @@ public final class QuestTracker {
         return quests.stream().filter(Quest::isCompleted).count();
     }
 
+    public long completedCount(Quest.Category category) {
+        if (category == null) {
+            return 0;
+        }
+        return quests.stream()
+                .filter(q -> q.getCategory() == category && q.isCompleted())
+                .count();
+    }
+
+    public long completedDailyCount() {
+        return completedCount(Quest.Category.DAILY);
+    }
+
+    public long completedNonDailyCount() {
+        return completedCount(Quest.Category.MAIN)
+                + completedCount(Quest.Category.EPIC_CHALLENGE);
+    }
+
     public int totalCount() {
         return quests.size();
     }

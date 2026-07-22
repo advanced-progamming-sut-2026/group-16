@@ -89,8 +89,7 @@ public class GameController extends ViewController {
     }
 
     private void handleLeaderboard() {
-        // TODO: implement after Leaderboard is done.
-        getGameView().errorLeaderboardNotImplemented();
+        parser.switchController(new LeaderboardController(userDatabase, this));
     }
 
     private void handleCoinWallet() {

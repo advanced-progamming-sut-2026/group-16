@@ -60,6 +60,7 @@ public class UserDatabase {
             QuestProgressStore.createTables();
             AdventureProgressStore.createTables();
             MiniGameProgressStore.createTables();
+            ScoreGameStore.createTables();
         } catch (SQLException e) {
             throw new RuntimeException("Could not create the database.", e);
         }
@@ -189,7 +190,21 @@ public class UserDatabase {
         UserProgressStore.loadUserProgress(conn, user);
         AdventureProgressStore.load(conn, user);
         MiniGameProgressStore.load(conn, user);
+        ScoreGameStore.load(conn, user);
         return user;
+    }
+
+    public void saveBestMeioPoint(User user) {
+        if (user == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            ScoreGameStore.save(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save best meiopoint.", e);
+        }
     }
 
     public void saveAdventureProgress(User user) {

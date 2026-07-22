@@ -6,6 +6,6 @@ public class NightOpsLevelViewCli extends SpecialLevelViewCli implements NightOp
 
     @Override
     public void showNightOpsMode() {
-        displayMessage("Night Ops: no sun from the sky — use sun-producing plants (e.g. Sunflower).");
+        displayMessage("Night Ops: no sun from the sky - use sun-producing plants (e.g. Sunflower).");
     }
 }

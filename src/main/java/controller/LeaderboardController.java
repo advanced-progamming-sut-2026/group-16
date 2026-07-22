@@ -1,17 +1,93 @@
 package controller;
 
+import model.command.LeaderboardMenuCommands;
+import model.leaderboard.LeaderboardEntry;
+import model.leaderboard.LeaderboardService;
+import model.leaderboard.LeaderboardSortColumn;
+import model.user.UserDatabase;
 import view.api.LeaderboardView;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+
 public class LeaderboardController extends ViewController {
+    private final UserDatabase userDatabase;
+    private final ViewController parentController;
+    private LeaderboardSortColumn sortColumn = LeaderboardSortColumn.USERNAME;
+    private boolean ascending = true;
+    private List<LeaderboardEntry> entries = new ArrayList<>();
+
+    public LeaderboardController(UserDatabase userDatabase, ViewController parentController) {
+        this.userDatabase = userDatabase;
+        this.parentController = parentController;
+    }
+
     @Override
     public void displayMenu() {
-        // TODO: implement after Leaderboard is done.
+        getLeaderboardView().showLeaderboardMenu();
+        refreshEntries();
+        showTable();
     }
 
     @Override
     public void handleCommand(String input) {
-        // TODO: implement after LeaderboardMenuCommands is defined.
+        for (LeaderboardMenuCommands cmd : LeaderboardMenuCommands.values()) {
+            Matcher matcher = cmd.getMatcher(input);
+            if (matcher == null) {
+                continue;
+            }
+            switch (cmd) {
+                case MENU_SHOW_CURRENT -> getLeaderboardView().showCurrentMenu();
+                case MENU_EXIT -> parser.switchController(parentController);
+                case SORT -> handleSort(matcher.group("column"), matcher.group("order"));
+                case REFRESH -> handleRefresh();
+            }
+            return;
+        }
         getLeaderboardView().errorInvalidCommand();
+    }
+
+    private void handleSort(String columnRaw, String orderRaw) {
+        LeaderboardSortColumn column = LeaderboardSortColumn.fromKey(columnRaw);
+        if (column == null) {
+            getLeaderboardView().errorInvalidSortColumn();
+            return;
+        }
+
+        if (orderRaw == null || orderRaw.isBlank()) {
+            if (column == sortColumn) {
+                ascending = !ascending;
+            } else {
+                sortColumn = column;
+                ascending = true;
+            }
+        } else {
+            String order = orderRaw.trim().toLowerCase(Locale.ROOT);
+            if (!"asc".equals(order) && !"desc".equals(order)) {
+                getLeaderboardView().errorInvalidSortOrder();
+                return;
+            }
+            sortColumn = column;
+            ascending = "asc".equals(order);
+        }
+        showTable();
+    }
+
+    private void handleRefresh() {
+        refreshEntries();
+        showTable();
+    }
+
+    private void refreshEntries() {
+        entries = LeaderboardService.build(userDatabase.getAllUsers());
+    }
+
+    private void showTable() {
+        List<LeaderboardEntry> sorted =
+                LeaderboardService.sort(entries, sortColumn, ascending);
+        getLeaderboardView().showLeaderboard(sorted, sortColumn, ascending);
     }
 
     private LeaderboardView getLeaderboardView() {

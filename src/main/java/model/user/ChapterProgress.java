@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public final class ChapterProgress {
@@ -70,5 +71,34 @@ public final class ChapterProgress {
             copy.put(entry.getKey(), new HashSet<>(entry.getValue()));
         }
         return copy;
+    }
+
+    public Optional<CompletedLevel> furthestCompleted() {
+        ChapterId bestChapter = null;
+        int bestLevel = -1;
+        for (Map.Entry<ChapterId, Set<Integer>> entry : completedLevels.entrySet()) {
+            for (int level : entry.getValue()) {
+                if (bestChapter == null
+                        || entry.getKey().ordinal() > bestChapter.ordinal()
+                        || (entry.getKey() == bestChapter && level > bestLevel)) {
+                    bestChapter = entry.getKey();
+                    bestLevel = level;
+                }
+            }
+        }
+        if (bestChapter == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new CompletedLevel(bestChapter, bestLevel));
+    }
+
+    public record CompletedLevel(ChapterId chapter, int levelIndex) {
+        public String displayLabel() {
+            return "Level " + levelIndex + " Chapter " + (chapter.ordinal() + 1);
+        }
+
+        public int sortKey() {
+            return chapter.ordinal() * 100 + levelIndex;
+        }
     }
 }

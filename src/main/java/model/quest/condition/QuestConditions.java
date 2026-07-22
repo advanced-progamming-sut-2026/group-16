@@ -137,7 +137,7 @@ public final class QuestConditions {
                 if (plantType.equalsIgnoreCase(e.killerPlantType())) {
                     kills++;
                 } else if (e.killerPlantType() != null) {
-                    // A different plant scored a kill — quest is permanently failed this session
+                    // A different plant scored a kill - quest is permanently failed this session
                     violated = true;
                 }
             }
@@ -275,7 +275,7 @@ public final class QuestConditions {
 
     public static final class SymmetricBoardCondition implements QuestCondition {
         private boolean symmetric;
-        // plantTypeAt[row][col] — injected by controller before GameFinished
+        // plantTypeAt[row][col] - injected by controller before GameFinished
         private String[][] boardSnapshot;
 
         public void setBoardSnapshot(String[][] board) {
@@ -420,7 +420,7 @@ public final class QuestConditions {
         @Override
         public void onEvent(GameEvent event) {
             if (event instanceof GameEvent.GameStarted e && !e.isNightLevel()) {
-                // We're in a day level — monitoring starts
+                // We're in a day level - monitoring starts
             }
             if (event instanceof GameEvent.PlantPlanted e && !e.isNightPlant()) {
                 usedDayPlant = true;

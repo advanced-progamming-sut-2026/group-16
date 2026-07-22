@@ -16,7 +16,7 @@ public class VaseBreakerViewCli extends CliView implements VaseBreakerView {
 
     @Override
     public void showVaseSmashed(int col, int row, Vase.Content content) {
-        displayMessage("Vase smashed at (" + col + ", " + row + ") — content: " + content);
+        displayMessage("Vase smashed at (" + col + ", " + row + ") - content: " + content);
     }
 
     @Override
