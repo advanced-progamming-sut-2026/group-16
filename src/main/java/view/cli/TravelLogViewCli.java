@@ -34,6 +34,6 @@ public class TravelLogViewCli extends CliView implements TravelLogView {
 
     @Override
     public void errorUnknownPage(String pageName) {
-        displayError("Unknown travel log page: " + pageName + ". Use daily, main, or epic.");
+        displayError("Unknown travel log page: " + pageName + ". Use daily, main, epic, or minigames.");
     }
 }

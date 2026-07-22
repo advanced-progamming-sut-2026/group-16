@@ -5,6 +5,9 @@ import model.user.User;
 import model.user.UserDatabase;
 import util.StayLoggedInStorage;
 import view.cli.*;
+import view.cli.minigame.MiniGameHubViewCli;
+import view.cli.minigame.StubMiniGameViewCli;
+import view.cli.minigame.VaseBreakerViewCli;
 
 import java.util.Scanner;
 
@@ -31,6 +34,9 @@ public class CommandParser {
     private final LoveYourPlantsLevelViewCli loveYourPlantsLevelView;
     private final PlantWhatYouGetLevelViewCli plantWhatYouGetLevelView;
     private final TravelLogViewCli travelLogView;
+    private final MiniGameHubViewCli miniGameHubView;
+    private final VaseBreakerViewCli vaseBreakerView;
+    private final StubMiniGameViewCli stubMiniGameView;
     private final SettingViewCli settingView;
     private final RegistrationController registrationController;
     private ViewController currentController;
@@ -59,6 +65,9 @@ public class CommandParser {
         loveYourPlantsLevelView = new LoveYourPlantsLevelViewCli();
         plantWhatYouGetLevelView = new PlantWhatYouGetLevelViewCli();
         travelLogView = new TravelLogViewCli();
+        miniGameHubView = new MiniGameHubViewCli();
+        vaseBreakerView = new VaseBreakerViewCli();
+        stubMiniGameView = new StubMiniGameViewCli();
         settingView = new SettingViewCli();
 
         LoginController loginController = new LoginController(userDatabase);
@@ -170,6 +179,15 @@ public class CommandParser {
             newController.setView(gamePlayView);
         } else if (newController instanceof TravelLogController) {
             newController.setView(travelLogView);
+        } else if (newController instanceof MiniGameHubController) {
+            newController.setView(miniGameHubView);
+        } else if (newController instanceof VaseBreakerController) {
+            newController.setView(vaseBreakerView);
+        } else if (newController instanceof WalnutBowlingController
+                || newController instanceof IZombieController
+                || newController instanceof BeghouledController
+                || newController instanceof ZombotanyController) {
+            newController.setView(stubMiniGameView);
         } else if (newController instanceof SettingController) {
             newController.setView(settingView);
         } else if (newController instanceof NewsController) {

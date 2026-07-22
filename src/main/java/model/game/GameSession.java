@@ -7,6 +7,7 @@ import model.game.board.BoardGameContext;
 import model.game.board.GameBoard;
 import model.game.board.PlantPlacementResult;
 import model.game.board.tile.GraveTile;
+import model.game.entity.Vase;
 import model.game.entity.plant.*;
 import model.game.entity.plant.ability.ExplosiveAbility;
 import model.game.entity.projectile.ProjectileSystem;
@@ -14,6 +15,8 @@ import model.game.entity.zombie.ArcadeObstacle;
 import model.game.entity.zombie.Zombie;
 import model.game.entity.zombie.ZombieFactory;
 import model.item.Sun;
+import model.minigame.GroundSeedPacket;
+import model.minigame.MiniGameHandler;
 import model.quest.event.GameEvent;
 import model.quest.event.GameEventBus;
 
@@ -43,6 +46,10 @@ public final class GameSession {
     private final List<PlantCovering> plantCoverings = new ArrayList<>();
     private final List<ArcadeObstacle> arcadeObstacles = new ArrayList<>();
     private final List<Sun> sunItems = new ArrayList<>();
+    private final List<Vase> vases = new ArrayList<>();
+    private final List<GroundSeedPacket> groundSeedPackets = new ArrayList<>();
+    private int seedPacketExpiryTicks = 100;
+    private MiniGameHandler activeMiniGameHandler;
     private final Set<String> destroyedPlantIds = new HashSet<>();
     private final Set<String> killedZombieIds = new HashSet<>();
     private final Map<PlantCategory, Integer> familyBoostEndTicks = new HashMap<>();
@@ -200,6 +207,122 @@ public final class GameSession {
 
     public List<ArcadeObstacle> getArcadeObstacles() {
         return List.copyOf(arcadeObstacles);
+    }
+
+    public List<Vase> getVases() {
+        return List.copyOf(vases);
+    }
+
+    public void addVase(Vase vase) {
+        if (vase != null && vase.isAlive()) {
+            vases.add(vase);
+        }
+    }
+
+    public Vase getVaseAt(int col, int row) {
+        for (Vase vase : vases) {
+            if (vase.isAlive()
+                    && (int) Math.floor(vase.getX()) == col
+                    && (int) Math.floor(vase.getY()) == row) {
+                return vase;
+            }
+        }
+        return null;
+    }
+
+    public boolean smashVase(int col, int row) {
+        Vase vase = getVaseAt(col, row);
+        if (vase == null) {
+            return false;
+        }
+        Vase.Content content = vase.getContent();
+        vase.smash(context);
+        vases.remove(vase);
+        if (matchListener != null) {
+            matchListener.onVaseSmashed(col, row, content);
+        }
+        if (activeMiniGameHandler != null) {
+            activeMiniGameHandler.onTick(this);
+        }
+        return true;
+    }
+
+    public boolean areAllVasesSmashed() {
+        return vases.isEmpty() || vases.stream().noneMatch(Vase::isAlive);
+    }
+
+    public List<GroundSeedPacket> getGroundSeedPackets() {
+        return List.copyOf(groundSeedPackets);
+    }
+
+    public void setSeedPacketExpiryTicks(int seedPacketExpiryTicks) {
+        this.seedPacketExpiryTicks = Math.max(1, seedPacketExpiryTicks);
+    }
+
+    public int getSeedPacketExpiryTicks() {
+        return seedPacketExpiryTicks;
+    }
+
+    public void addGroundSeedPacket(String plantName, int col, int row) {
+        if (plantName == null || plantName.isBlank() || !board.inBounds(col, row)) {
+            return;
+        }
+        groundSeedPackets.removeIf(packet -> packet.col() == col && packet.row() == row);
+        GroundSeedPacket packet = new GroundSeedPacket(
+                plantName, col, row, currentTick + seedPacketExpiryTicks);
+        groundSeedPackets.add(packet);
+        if (matchListener != null) {
+            matchListener.onSeedPacketDropped(plantName, col, row);
+        }
+    }
+
+    public GroundSeedPacket getGroundSeedPacketAt(int col, int row) {
+        for (GroundSeedPacket packet : groundSeedPackets) {
+            if (packet.col() == col && packet.row() == row) {
+                return packet;
+            }
+        }
+        return null;
+    }
+
+    public PlantPlacementResult plantFromSeedPacket(int col, int row) {
+        GroundSeedPacket packet = getGroundSeedPacketAt(col, row);
+        if (packet == null) {
+            return PlantPlacementResult.NO_SEED_PACKET;
+        }
+        PlantDefinition definition = plantRegistry.getDefinition(packet.plantName());
+        if (definition == null) {
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        if (getVaseAt(col, row) != null) {
+            return PlantPlacementResult.TILE_BLOCKED;
+        }
+        PlantPlacementResult placement = board.canPlace(definition, col, row);
+        if (placement != PlantPlacementResult.SUCCESS) {
+            return placement;
+        }
+        Plant plant = plantFactory.create(definition, 1, col, row);
+        board.placePlant(plant);
+        plant.onPlanted(context);
+        groundSeedPackets.remove(packet);
+        if (matchListener != null) {
+            matchListener.onSeedPacketPlanted(packet.plantName(), col, row);
+        }
+        eventBus.publish(new GameEvent.PlantPlanted(
+                plant.getName(),
+                plant.getCategory().name(),
+                col,
+                row,
+                plant.hasTag(PlantTag.NIGHT) || plant.hasTag(PlantTag.SHROOM)));
+        return PlantPlacementResult.SUCCESS;
+    }
+
+    public void setActiveMiniGameHandler(MiniGameHandler handler) {
+        this.activeMiniGameHandler = handler;
+    }
+
+    public MiniGameHandler getActiveMiniGameHandler() {
+        return activeMiniGameHandler;
     }
 
     public Random getRandom() {
@@ -767,8 +890,25 @@ public final class GameSession {
             waveManager.publishClearedWaves(this);
         }
         checkWinCondition();
+        tickGroundSeedPackets();
         if (activeSpecialLevelHandler != null) {
             activeSpecialLevelHandler.onTick(this);
+        }
+        if (activeMiniGameHandler != null) {
+            activeMiniGameHandler.onTick(this);
+        }
+    }
+
+    private void tickGroundSeedPackets() {
+        Iterator<GroundSeedPacket> iterator = groundSeedPackets.iterator();
+        while (iterator.hasNext()) {
+            GroundSeedPacket packet = iterator.next();
+            if (packet.expiresAtTick() <= currentTick) {
+                iterator.remove();
+                if (matchListener != null) {
+                    matchListener.onSeedPacketExpired(packet.plantName(), packet.col(), packet.row());
+                }
+            }
         }
     }
 

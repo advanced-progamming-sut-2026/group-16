@@ -128,6 +128,11 @@ public final class BoardGameContext implements GameContext {
     }
 
     @Override
+    public void dropSeedPacket(String plantName, int col, int row) {
+        session.addGroundSeedPacket(plantName, col, row);
+    }
+
+    @Override
     public void onZombieReachedHouse(Zombie zombie) {
         session.handleZombieReachedHouse(zombie);
     }

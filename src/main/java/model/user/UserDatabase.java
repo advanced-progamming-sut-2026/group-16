@@ -59,6 +59,7 @@ public class UserDatabase {
             UserProgressStore.createTables();
             QuestProgressStore.createTables();
             AdventureProgressStore.createTables();
+            MiniGameProgressStore.createTables();
         } catch (SQLException e) {
             throw new RuntimeException("Could not create the database.", e);
         }
@@ -187,6 +188,7 @@ public class UserDatabase {
         user.setPlantProgress(loadPlantProgress(conn, user.getId()));
         UserProgressStore.loadUserProgress(conn, user);
         AdventureProgressStore.load(conn, user);
+        MiniGameProgressStore.load(conn, user);
         return user;
     }
 
@@ -200,6 +202,19 @@ public class UserDatabase {
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not save adventure progress.", e);
+        }
+    }
+
+    public void saveMiniGameProgress(User user) {
+        if (user == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            MiniGameProgressStore.save(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save minigame progress.", e);
         }
     }
 

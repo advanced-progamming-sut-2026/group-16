@@ -4,6 +4,7 @@ import model.command.TravelLogMenuCommands;
 import model.quest.Quest;
 import model.quest.QuestTracker;
 import model.user.User;
+import model.user.UserDatabase;
 import view.api.TravelLogView;
 
 import java.util.ArrayList;
@@ -12,10 +13,12 @@ import java.util.regex.Matcher;
 
 public class TravelLogController extends ViewController {
     private final User user;
+    private final UserDatabase userDatabase;
     private final GameController gameController;
 
-    public TravelLogController(User user, GameController gameController) {
+    public TravelLogController(User user, UserDatabase userDatabase, GameController gameController) {
         this.user = user;
+        this.userDatabase = userDatabase;
         this.gameController = gameController;
     }
 
@@ -72,6 +75,10 @@ public class TravelLogController extends ViewController {
             case "epic", "epic challenge", "epic-challenge" -> {
                 quests = tracker.getEpicQuests();
                 title = "Epic";
+            }
+            case "minigames", "mini-games", "mini games" -> {
+                parser.switchController(new MiniGameHubController(user, userDatabase, this));
+                return;
             }
             default -> {
                 getTravelLogView().errorUnknownPage(pageName);

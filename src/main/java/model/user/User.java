@@ -25,6 +25,7 @@ public class User {
     private int plantFood;
     private int difficultyLevel = 3;
     private final ChapterProgress chapterProgress = new ChapterProgress();
+    private final MiniGameProgress miniGameProgress = new MiniGameProgress();
     private final List<GreenhousePot> greenhousePots = new ArrayList<>();
     private final Set<String> storedBoosts = new LinkedHashSet<>();
     private String dailyOfferPlant;
@@ -193,6 +194,10 @@ public class User {
 
     public ChapterProgress getChapterProgress() {
         return chapterProgress;
+    }
+
+    public MiniGameProgress getMiniGameProgress() {
+        return miniGameProgress;
     }
 
     public QuestTracker getQuestTracker() {

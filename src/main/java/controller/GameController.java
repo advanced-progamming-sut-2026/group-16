@@ -85,7 +85,7 @@ public class GameController extends ViewController {
     }
 
     private void handleTravelLog() {
-        parser.switchController(new TravelLogController(user, this));
+        parser.switchController(new TravelLogController(user, userDatabase, this));
     }
 
     private void handleLeaderboard() {

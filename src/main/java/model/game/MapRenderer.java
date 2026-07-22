@@ -147,6 +147,18 @@ public final class MapRenderer {
                 parts.add(sun.isFalling() ? "Sun*" : "Sun");
             }
         }
+        if (session.getVaseAt(col, row) != null) {
+            model.game.entity.Vase vase = session.getVaseAt(col, row);
+            parts.add(switch (vase.getContent()) {
+                case PLANT_SEED -> "Vp";
+                case GARGANTUAR -> "Vg";
+                case ZOMBIE -> "Vz";
+                case EMPTY -> "V?";
+            });
+        }
+        if (session.getGroundSeedPacketAt(col, row) != null) {
+            parts.add("Seed");
+        }
         return String.join("|", parts);
     }
 
