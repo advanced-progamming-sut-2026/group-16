@@ -23,7 +23,10 @@ public final class MiniGameRegistry {
                 MiniGameStageConfig.iZombie(1),
                 MiniGameStageConfig.iZombie(2),
                 MiniGameStageConfig.iZombie(3)));
-        stages.put(MiniGameId.BEGHOULED, List.of(MiniGameStageConfig.placeholder(MiniGameId.BEGHOULED)));
+        stages.put(MiniGameId.BEGHOULED, List.of(
+                MiniGameStageConfig.beghouled(1),
+                MiniGameStageConfig.beghouled(2),
+                MiniGameStageConfig.beghouled(3)));
         stages.put(MiniGameId.ZOMBOTANY, List.of(MiniGameStageConfig.placeholder(MiniGameId.ZOMBOTANY)));
     }
 

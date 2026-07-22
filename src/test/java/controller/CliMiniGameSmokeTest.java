@@ -160,9 +160,42 @@ class CliMiniGameSmokeTest {
         parser.parseAndExecute("menu enter game");
         parser.parseAndExecute("menu travel-log");
         parser.parseAndExecute("travel log page minigames");
-        parser.parseAndExecute("enter game -n beghouled");
-        assertInstanceOf(BeghouledController.class, parser.getCurrentController());
+        parser.parseAndExecute("enter game -n zombotany");
+        assertInstanceOf(ZombotanyController.class, parser.getCurrentController());
         parser.parseAndExecute("menu exit");
         assertInstanceOf(MiniGameHubController.class, parser.getCurrentController());
+    }
+
+    @Test
+    @Order(5)
+    void beghouledStartsSwapsAndCompletesStage() {
+        CommandParser parser = new CommandParser();
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        parser.parseAndExecute("menu enter game");
+        parser.parseAndExecute("menu travel-log");
+        parser.parseAndExecute("travel log page minigames");
+        parser.parseAndExecute("enter game -n beghouled");
+        parser.parseAndExecute("show stages");
+        parser.parseAndExecute("start stage -n 1");
+        assertInstanceOf(BeghouledController.class, parser.getCurrentController());
+
+        BeghouledController gameplay = (BeghouledController) parser.getCurrentController();
+        assertDoesNotThrow(() -> {
+            parser.parseAndExecute("show upgrades");
+            parser.parseAndExecute("show map");
+            var swap = gameplay.getSession().getBeghouledBoard().findAnyValidSwap();
+            assertTrue(swap.isPresent());
+            int[] cells = swap.get();
+            parser.parseAndExecute("swap plants -a (" + cells[0] + ", " + cells[1]
+                    + ") -b (" + cells[2] + ", " + cells[3] + ")");
+            gameplay.getSession().getBeghouledBoard()
+                    .setMatchesMade(gameplay.getSession().getBeghouledMatchTarget());
+            parser.parseAndExecute("advance time -t 1 ticks");
+        });
+
+        assertInstanceOf(MiniGameHubController.class, parser.getCurrentController());
+        User user = UserDatabase.getInstance().getUser(USERNAME);
+        assertTrue(user.getMiniGameProgress().isStageCompleted(MiniGameId.BEGHOULED, 1));
     }
 }
