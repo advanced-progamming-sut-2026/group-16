@@ -25,6 +25,7 @@ public class User {
     private int plantFood;
     private int difficultyLevel = 3;
     private int bestMeowPoint;
+    private int gamesPlayed;
     private final ChapterProgress chapterProgress = new ChapterProgress();
     private final MiniGameProgress miniGameProgress = new MiniGameProgress();
     private final List<GreenhousePot> greenhousePots = new ArrayList<>();
@@ -207,6 +208,18 @@ public class User {
             return true;
         }
         return false;
+    }
+
+    public int getGamesPlayed() {
+        return gamesPlayed;
+    }
+
+    public void setGamesPlayed(int gamesPlayed) {
+        this.gamesPlayed = Math.max(0, gamesPlayed);
+    }
+
+    public void recordGamePlayed() {
+        gamesPlayed++;
     }
 
     public ChapterProgress getChapterProgress() {

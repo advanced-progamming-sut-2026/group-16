@@ -2,18 +2,29 @@ package controller;
 
 import model.App;
 import model.command.ProfileMenuCommands;
+import model.user.User;
+import model.user.UserDatabase;
 import util.HashUtil;
 import util.RegistrationValidator;
+import util.StayLoggedInStorage;
 import view.api.ProfileView;
 
 import java.util.regex.Matcher;
 
 public class ProfileController extends ViewController {
+    private final UserDatabase userDatabase;
     private MainMenuController mainMenuController;
     private boolean pendingUsername;
     private boolean pendingNickname;
     private boolean pendingEmail;
     private boolean pendingPassword;
+
+    public ProfileController(UserDatabase userDatabase) {
+        if (userDatabase == null) {
+            throw new IllegalArgumentException("userDatabase must not be null");
+        }
+        this.userDatabase = userDatabase;
+    }
 
     public void setMainMenuController(MainMenuController mainMenuController) {
         this.mainMenuController = mainMenuController;
@@ -78,7 +89,8 @@ public class ProfileController extends ViewController {
 
     private void handleChangeUsername(String username) {
         clearPendingStates();
-        if (App.getInstance().getCurrentUser().getUsername().equals(username)) {
+        User user = currentUser();
+        if (user.getUsername().equals(username)) {
             getProfileView().errorSameUsername();
             pendingUsername = true;
             getProfileView().promptNewUsername();
@@ -92,11 +104,19 @@ public class ProfileController extends ViewController {
             return;
         }
 
-        App.getInstance().getCurrentUser().setUsername(username);
+        if (userDatabase.isUsernameTaken(username)) {
+            getProfileView().errorUsernameTaken();
+            pendingUsername = true;
+            getProfileView().promptNewUsername();
+            return;
+        }
+
+        applyUsernameChange(user, username);
     }
 
     private void handlePendingUsername(String input) {
-        if (App.getInstance().getCurrentUser().getUsername().equals(input)) {
+        User user = currentUser();
+        if (user.getUsername().equals(input)) {
             getProfileView().errorSameUsername();
             getProfileView().promptNewUsername();
             return;
@@ -108,36 +128,56 @@ public class ProfileController extends ViewController {
             return;
         }
 
-        App.getInstance().getCurrentUser().setUsername(input);
+        if (userDatabase.isUsernameTaken(input)) {
+            getProfileView().errorUsernameTaken();
+            getProfileView().promptNewUsername();
+            return;
+        }
+
+        applyUsernameChange(user, input);
         pendingUsername = false;
+    }
+
+    private void applyUsernameChange(User user, String username) {
+        user.setUsername(username);
+        persistProfile(user);
+        refreshStayLoggedInSession(user);
     }
 
     private void handleChangeNickname(String nickname) {
         clearPendingStates();
-        if (App.getInstance().getCurrentUser().getNickname().equals(nickname)) {
+        User user = currentUser();
+        if (user.getNickname().equals(nickname)) {
             getProfileView().errorSameNickname();
             pendingNickname = true;
             getProfileView().promptNewNickname();
             return;
         }
 
-        App.getInstance().getCurrentUser().setNickname(nickname);
+        applyNicknameChange(user, nickname);
     }
 
     private void handlePendingNickname(String input) {
-        if (App.getInstance().getCurrentUser().getNickname().equals(input)) {
+        User user = currentUser();
+        if (user.getNickname().equals(input)) {
             getProfileView().errorSameNickname();
             getProfileView().promptNewNickname();
             return;
         }
 
-        App.getInstance().getCurrentUser().setNickname(input);
+        applyNicknameChange(user, input);
         pendingNickname = false;
+    }
+
+    private void applyNicknameChange(User user, String nickname) {
+        user.setNickname(nickname);
+        persistProfile(user);
     }
 
     private void handleChangeEmail(String email) {
         clearPendingStates();
-        if (App.getInstance().getCurrentUser().getEmail().equals(email)) {
+        User user = currentUser();
+        if (user.getEmail().equals(email)) {
             getProfileView().errorSameEmail();
             pendingEmail = true;
             getProfileView().promptNewEmail();
@@ -151,11 +191,19 @@ public class ProfileController extends ViewController {
             return;
         }
 
-        App.getInstance().getCurrentUser().setEmail(email);
+        if (userDatabase.emailExists(email)) {
+            getProfileView().errorEmailTaken();
+            pendingEmail = true;
+            getProfileView().promptNewEmail();
+            return;
+        }
+
+        applyEmailChange(user, email);
     }
 
     private void handlePendingEmail(String input) {
-        if (App.getInstance().getCurrentUser().getEmail().equals(input)) {
+        User user = currentUser();
+        if (user.getEmail().equals(input)) {
             getProfileView().errorSameEmail();
             getProfileView().promptNewEmail();
             return;
@@ -167,18 +215,30 @@ public class ProfileController extends ViewController {
             return;
         }
 
-        App.getInstance().getCurrentUser().setEmail(input);
+        if (userDatabase.emailExists(input)) {
+            getProfileView().errorEmailTaken();
+            getProfileView().promptNewEmail();
+            return;
+        }
+
+        applyEmailChange(user, input);
         pendingEmail = false;
+    }
+
+    private void applyEmailChange(User user, String email) {
+        user.setEmail(email);
+        persistProfile(user);
     }
 
     private void handleChangePassword(String newPassword, String oldPassword) {
         clearPendingStates();
-        if (!App.getInstance().getCurrentUser().getPasswordHash().equals(HashUtil.hashSHA256(oldPassword))) {
+        User user = currentUser();
+        if (!user.getPasswordHash().equals(HashUtil.hashSHA256(oldPassword))) {
             getProfileView().errorWrongOldPassword();
             return;
         }
 
-        if (App.getInstance().getCurrentUser().getPasswordHash().equals(HashUtil.hashSHA256(newPassword))) {
+        if (user.getPasswordHash().equals(HashUtil.hashSHA256(newPassword))) {
             getProfileView().errorSamePassword();
             pendingPassword = true;
             getProfileView().promptNewPassword();
@@ -192,11 +252,12 @@ public class ProfileController extends ViewController {
             return;
         }
 
-        App.getInstance().getCurrentUser().setPasswordHash(HashUtil.hashSHA256(newPassword));
+        applyPasswordChange(user, newPassword);
     }
 
     private void handlePendingPassword(String input) {
-        if (App.getInstance().getCurrentUser().getPasswordHash().equals(HashUtil.hashSHA256(input))) {
+        User user = currentUser();
+        if (user.getPasswordHash().equals(HashUtil.hashSHA256(input))) {
             getProfileView().errorSamePassword();
             getProfileView().promptNewPassword();
             return;
@@ -208,8 +269,26 @@ public class ProfileController extends ViewController {
             return;
         }
 
-        App.getInstance().getCurrentUser().setPasswordHash(HashUtil.hashSHA256(input));
+        applyPasswordChange(user, input);
         pendingPassword = false;
+    }
+
+    private void applyPasswordChange(User user, String newPassword) {
+        String hash = HashUtil.hashSHA256(newPassword);
+        user.setPasswordHash(hash);
+        userDatabase.updatePassword(user.getUsername(), hash);
+        refreshStayLoggedInSession(user);
+    }
+
+    private void persistProfile(User user) {
+        userDatabase.updateProfile(user);
+    }
+
+    private void refreshStayLoggedInSession(User user) {
+        StayLoggedInStorage.Session session = StayLoggedInStorage.loadSession();
+        if (session != null) {
+            StayLoggedInStorage.saveSession(user.getUsername(), user.getPasswordHash());
+        }
     }
 
     private void clearPendingStates() {
@@ -220,7 +299,11 @@ public class ProfileController extends ViewController {
     }
 
     private void handleShowInfo() {
-        // TODO: implement after Profile is done.
+        getProfileView().showUserInfo(currentUser());
+    }
+
+    private User currentUser() {
+        return App.getInstance().getCurrentUser();
     }
 
     private ProfileView getProfileView() {

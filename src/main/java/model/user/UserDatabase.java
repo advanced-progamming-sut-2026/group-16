@@ -154,6 +154,41 @@ public class UserDatabase {
         }
     }
 
+    public void updateProfile(User user) {
+        if (user == null || user.getId() <= 0) {
+            throw new IllegalArgumentException("user with valid id is required");
+        }
+        String sql = """
+                UPDATE users
+                SET username = ?, nickname = ?, email = ?, passwordHash = ?
+                WHERE id = ?
+                """;
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, user.getUsername());
+            pstmt.setString(2, user.getNickname());
+            pstmt.setString(3, user.getEmail());
+            pstmt.setString(4, user.getPasswordHash());
+            pstmt.setLong(5, user.getId());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not update profile.", e);
+        }
+    }
+
+    public void saveGamesPlayed(User user) {
+        if (user == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            UserProgressStore.saveUserProgress(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save games played.", e);
+        }
+    }
+
     public List<User> getAllUsers() {
         String sql = """
                 SELECT id, username, passwordHash, nickname, email, gender,

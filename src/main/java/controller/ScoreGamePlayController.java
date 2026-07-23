@@ -33,6 +33,7 @@ public class ScoreGamePlayController extends GamePlayController {
 
     @Override
     protected void onMatchFinished(MatchResult result) {
+        recordFinishedGame();
         MeowPointBreakdown breakdown = meowPointTracker.getBreakdown();
         boolean newBest = getUser().updateBestMeowPoint(breakdown.total());
         if (newBest) {
