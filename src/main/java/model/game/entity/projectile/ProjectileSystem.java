@@ -12,7 +12,6 @@ import model.game.entity.GameContext;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public final class ProjectileSystem {
@@ -76,11 +75,11 @@ public final class ProjectileSystem {
     }
 
     public void tick(GameBoard board, List<Zombie> zombies, Consumer<Zombie> onZombieKilled) {
-        tick(board, zombies, (zombie, killer) -> onZombieKilled.accept(zombie), null);
+        tick(board, zombies, (zombie, killer, projectileId) -> onZombieKilled.accept(zombie), null);
     }
 
     public void tick(GameBoard board, List<Zombie> zombies,
-                     BiConsumer<Zombie, String> onZombieKilled, GameContext context) {
+                     ProjectileKillCallback onZombieKilled, GameContext context) {
         ticking = true;
         try {
             Iterator<Projectile> iterator = projectiles.iterator();
@@ -244,7 +243,7 @@ public final class ProjectileSystem {
     }
 
     private void applyHit(Projectile projectile, Zombie zombie, GameBoard board, List<Zombie> zombies,
-                          BiConsumer<Zombie, String> onZombieKilled, GameContext context) {
+                          ProjectileKillCallback onZombieKilled, GameContext context) {
         int damage = projectile.getDamage();
         if (projectile.getEffect() == ProjectileEffect.FIRE) {
             damage *= 2;
@@ -281,12 +280,12 @@ public final class ProjectileSystem {
         String killer = projectile.getSource() == null ? null : projectile.getSource().getName();
         applySplash(projectile, zombie, zombies, onZombieKilled, killer);
         if (zombie.isDead()) {
-            onZombieKilled.accept(zombie, killer);
+            onZombieKilled.accept(zombie, killer, projectile.getId());
         }
     }
 
     private void applySplash(Projectile projectile, Zombie primary, List<Zombie> zombies,
-                             BiConsumer<Zombie, String> onZombieKilled, String killer) {
+                             ProjectileKillCallback onZombieKilled, String killer) {
         Plant source = projectile.getSource();
         if (source == null || !source.getStats().hasSpecialModifier(PlantSpecialModifiers.SPLASH_DAMAGE_BUFF)) {
             return;
@@ -300,7 +299,7 @@ public final class ProjectileSystem {
                     && Math.abs(other.getX() - primary.getX()) <= 1.0) {
                 other.takeDamage(splashDamage);
                 if (other.isDead()) {
-                    onZombieKilled.accept(other, killer);
+                    onZombieKilled.accept(other, killer, projectile.getId());
                 }
             }
         }

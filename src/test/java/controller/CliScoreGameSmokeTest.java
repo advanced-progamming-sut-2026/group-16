@@ -20,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class CliLeaderboardSmokeTest {
+class CliScoreGameSmokeTest {
 
-    private static final Path DATABASE = Path.of("target", "cli-leaderboard-smoke.db");
-    private static final String USERNAME = "cli-leaderboard-user";
+    private static final Path DATABASE = Path.of("target", "cli-score-game-smoke.db");
+    private static final String USERNAME = "cli-score-user";
     private static final String PASSWORD = "Passw0rd!";
 
     @BeforeAll
@@ -45,7 +45,7 @@ class CliLeaderboardSmokeTest {
 
     @Test
     @Order(1)
-    void leaderboardFromMainMenuSupportsSortAndRefresh() {
+    void scoreGameFlowAwardsMeowpointAndUpdatesBest() {
         CommandParser parser = new CommandParser();
         assertInstanceOf(RegistrationController.class, parser.getCurrentController());
 
@@ -54,7 +54,7 @@ class CliLeaderboardSmokeTest {
         System.setOut(new PrintStream(captured));
         try {
             assertDoesNotThrow(() -> {
-                for (String line : registerLoginAndLeaderboardCommands()) {
+                for (String line : scoreGameFlowCommands()) {
                     parser.parseAndExecute(line);
                 }
             });
@@ -63,57 +63,46 @@ class CliLeaderboardSmokeTest {
         }
 
         String output = captured.toString();
-        assertTrue(output.contains("Leaderboard"), output);
-        assertTrue(output.contains(USERNAME), output);
-        assertTrue(output.contains("BestScore"), output);
-        assertTrue(output.contains("Sorted by score"), output);
-        assertInstanceOf(MainMenuController.class, parser.getCurrentController());
+        assertTrue(output.contains("Score game"), output);
+        assertTrue(output.contains("Best meowpoint:"), output);
+        assertTrue(output.contains("The Game Started!") || output.contains("Game Started"), output);
+        assertTrue(output.contains("Meowpoint:"), output);
+        assertInstanceOf(ScoreGameController.class, parser.getCurrentController());
     }
 
     @Test
     @Order(2)
-    void gameMenuLeaderboardAndScoreGameStub() {
+    void exitReturnsToMainMenu() {
         CommandParser parser = new CommandParser();
-        loginExistingUser(parser);
-
-        parser.parseAndExecute("menu enter game");
-        parser.parseAndExecute("menu leaderboard");
-        assertInstanceOf(LeaderboardController.class, parser.getCurrentController());
+        parser.parseAndExecute("menu enter login");
+        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+        parser.parseAndExecute("menu enter score-game");
+        assertInstanceOf(ScoreGameController.class, parser.getCurrentController());
         parser.parseAndExecute("menu exit");
-        assertInstanceOf(GameController.class, parser.getCurrentController());
-        parser.parseAndExecute("menu exit");
-
-        PrintStream originalOut = System.out;
-        ByteArrayOutputStream captured = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(captured));
-        try {
-            parser.parseAndExecute("menu enter score-game");
-            assertInstanceOf(ScoreGameController.class, parser.getCurrentController());
-            parser.parseAndExecute("menu exit");
-        } finally {
-            System.setOut(originalOut);
-        }
-
-        String output = captured.toString();
-        assertTrue(output.contains("Score game"), output);
-        assertTrue(output.contains("Best meowpoint:"), output);
         assertInstanceOf(MainMenuController.class, parser.getCurrentController());
     }
 
-    private static List<String> registerLoginAndLeaderboardCommands() {
+    private static List<String> scoreGameFlowCommands() {
         return List.of(
                 "register -u " + USERNAME + " -p " + PASSWORD + " " + PASSWORD
-                        + " -n BoardPlayer -e board@example.com -g male",
+                        + " -n ScorePlayer -e scorecli@example.com -g male",
                 "pick question -q 1 -a fluffy -c fluffy",
                 "login -u " + USERNAME + " -p " + PASSWORD,
-                "menu enter leaderboard",
-                "sort -c score",
-                "refresh",
-                "menu exit");
-    }
-
-    private static void loginExistingUser(CommandParser parser) {
-        parser.parseAndExecute("menu enter login");
-        parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
+                "menu enter score-game",
+                "start",
+                "show available plants",
+                "add plant -t Sunflower",
+                "add plant -t Peashooter",
+                "start game",
+                "cheat add -n 500 suns",
+                "plant plant -t Sunflower -l (0, 0)",
+                "plant plant -t Peashooter -l (1, 0)",
+                "release the nuke",
+                "advance time -t 5 ticks",
+                "release the nuke",
+                "advance time -t 5 ticks",
+                "release the nuke",
+                "advance time -t 20 ticks"
+        );
     }
 }

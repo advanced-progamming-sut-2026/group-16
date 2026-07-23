@@ -25,13 +25,14 @@ public class GamePlayController extends ViewController implements MatchListener 
 
     private final User user;
     private final UserDatabase userDatabase;
-    private final AdventureController adventureController;
+    private final ViewController returnController;
     private final AdventureMode adventureMode;
     private final GameSession session;
     private final ChapterConfig chapter;
     private final LevelConfig level;
     private final Set<String> boostedPlants;
     private final UnlockService unlockService = new UnlockService();
+    private final boolean awardAdventureProgress;
     private boolean finishedHandled;
 
     public GamePlayController(User user,
@@ -42,14 +43,28 @@ public class GamePlayController extends ViewController implements MatchListener 
                               ChapterConfig chapter,
                               LevelConfig level,
                               Set<String> boostedPlants) {
+        this(user, userDatabase, adventureController, adventureMode, session, chapter, level,
+                boostedPlants, true);
+    }
+
+    protected GamePlayController(User user,
+                                 UserDatabase userDatabase,
+                                 ViewController returnController,
+                                 AdventureMode adventureMode,
+                                 GameSession session,
+                                 ChapterConfig chapter,
+                                 LevelConfig level,
+                                 Set<String> boostedPlants,
+                                 boolean awardAdventureProgress) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.adventureController = adventureController;
+        this.returnController = returnController;
         this.adventureMode = adventureMode;
         this.session = session;
         this.chapter = chapter;
         this.level = level;
         this.boostedPlants = boostedPlants == null ? Set.of() : Set.copyOf(boostedPlants);
+        this.awardAdventureProgress = awardAdventureProgress;
         this.session.setMatchListener(this);
     }
 
@@ -90,7 +105,7 @@ public class GamePlayController extends ViewController implements MatchListener 
         }
         if ("menu exit".equalsIgnoreCase(input.trim())) {
             detachQuestTracker();
-            parser.switchController(adventureController);
+            parser.switchController(returnController);
             return;
         }
         getGamePlayView().errorInvalidCommand();
@@ -262,17 +277,27 @@ public class GamePlayController extends ViewController implements MatchListener 
             return;
         }
         MatchResult result = session.getMatchResult();
-        if (result == MatchResult.WON) {
+        if (result == MatchResult.WON || result == MatchResult.LOST) {
             finishedHandled = true;
+            onMatchFinished(result);
+        }
+    }
+
+    protected void onMatchFinished(MatchResult result) {
+        if (result == MatchResult.WON && awardAdventureProgress && chapter != null && level != null) {
             user.getChapterProgress().markLevelCompleted(chapter.getId(), level.getIndex());
             userDatabase.saveAdventureProgress(user);
-            detachQuestTracker();
-            parser.switchController(adventureController);
-        } else if (result == MatchResult.LOST) {
-            finishedHandled = true;
-            detachQuestTracker();
-            parser.switchController(adventureController);
         }
+        detachQuestTracker();
+        parser.switchController(returnController);
+    }
+
+    protected User getUser() {
+        return user;
+    }
+
+    protected UserDatabase getUserDatabase() {
+        return userDatabase;
     }
 
     private void detachQuestTracker() {
