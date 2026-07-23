@@ -54,6 +54,10 @@ public class MainMenuController extends ViewController {
                 profileController.setMainMenuController(this);
                 parser.switchController(profileController);
             }
+            case "leaderboard" -> parser.switchController(
+                    new LeaderboardController(userDatabase, this));
+            case "score-game", "scoregame" -> parser.switchController(
+                    new ScoreGameController(activeUser, this));
             default -> getMainMenuView().errorInvalidMenuName();
         }
     }
@@ -69,7 +73,7 @@ public class MainMenuController extends ViewController {
     }
 
     private String normalizeMenuName(String menuName) {
-        return menuName.trim().toLowerCase(Locale.ROOT);
+        return menuName.trim().toLowerCase(Locale.ROOT).replace(' ', '-');
     }
 
     private MainMenuView getMainMenuView() {

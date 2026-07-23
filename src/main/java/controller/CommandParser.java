@@ -44,6 +44,8 @@ public class CommandParser {
     private final BeghouledViewCli beghouledView;
     private final ZombotanyViewCli zombotanyView;
     private final SettingViewCli settingView;
+    private final LeaderboardViewCli leaderboardView;
+    private final ScoreGameViewCli scoreGameView;
     private final RegistrationController registrationController;
     private ViewController currentController;
 
@@ -78,6 +80,8 @@ public class CommandParser {
         beghouledView = new BeghouledViewCli();
         zombotanyView = new ZombotanyViewCli();
         settingView = new SettingViewCli();
+        leaderboardView = new LeaderboardViewCli();
+        scoreGameView = new ScoreGameViewCli();
 
         LoginController loginController = new LoginController(userDatabase);
         registrationController = new RegistrationController(userDatabase);
@@ -204,6 +208,10 @@ public class CommandParser {
             newController.setView(settingView);
         } else if (newController instanceof NewsController) {
             newController.setView(newsView);
+        } else if (newController instanceof LeaderboardController) {
+            newController.setView(leaderboardView);
+        } else if (newController instanceof ScoreGameController) {
+            newController.setView(scoreGameView);
         } else if (newController.getView() == null) {
             newController.setView(authView);
         }

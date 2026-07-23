@@ -59,4 +59,12 @@ public final class MiniGameProgress {
         }
         return copy;
     }
+
+    public int completedStageCount() {
+        int count = 0;
+        for (Set<Integer> stages : completedStages.values()) {
+            count += stages.size();
+        }
+        return count;
+    }
 }

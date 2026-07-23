@@ -105,7 +105,7 @@ public final class Quest {
 
     @Override
     public String toString() {
-        return String.format("[%s] %s — %s (%s) | %s | Reward: %s", completed ? "✓" : " ",
+        return String.format("[%s] %s - %s (%s) | %s | Reward: %s", completed ? "✓" : " ",
                 title, category, priority, condition.describe(), reward.describe());
     }
 }

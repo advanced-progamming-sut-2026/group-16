@@ -24,6 +24,7 @@ public class User {
     private int diamonds;
     private int plantFood;
     private int difficultyLevel = 3;
+    private int bestMeioPoint;
     private final ChapterProgress chapterProgress = new ChapterProgress();
     private final MiniGameProgress miniGameProgress = new MiniGameProgress();
     private final List<GreenhousePot> greenhousePots = new ArrayList<>();
@@ -190,6 +191,22 @@ public class User {
 
     public void setDifficultyLevel(int difficultyLevel) {
         this.difficultyLevel = Math.max(1, Math.min(5, difficultyLevel));
+    }
+
+    public int getBestMeioPoint() {
+        return bestMeioPoint;
+    }
+
+    public void setBestMeioPoint(int bestMeioPoint) {
+        this.bestMeioPoint = Math.max(0, bestMeioPoint);
+    }
+
+    public boolean updateBestMeioPoint(int score) {
+        if (score > bestMeioPoint) {
+            bestMeioPoint = score;
+            return true;
+        }
+        return false;
     }
 
     public ChapterProgress getChapterProgress() {

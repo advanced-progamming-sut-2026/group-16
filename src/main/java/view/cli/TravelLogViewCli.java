@@ -12,7 +12,7 @@ public class TravelLogViewCli extends CliView implements TravelLogView {
 
     @Override
     public void showTravelLogPage(String pageName, List<String> questLines) {
-        displayMessage("Travel Log — " + pageName + " quests:");
+        displayMessage("Travel Log - " + pageName + " quests:");
         if (questLines == null || questLines.isEmpty()) {
             displayMessage("(none)");
             return;
