@@ -23,6 +23,7 @@ public final class UserProgressStore {
                     dailyOfferPlant TEXT,
                     dailyOfferDate TEXT,
                     dailyOfferPurchased INTEGER NOT NULL DEFAULT 0,
+                    gamesPlayed INTEGER NOT NULL DEFAULT 0,
                     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
                 );
                 """;
@@ -93,8 +94,17 @@ public final class UserProgressStore {
             stmt.execute(zombiesSql);
             stmt.execute(levelsSql);
             stmt.execute(minigamesSql);
+            migrateGamesPlayedColumn(stmt);
         } catch (SQLException e) {
             throw new RuntimeException("Could not create user progress tables.", e);
+        }
+    }
+
+    private static void migrateGamesPlayedColumn(Statement stmt) throws SQLException {
+        try {
+            stmt.execute("ALTER TABLE user_wallet ADD COLUMN gamesPlayed INTEGER NOT NULL DEFAULT 0");
+        } catch (SQLException ignored) {
+            // column already exists
         }
     }
 
@@ -132,7 +142,8 @@ public final class UserProgressStore {
 
     private static void loadWallet(Connection conn, User user) throws SQLException {
         String sql = """
-                SELECT coins, diamonds, plantFood, dailyOfferPlant, dailyOfferDate, dailyOfferPurchased
+                SELECT coins, diamonds, plantFood, dailyOfferPlant, dailyOfferDate,
+                       dailyOfferPurchased, gamesPlayed
                 FROM user_wallet
                 WHERE userId = ?
                 """;
@@ -149,6 +160,7 @@ public final class UserProgressStore {
                 String dailyOfferDate = rs.getString("dailyOfferDate");
                 user.setDailyOfferDate(dailyOfferDate == null ? null : LocalDate.parse(dailyOfferDate));
                 user.setDailyOfferPurchased(rs.getInt("dailyOfferPurchased") == 1);
+                user.setGamesPlayed(rs.getInt("gamesPlayed"));
             }
         }
     }
@@ -195,15 +207,17 @@ public final class UserProgressStore {
 
     private static void saveWallet(Connection conn, User user) throws SQLException {
         String sql = """
-                INSERT INTO user_wallet (userId, coins, diamonds, plantFood, dailyOfferPlant, dailyOfferDate, dailyOfferPurchased)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO user_wallet (userId, coins, diamonds, plantFood, dailyOfferPlant,
+                                         dailyOfferDate, dailyOfferPurchased, gamesPlayed)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(userId) DO UPDATE SET
                     coins = excluded.coins,
                     diamonds = excluded.diamonds,
                     plantFood = excluded.plantFood,
                     dailyOfferPlant = excluded.dailyOfferPlant,
                     dailyOfferDate = excluded.dailyOfferDate,
-                    dailyOfferPurchased = excluded.dailyOfferPurchased
+                    dailyOfferPurchased = excluded.dailyOfferPurchased,
+                    gamesPlayed = excluded.gamesPlayed
                 """;
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setLong(1, user.getId());
@@ -213,6 +227,7 @@ public final class UserProgressStore {
             pstmt.setString(5, user.getDailyOfferPlant());
             pstmt.setString(6, user.getDailyOfferDate() == null ? null : user.getDailyOfferDate().toString());
             pstmt.setInt(7, user.isDailyOfferPurchased() ? 1 : 0);
+            pstmt.setInt(8, user.getGamesPlayed());
             pstmt.executeUpdate();
         }
     }

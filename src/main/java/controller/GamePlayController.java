@@ -284,12 +284,18 @@ public class GamePlayController extends ViewController implements MatchListener 
     }
 
     protected void onMatchFinished(MatchResult result) {
+        recordFinishedGame();
         if (result == MatchResult.WON && awardAdventureProgress && chapter != null && level != null) {
             user.getChapterProgress().markLevelCompleted(chapter.getId(), level.getIndex());
             userDatabase.saveAdventureProgress(user);
         }
         detachQuestTracker();
         parser.switchController(returnController);
+    }
+
+    protected void recordFinishedGame() {
+        user.recordGamePlayed();
+        userDatabase.saveGamesPlayed(user);
     }
 
     protected User getUser() {

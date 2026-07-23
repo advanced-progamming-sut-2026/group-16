@@ -86,7 +86,7 @@ public class CommandParser {
         LoginController loginController = new LoginController(userDatabase);
         registrationController = new RegistrationController(userDatabase);
 
-        ProfileController profileController = new ProfileController();
+        ProfileController profileController = new ProfileController(userDatabase);
         MainMenuController mainMenuController = new MainMenuController(
                 App.getInstance().getCurrentUser(), registrationController, userDatabase);
 

@@ -50,7 +50,7 @@ public class MainMenuController extends ViewController {
                     new SettingController(activeUser, userDatabase, this));
             case "news" -> parser.switchController(new NewsController(activeUser, userDatabase, this));
             case "profile" -> {
-                ProfileController profileController = new ProfileController();
+                ProfileController profileController = new ProfileController(userDatabase);
                 profileController.setMainMenuController(this);
                 parser.switchController(profileController);
             }

@@ -126,14 +126,21 @@ public class IZombieController extends ViewController implements MatchListener {
         MatchResult result = session.getMatchResult();
         if (result == MatchResult.WON) {
             finishedHandled = true;
+            recordFinishedGame();
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
             parser.switchController(hubController);
         } else if (result == MatchResult.LOST) {
             finishedHandled = true;
+            recordFinishedGame();
             parser.switchController(hubController);
         }
+    }
+
+    private void recordFinishedGame() {
+        user.recordGamePlayed();
+        userDatabase.saveGamesPlayed(user);
     }
 
     private int parseCoord(String value) {

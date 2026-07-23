@@ -73,6 +73,14 @@ public final class ChapterProgress {
         return copy;
     }
 
+    public int countCompletedLevels() {
+        int total = 0;
+        for (Set<Integer> levels : completedLevels.values()) {
+            total += levels.size();
+        }
+        return total;
+    }
+
     public Optional<CompletedLevel> furthestCompleted() {
         ChapterId bestChapter = null;
         int bestLevel = -1;

@@ -7,11 +7,15 @@ public interface ProfileView extends View {
 
     void errorInvalidUsername();
 
+    void errorUsernameTaken();
+
     void errorSameNickname();
 
     void errorSameEmail();
 
     void errorInvalidEmail();
+
+    void errorEmailTaken();
 
     void errorSamePassword();
 
