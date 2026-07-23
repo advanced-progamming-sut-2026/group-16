@@ -194,7 +194,7 @@ public class UserDatabase {
         return user;
     }
 
-    public void saveBestMeioPoint(User user) {
+    public void saveBestMeowPoint(User user) {
         if (user == null) {
             return;
         }
@@ -203,7 +203,7 @@ public class UserDatabase {
             ScoreGameStore.save(conn, user);
             conn.commit();
         } catch (SQLException e) {
-            throw new RuntimeException("Could not save best meiopoint.", e);
+            throw new RuntimeException("Could not save best meowpoint.", e);
         }
     }
 

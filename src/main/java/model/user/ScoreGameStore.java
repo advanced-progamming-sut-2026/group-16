@@ -16,15 +16,24 @@ public final class ScoreGameStore {
         String sql = """
                 CREATE TABLE IF NOT EXISTS user_score_game (
                     userId INTEGER PRIMARY KEY,
-                    bestMeioPoint INTEGER NOT NULL DEFAULT 0,
+                    bestMeowPoint INTEGER NOT NULL DEFAULT 0,
                     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
                 );
                 """;
         try (Connection conn = DatabaseUtil.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
+            migrateLegacyColumn(stmt);
         } catch (SQLException e) {
             throw new RuntimeException("Could not create user_score_game table.", e);
+        }
+    }
+
+    private static void migrateLegacyColumn(Statement stmt) throws SQLException {
+        try {
+            stmt.execute("ALTER TABLE user_score_game RENAME COLUMN bestMeioPoint TO bestMeowPoint");
+        } catch (SQLException ignored) {
+            // column already renamed or never existed
         }
     }
 
@@ -33,7 +42,7 @@ public final class ScoreGameStore {
             return;
         }
         String sql = """
-                SELECT bestMeioPoint
+                SELECT bestMeowPoint
                 FROM user_score_game
                 WHERE userId = ?
                 """;
@@ -41,7 +50,7 @@ public final class ScoreGameStore {
             pstmt.setLong(1, user.getId());
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    user.setBestMeioPoint(rs.getInt("bestMeioPoint"));
+                    user.setBestMeowPoint(rs.getInt("bestMeowPoint"));
                 }
             }
         }
@@ -52,13 +61,13 @@ public final class ScoreGameStore {
             return;
         }
         String sql = """
-                INSERT INTO user_score_game (userId, bestMeioPoint)
+                INSERT INTO user_score_game (userId, bestMeowPoint)
                 VALUES (?, ?)
-                ON CONFLICT(userId) DO UPDATE SET bestMeioPoint = excluded.bestMeioPoint
+                ON CONFLICT(userId) DO UPDATE SET bestMeowPoint = excluded.bestMeowPoint
                 """;
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setLong(1, user.getId());
-            pstmt.setInt(2, user.getBestMeioPoint());
+            pstmt.setInt(2, user.getBestMeowPoint());
             pstmt.executeUpdate();
         }
     }

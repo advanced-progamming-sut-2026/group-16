@@ -26,7 +26,17 @@ public sealed interface GameEvent permits
                         String chapterId,
                         int column,
                         int row,
-                        double secondsSinceWaveStart) implements GameEvent {
+                        double secondsSinceWaveStart,
+                        String projectileId,
+                        long tick) implements GameEvent {
+        public ZombieKilled(String zombieType,
+                            String killerPlantType,
+                            String chapterId,
+                            int column,
+                            int row,
+                            double secondsSinceWaveStart) {
+            this(zombieType, killerPlantType, chapterId, column, row, secondsSinceWaveStart, null, 0L);
+        }
     }
 
     record PlantPlanted(String plantType,

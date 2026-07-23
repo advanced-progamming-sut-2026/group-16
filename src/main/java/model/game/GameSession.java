@@ -1096,7 +1096,7 @@ public final class GameSession {
             pendingZombies.clear();
         }
 
-        projectileSystem.tick(board, zombies, this::handleZombieKilled, context);
+        projectileSystem.tick(board, zombies, this::handleProjectileKill, context);
         if (walnutBowlingActive) {
             bowlingNutSystem.tick(this);
         }
@@ -1276,10 +1276,18 @@ public final class GameSession {
     }
 
     public void handleZombieKilled(Zombie zombie) {
-        handleZombieKilled(zombie, null);
+        handleZombieKilled(zombie, null, null);
     }
 
     public void handleZombieKilled(Zombie zombie, String killerPlantType) {
+        handleZombieKilled(zombie, killerPlantType, null);
+    }
+
+    public void handleProjectileKill(Zombie zombie, String killerPlantType, String projectileId) {
+        handleZombieKilled(zombie, killerPlantType, projectileId);
+    }
+
+    public void handleZombieKilled(Zombie zombie, String killerPlantType, String projectileId) {
         if (zombie == null || !zombie.isDead()) {
             return;
         }
@@ -1307,7 +1315,9 @@ public final class GameSession {
                 chapterId,
                 (int) zombie.getX(),
                 zombie.getRow(),
-                secondsSinceWave));
+                secondsSinceWave,
+                projectileId,
+                currentTick));
     }
 
     private void rollZombieLootDrop() {

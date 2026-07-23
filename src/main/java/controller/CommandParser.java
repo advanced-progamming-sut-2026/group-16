@@ -212,6 +212,8 @@ public class CommandParser {
             newController.setView(leaderboardView);
         } else if (newController instanceof ScoreGameController) {
             newController.setView(scoreGameView);
+        } else if (newController instanceof ScoreGamePlantSelectionController) {
+            newController.setView(plantSelectionView);
         } else if (newController.getView() == null) {
             newController.setView(authView);
         }

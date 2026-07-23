@@ -57,7 +57,7 @@ public class MainMenuController extends ViewController {
             case "leaderboard" -> parser.switchController(
                     new LeaderboardController(userDatabase, this));
             case "score-game", "scoregame" -> parser.switchController(
-                    new ScoreGameController(activeUser, this));
+                    new ScoreGameController(activeUser, userDatabase, this));
             default -> getMainMenuView().errorInvalidMenuName();
         }
     }

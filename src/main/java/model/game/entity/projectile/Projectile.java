@@ -7,6 +7,10 @@ import java.util.Set;
 
 public final class Projectile {
 
+    private static final java.util.concurrent.atomic.AtomicLong NEXT_ID =
+            new java.util.concurrent.atomic.AtomicLong(1);
+
+    private final String id = "proj-" + NEXT_ID.getAndIncrement();
     private int row;
     private double x;
     private final int damage;
@@ -51,6 +55,10 @@ public final class Projectile {
         p.fromZombie = true;
         p.hostileSourceId = sourceId == null || sourceId.isBlank() ? "reflected" : sourceId;
         return p;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public int getRow() {

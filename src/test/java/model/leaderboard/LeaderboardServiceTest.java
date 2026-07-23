@@ -23,7 +23,7 @@ class LeaderboardServiceTest {
         alice.getChapterProgress().markLevelCompleted(ChapterId.FROSTBITE_CAVES, 2);
         alice.getMiniGameProgress().markStageCompleted(MiniGameId.VASE_BREAKER, 1);
         alice.getMiniGameProgress().markStageCompleted(MiniGameId.VASE_BREAKER, 2);
-        alice.setBestMeioPoint(120);
+        alice.setBestMeowPoint(120);
         QuestTracker tracker = new QuestTracker(q -> {
         });
         tracker.setQuests(List.of(
@@ -47,10 +47,10 @@ class LeaderboardServiceTest {
     @Test
     void sortByBestScoreDescending() {
         User low = user("low");
-        low.setBestMeioPoint(10);
+        low.setBestMeowPoint(10);
         low.setQuestTracker(emptyTracker());
         User high = user("high");
-        high.setBestMeioPoint(99);
+        high.setBestMeowPoint(99);
         high.setQuestTracker(emptyTracker());
 
         List<LeaderboardEntry> sorted = LeaderboardService.sort(

@@ -54,7 +54,7 @@ public final class LeaderboardService {
                 user.getMiniGameProgress().completedStageCount(),
                 user.ensureQuestTracker().completedDailyCount(),
                 user.ensureQuestTracker().completedNonDailyCount(),
-                user.getBestMeioPoint());
+                user.getBestMeowPoint());
     }
 
     private static Comparator<LeaderboardEntry> comparatorFor(LeaderboardSortColumn column) {

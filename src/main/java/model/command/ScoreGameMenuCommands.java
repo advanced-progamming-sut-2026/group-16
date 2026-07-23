@@ -5,7 +5,8 @@ import java.util.regex.Pattern;
 
 public enum ScoreGameMenuCommands implements Command {
     MENU_SHOW_CURRENT("^menu show current$"),
-    MENU_EXIT("^menu exit$");
+    MENU_EXIT("^menu exit$"),
+    START("^start$");
 
     private final Pattern compiledPattern;
 
