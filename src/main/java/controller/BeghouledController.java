@@ -11,6 +11,7 @@ import model.minigame.MiniGameStageConfig;
 import model.minigame.beghouled.BeghouledSwapResult;
 import model.minigame.beghouled.BeghouledUpgradeResult;
 import model.minigame.mode.BeghouledMode;
+import model.user.UnlockService;
 import model.user.User;
 import model.user.UserDatabase;
 import view.api.minigame.BeghouledView;
@@ -26,6 +27,7 @@ public class BeghouledController extends ViewController implements MatchListener
     private final BeghouledMode mode;
     private final GameSession session;
     private final MiniGameStageConfig stage;
+    private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
 
     public BeghouledController(User user,
@@ -213,6 +215,7 @@ public class BeghouledController extends ViewController implements MatchListener
 
     @Override
     public void onZombieSpawned(String type, int wave, int lane, int cost) {
+        ZombieSeenUnlock.unlock(user, userDatabase, unlockService, type);
     }
 
     @Override

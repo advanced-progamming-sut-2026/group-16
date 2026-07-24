@@ -422,9 +422,7 @@ public class GamePlayController extends ViewController implements MatchListener 
 
     @Override
     public void onZombieSpawned(String type, int wave, int lane, int cost) {
-        if (unlockService.unlockZombie(user, type)) {
-            userDatabase.saveUserWallet(user);
-        }
+        ZombieSeenUnlock.unlock(user, userDatabase, unlockService, type);
         getGamePlayView().showZombieSpawned(type, wave, lane, cost);
     }
 

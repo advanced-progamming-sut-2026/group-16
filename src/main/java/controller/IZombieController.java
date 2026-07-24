@@ -10,6 +10,7 @@ import model.game.entity.zombie.Zombie;
 import model.item.SunType;
 import model.minigame.MiniGameStageConfig;
 import model.minigame.mode.IZombieMode;
+import model.user.UnlockService;
 import model.user.User;
 import model.user.UserDatabase;
 import view.api.minigame.IZombieView;
@@ -25,6 +26,7 @@ public class IZombieController extends ViewController implements MatchListener {
     private final IZombieMode mode;
     private final GameSession session;
     private final MiniGameStageConfig stage;
+    private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
 
     public IZombieController(User user,
@@ -174,6 +176,7 @@ public class IZombieController extends ViewController implements MatchListener {
 
     @Override
     public void onZombieSpawned(String type, int wave, int lane, int cost) {
+        ZombieSeenUnlock.unlock(user, userDatabase, unlockService, type);
     }
 
     @Override
