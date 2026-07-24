@@ -5,6 +5,7 @@ import model.game.board.tile.Tile;
 import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
 import model.item.Sun;
+import util.AnsiColors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,10 +20,10 @@ public final class MapRenderer {
         StringBuilder sb = new StringBuilder();
         WaveManager waves = session.getWaveManager();
         int wave = waves == null ? 0 : waves.getCurrentWaveNumber();
-        sb.append("Wave: ").append(wave)
-                .append(" | Sun: ").append(session.getSunBalance())
-                .append(" | PlantFood: ").append(session.getPlantFoodCount())
-                .append(" | Result: ").append(session.getMatchResult());
+        sb.append("Wave: ").append(AnsiColors.color(AnsiColors.CYAN, String.valueOf(wave)))
+                .append(" | Sun: ").append(AnsiColors.color(AnsiColors.YELLOW, String.valueOf(session.getSunBalance())))
+                .append(" | PlantFood: ").append(AnsiColors.color(AnsiColors.GREEN, String.valueOf(session.getPlantFoodCount())))
+                .append(" | Result: ").append(coloredResult(session.getMatchResult()));
         if (session.isDeadLineActive()) {
             sb.append(" | Dead line: column ").append(session.getDeadLineColumn());
         }
@@ -60,10 +61,14 @@ public final class MapRenderer {
         for (int row = 0; row < board.getRows(); row++) {
             String rowMarker;
             if (session.isIZombieActive()) {
-                rowMarker = session.isIZombieBrainEaten(row) ? " [Eaten]" : " [Brain]";
+                rowMarker = session.isIZombieBrainEaten(row)
+                        ? AnsiColors.color(AnsiColors.RED, " [Eaten]")
+                        : AnsiColors.color(AnsiColors.CYAN, " [Brain]");
             } else {
                 boolean mowerReady = row < mowers.size() && !mowers.get(row).isUsed();
-                rowMarker = mowerReady ? " [Mower]" : " [----]";
+                rowMarker = mowerReady
+                        ? AnsiColors.color(AnsiColors.GREEN, " [Mower]")
+                        : AnsiColors.color(AnsiColors.GRAY, " [----]");
             }
             sb.append("Row ").append(row + 1)
                     .append(rowMarker)
@@ -88,9 +93,11 @@ public final class MapRenderer {
             boolean ready = session.getCooldownTracker().isReady(name);
             int ticks = session.getCooldownTracker().ticksRemaining(name);
             double seconds = ticks / (double) GameSession.TICKS_PER_SECOND;
-            sb.append(name)
+            sb.append(AnsiColors.color(AnsiColors.GREEN, name))
                     .append(" cost=").append(stats.cost())
-                    .append(" ready=").append(ready);
+                    .append(" ready=").append(ready
+                            ? AnsiColors.color(AnsiColors.GREEN, "true")
+                            : AnsiColors.color(AnsiColors.YELLOW, "false"));
             if (!ready) {
                 sb.append(" cooldown=").append(String.format(Locale.US, "%.1fs", seconds));
             }
@@ -107,22 +114,22 @@ public final class MapRenderer {
         StringBuilder sb = new StringBuilder();
         Tile tile = board.getTile(col, row);
         sb.append("Tile (").append(col).append(',').append(row).append(") type=")
-                .append(tileLabel(tile)).append('\n');
+                .append(coloredTileLabel(tile)).append('\n');
         Plant ground = board.getGroundPlantAt(col, row);
         Plant overlay = board.getOverlayPlantAt(col, row);
         if (ground != null) {
-            sb.append("Ground plant: ").append(ground.getName())
+            sb.append("Ground plant: ").append(AnsiColors.color(AnsiColors.GREEN, ground.getName()))
                     .append(" HP=").append(ground.getHealth()).append('/')
                     .append(ground.getMaxHealth()).append('\n');
         }
         if (overlay != null) {
-            sb.append("Overlay plant: ").append(overlay.getName())
+            sb.append("Overlay plant: ").append(AnsiColors.color(AnsiColors.GREEN, overlay.getName()))
                     .append(" HP=").append(overlay.getHealth()).append('/')
                     .append(overlay.getMaxHealth()).append('\n');
         }
         for (Zombie zombie : session.getZombies()) {
             if (zombie.getRow() == row && (int) Math.floor(zombie.getX()) == col) {
-                sb.append("Zombie: ").append(zombie.getType())
+                sb.append("Zombie: ").append(AnsiColors.color(AnsiColors.RED, zombie.getType()))
                         .append(" HP=").append(zombie.getHealth())
                         .append(" x=").append(String.format(Locale.US, "%.2f", zombie.getX()))
                         .append('\n');
@@ -130,7 +137,7 @@ public final class MapRenderer {
         }
         for (Sun sun : session.getSunItems()) {
             if (sun.getCol() == col && sun.getRow() == row) {
-                sb.append("Sun: ").append(sun.getType())
+                sb.append("Sun: ").append(AnsiColors.color(AnsiColors.YELLOW, sun.getType().toString()))
                         .append(" value=").append(sun.getValue())
                         .append(sun.isFalling() ? " (falling)" : " (ground)")
                         .append('\n');
@@ -144,55 +151,81 @@ public final class MapRenderer {
         Tile tile = board.getTile(col, row);
         List<String> parts = new ArrayList<>();
         if (session.isDeadLineActive() && col == session.getDeadLineColumn()) {
-            parts.add("DL");
+            parts.add(AnsiColors.color(AnsiColors.BRIGHT_YELLOW, "DL"));
         } else if (session.isWalnutBowlingActive() && col == session.getWalnutBowlingRedLineColumn()) {
-            parts.add("RL");
+            parts.add(AnsiColors.color(AnsiColors.BRIGHT_RED, "RL"));
         } else if (session.isIZombieActive() && col == session.getIZombiePlacementColumn()) {
-            parts.add("PL");
+            parts.add(AnsiColors.color(AnsiColors.CYAN, "PL"));
         } else {
-            parts.add(tileLabel(tile));
+            parts.add(coloredTileLabel(tile));
         }
         Plant ground = board.getGroundPlantAt(col, row);
         Plant overlay = board.getOverlayPlantAt(col, row);
         if (ground != null) {
-            parts.add(shortName(ground.getName()));
+            parts.add(AnsiColors.color(AnsiColors.GREEN, shortName(ground.getName())));
         }
         if (overlay != null) {
-            parts.add(shortName(overlay.getName()));
+            parts.add(AnsiColors.color(AnsiColors.GREEN, shortName(overlay.getName())));
         }
         for (Zombie zombie : session.getZombies()) {
             if (zombie.isAlive() && zombie.getRow() == row
                     && (int) Math.floor(zombie.getX()) == col) {
-                parts.add("Z:" + shortName(zombie.getType()));
+                parts.add(AnsiColors.color(AnsiColors.RED, "Z:" + shortName(zombie.getType())));
             }
         }
         for (Sun sun : session.getSunItems()) {
             if (sun.getCol() == col && sun.getRow() == row) {
-                parts.add(sun.isFalling() ? "Sun*" : "Sun");
+                parts.add(AnsiColors.color(AnsiColors.YELLOW, sun.isFalling() ? "Sun*" : "Sun"));
             }
         }
         if (session.getVaseAt(col, row) != null) {
             model.game.entity.Vase vase = session.getVaseAt(col, row);
-            parts.add(switch (vase.getContent()) {
+            String vaseLabel = switch (vase.getContent()) {
                 case PLANT_SEED -> "Vp";
                 case GARGANTUAR -> "Vg";
                 case ZOMBIE -> "Vz";
                 case EMPTY -> "V?";
-            });
+            };
+            parts.add(AnsiColors.color(AnsiColors.MAGENTA, vaseLabel));
         }
         if (session.getGroundSeedPacketAt(col, row) != null) {
-            parts.add("Seed");
+            parts.add(AnsiColors.color(AnsiColors.YELLOW, "Seed"));
         }
         for (model.minigame.bowling.BowlingNut nut : session.getBowlingNutSystem().getNuts()) {
             if ((int) Math.floor(nut.getX()) == col && (int) Math.round(nut.getRow()) == row) {
-                parts.add(switch (nut.getType()) {
+                String nutLabel = switch (nut.getType()) {
                     case STANDARD -> "Bn";
                     case EXPLOSIVE -> "Be";
                     case GIANT -> "Bg";
-                });
+                };
+                parts.add(AnsiColors.color(AnsiColors.BRIGHT_YELLOW, nutLabel));
             }
         }
         return String.join("|", parts);
+    }
+
+    private static String coloredTileLabel(Tile tile) {
+        String label = tileLabel(tile);
+        return switch (label) {
+            case "X" -> AnsiColors.color(AnsiColors.GRAY, label);
+            case "G", "Gs", "Gf" -> AnsiColors.color(AnsiColors.MAGENTA, label);
+            case "I" -> AnsiColors.color(AnsiColors.CYAN, label);
+            case "W" -> AnsiColors.color(AnsiColors.BLUE, label);
+            case "S" -> AnsiColors.color(AnsiColors.CYAN, label);
+            case "." -> AnsiColors.color(AnsiColors.GRAY, label);
+            default -> label;
+        };
+    }
+
+    private static String coloredResult(MatchResult result) {
+        if (result == null) {
+            return "";
+        }
+        return switch (result) {
+            case WON -> AnsiColors.color(AnsiColors.GREEN, result.name());
+            case LOST -> AnsiColors.color(AnsiColors.RED, result.name());
+            case IN_PROGRESS -> AnsiColors.color(AnsiColors.CYAN, result.name());
+        };
     }
 
     private static String tileLabel(Tile tile) {
