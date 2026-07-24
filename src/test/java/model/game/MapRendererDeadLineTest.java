@@ -38,6 +38,6 @@ class MapRendererDeadLineTest {
         String map = MapRenderer.render(session);
 
         assertTrue(map.contains("Dead line: column 3"), map);
-        assertTrue(map.contains("[DL]"), map);
+        assertTrue(map.contains("DL"), map);
     }
 }

@@ -1,5 +1,6 @@
 package view.cli;
 
+import util.AnsiColors;
 import view.api.View;
 
 public class CliView implements View {
@@ -10,6 +11,6 @@ public class CliView implements View {
 
     @Override
     public void displayError(String line) {
-        System.out.println(line);
+        System.out.println(AnsiColors.color(AnsiColors.RED, line));
     }
 }
