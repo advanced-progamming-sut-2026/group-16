@@ -1055,6 +1055,7 @@ public final class GameSession {
             return covering.isDead();
         });
         arcadeObstacles.removeIf(ArcadeObstacle::isDead);
+        tickAdjacentFireIceMelt();
         tickLivingPlants();
         tickZombies();
         projectileSystem.tick(board, zombies, this::handleProjectileKill, context);
@@ -1548,6 +1549,77 @@ public final class GameSession {
         } else if (loot == GraveTile.Loot.PLANT_FOOD) {
             addPlantFood(1);
         }
+    }
+
+    public boolean damageGraveAt(int col, int row, int amount) {
+        if (!board.inBounds(col, row) || amount <= 0) {
+            return false;
+        }
+        var tile = board.getTile(col, row);
+        if (!(tile instanceof GraveTile grave) || grave.isDestroyed()) {
+            return false;
+        }
+        grave.takeDamage(amount);
+        if (grave.isDestroyed()) {
+            clearGraveAt(col, row);
+        }
+        return true;
+    }
+
+    public boolean damageIceAt(int col, int row, int amount) {
+        if (!board.inBounds(col, row) || amount <= 0) {
+            return false;
+        }
+        var tile = board.getTile(col, row);
+        if (!(tile instanceof model.game.board.tile.IceTile ice) || ice.isDestroyed()) {
+            return false;
+        }
+        ice.takeDamage(amount);
+        if (ice.isDestroyed()) {
+            clearIceAt(col, row);
+        }
+        return true;
+    }
+
+    public void clearIceAt(int col, int row) {
+        if (!board.inBounds(col, row) || !board.getTile(col, row).isIce()) {
+            return;
+        }
+        board.setTile(col, row, new model.game.board.tile.NormalTile());
+    }
+
+    private void tickAdjacentFireIceMelt() {
+        for (int row = 0; row < board.getRows(); row++) {
+            for (int col = 0; col < board.getCols(); col++) {
+                if (!(board.getTile(col, row) instanceof model.game.board.tile.IceTile ice)
+                        || ice.isDestroyed()) {
+                    continue;
+                }
+                if (hasAdjacentFirePlant(col, row)) {
+                    damageIceAt(col, row, model.game.board.tile.IceTile.ADJACENT_FIRE_DAMAGE_PER_TICK);
+                }
+            }
+        }
+    }
+
+    private boolean hasAdjacentFirePlant(int col, int row) {
+        for (int dRow = -1; dRow <= 1; dRow++) {
+            for (int dCol = -1; dCol <= 1; dCol++) {
+                if (dRow == 0 && dCol == 0) {
+                    continue;
+                }
+                int nCol = col + dCol;
+                int nRow = row + dRow;
+                if (!board.inBounds(nCol, nRow)) {
+                    continue;
+                }
+                Plant plant = board.getPlantAt(nCol, nRow);
+                if (plant != null && plant.isAlive() && plant.hasTag(PlantTag.FIRE)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public void pushArcadeObstacle(Zombie pusher) {

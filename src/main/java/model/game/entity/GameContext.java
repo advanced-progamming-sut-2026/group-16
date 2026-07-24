@@ -131,6 +131,14 @@ public interface GameContext {
     default void createIceBlocks(int row, int startCol, int count) {
     }
 
+    default boolean damageGraveAt(int col, int row, int amount) {
+        return false;
+    }
+
+    default boolean damageIceAt(int col, int row, int amount) {
+        return false;
+    }
+
     default PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health) {
         return null;
     }
