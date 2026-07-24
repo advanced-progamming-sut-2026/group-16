@@ -19,6 +19,7 @@ import model.game.board.tile.NormalTile;
 import model.game.entity.zombie.Zombie;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -144,6 +145,9 @@ public class AdventureMode extends GameMode {
             drownPlantsUnderTide(session);
             applyWaterColumns(session.getBoard(), currentWaterColumns);
         }
+        if (rules.hasLowBeachEmerge()) {
+            spawnLowBeachEmerges(session);
+        }
         if (rules.hasGravesOnWaveStart()) {
             placeRandomGraves(session.getBoard(), 1 + random.nextInt(2), rules.hasNecromancyTiles(),
                     rules.hasGraveLoot(), session);
@@ -256,13 +260,50 @@ public class AdventureMode extends GameMode {
         }
     }
 
+    private void spawnLowBeachEmerges(GameSession session) {
+        GameBoard board = session.getBoard();
+        List<int[]> waterCells = new ArrayList<>();
+        for (int row = 0; row < board.getRows(); row++) {
+            for (int col = 0; col < board.getCols(); col++) {
+                if (board.getTile(col, row) instanceof LowBeachTile) {
+                    waterCells.add(new int[]{col, row});
+                }
+            }
+        }
+        if (waterCells.isEmpty()) {
+            return;
+        }
+        Collections.shuffle(waterCells, random);
+        int emergeCount = Math.min(1 + random.nextInt(2), waterCells.size());
+        for (int i = 0; i < emergeCount; i++) {
+            int[] cell = waterCells.get(i);
+            try {
+                session.spawnZombieOfType(pickPoolZombieAlias(), cell[1], cell[0] + 0.5);
+            } catch (RuntimeException ignored) {
+                // spawn may fail for invalid pool aliases in some configs
+            }
+        }
+    }
+
+    private String pickPoolZombieAlias() {
+        List<String> pool = level.getAllowedZombieAliases();
+        if (pool == null || pool.isEmpty()) {
+            return "ZombieDefault";
+        }
+        return pool.get(random.nextInt(pool.size()));
+    }
+
     private void spawnFromNecromancy(GameSession session) {
         GameBoard board = session.getBoard();
         for (int row = 0; row < board.getRows(); row++) {
             for (int col = 0; col < board.getCols(); col++) {
                 if (board.getTile(col, row) instanceof NecromancyTile
                         && board.getPlantAt(col, row) == null) {
-                    session.spawnZombieOfType("ZombieDefault", row, col + 0.5);
+                    try {
+                        session.spawnZombieOfType(pickPoolZombieAlias(), row, col + 0.5);
+                    } catch (RuntimeException ignored) {
+                        // pool may not allow spawn for some aliases
+                    }
                 }
             }
         }

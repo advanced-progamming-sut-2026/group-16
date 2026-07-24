@@ -257,6 +257,9 @@ public final class BoardGameContext implements GameContext {
                 obstacle.takeDamage(totalDamage);
             }
         }
+        damageTilesInRadius(centerCol, centerRow, radius, totalDamage,
+                plant.hasTag(PlantTag.FIRE)
+                        || plant.getStats().hasSpecialModifier(PlantSpecialModifiers.MELT_AREA_3X3));
         if ("Grave Buster".equals(plant.getName())
                 && session.getBoard().getTile(centerCol, centerRow).isGrave()) {
             session.clearGraveAt(centerCol, centerRow);
@@ -301,29 +304,44 @@ public final class BoardGameContext implements GameContext {
         double range = Math.max(1.0, plant.getDefinition().getAbilityValue())
                 + plant.getStats().specialModifier(PlantSpecialModifiers.TILE_RANGE_EXT);
         if (areaOfEffect || plant.hasTag(PlantTag.AOE)) {
-            for (PlantCovering covering : session.getPlantCoverings()) {
-                if (covering.getCoveredPlant() != plant
-                        && covering.getRow() == plant.getRow()
-                        && Math.abs(covering.getCol() - plant.getCol()) <= range) {
-                    covering.takeDamage(damage);
-                }
-            }
-            for (ArcadeObstacle obstacle : session.getArcadeObstacles()) {
-                if (obstacle.getRow() == plant.getRow()
-                        && Math.abs(obstacle.getX() - plant.getCol()) <= range) {
-                    obstacle.takeDamage(damage);
-                }
-            }
-            for (Zombie zombie : getZombiesInRow(plant.getRow())) {
-                if (Math.abs(zombie.getX() - plant.getCol()) <= range) {
-                    zombie.takeDamage(damage);
-                    if (zombie.isDead()) {
-                        onZombieKilled(zombie);
-                    }
-                }
-            }
+            dealMeleeAreaDamage(plant, damage, range);
             return;
         }
+        dealMeleeSingleDamage(plant, damage, range);
+    }
+
+    private void dealMeleeAreaDamage(Plant plant, int damage, double range) {
+        for (PlantCovering covering : session.getPlantCoverings()) {
+            if (covering.getCoveredPlant() != plant
+                    && covering.getRow() == plant.getRow()
+                    && Math.abs(covering.getCol() - plant.getCol()) <= range) {
+                covering.takeDamage(damage);
+            }
+        }
+        for (ArcadeObstacle obstacle : session.getArcadeObstacles()) {
+            if (obstacle.getRow() == plant.getRow()
+                    && Math.abs(obstacle.getX() - plant.getCol()) <= range) {
+                obstacle.takeDamage(damage);
+            }
+        }
+        for (int col = 0; col < getColCount(); col++) {
+            if (Math.abs(col - plant.getCol()) > range) {
+                continue;
+            }
+            damageGraveAt(col, plant.getRow(), damage);
+            damageIceAt(col, plant.getRow(), damage);
+        }
+        for (Zombie zombie : getZombiesInRow(plant.getRow())) {
+            if (Math.abs(zombie.getX() - plant.getCol()) <= range) {
+                zombie.takeDamage(damage);
+                if (zombie.isDead()) {
+                    onZombieKilled(zombie);
+                }
+            }
+        }
+    }
+
+    private void dealMeleeSingleDamage(Plant plant, int damage, double range) {
         PlantCovering covering = nearestCoveringAhead(plant, range);
         if (covering != null) {
             covering.takeDamage(damage);
@@ -333,6 +351,18 @@ public final class BoardGameContext implements GameContext {
         if (obstacle != null) {
             obstacle.takeDamage(damage);
             return;
+        }
+        int tileCol = nearestDamageableTileColAhead(plant.getRow(), plant.getCol(), range);
+        if (tileCol >= 0) {
+            Tile tile = session.getBoard().getTile(tileCol, plant.getRow());
+            if (tile != null && tile.isGrave()) {
+                damageGraveAt(tileCol, plant.getRow(), damage);
+                return;
+            }
+            if (tile != null && tile.isIce()) {
+                damageIceAt(tileCol, plant.getRow(), damage);
+                return;
+            }
         }
         Zombie target = findFrontZombie(plant.getRow(), plant.getCol());
         if (target != null && target.getX() - plant.getCol() <= range) {
@@ -567,6 +597,16 @@ public final class BoardGameContext implements GameContext {
     }
 
     @Override
+    public boolean damageGraveAt(int col, int row, int amount) {
+        return session.damageGraveAt(col, row, amount);
+    }
+
+    @Override
+    public boolean damageIceAt(int col, int row, int amount) {
+        return session.damageIceAt(col, row, amount);
+    }
+
+    @Override
     public PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health) {
         return session.coverPlant(plant, type, health);
     }
@@ -655,10 +695,49 @@ public final class BoardGameContext implements GameContext {
             for (int col = centerCol - radius; col <= centerCol + radius; col++) {
                 if (session.getBoard().inBounds(col, row)
                         && session.getBoard().getTile(col, row).isIce()) {
-                    session.getBoard().setTile(col, row, new NormalTile());
+                    damageIceAt(col, row, IceTile.MAX_HEALTH);
                 }
             }
         }
+    }
+
+    private void damageTilesInRadius(int centerCol, int centerRow, double radius,
+                                     int damage, boolean fireMeltsIce) {
+        int searchRadius = (int) Math.ceil(radius);
+        for (int row = centerRow - searchRadius; row <= centerRow + searchRadius; row++) {
+            for (int col = centerCol - searchRadius; col <= centerCol + searchRadius; col++) {
+                if (!session.getBoard().inBounds(col, row)) {
+                    continue;
+                }
+                if (Math.hypot(col - centerCol, row - centerRow) > radius) {
+                    continue;
+                }
+                Tile tile = session.getBoard().getTile(col, row);
+                if (tile != null && tile.isGrave()) {
+                    damageGraveAt(col, row, damage);
+                }
+                if (tile != null && tile.isIce()) {
+                    damageIceAt(col, row, fireMeltsIce ? IceTile.MAX_HEALTH : damage);
+                }
+            }
+        }
+    }
+
+    private int nearestDamageableTileColAhead(int row, int fromCol, double range) {
+        int nearest = -1;
+        double distance = Double.MAX_VALUE;
+        for (int col = fromCol; col < getColCount(); col++) {
+            double current = col - fromCol;
+            if (current < 0 || current > range || current >= distance) {
+                continue;
+            }
+            Tile tile = session.getBoard().getTile(col, row);
+            if (tile != null && (tile.isGrave() || tile.isIce())) {
+                nearest = col;
+                distance = current;
+            }
+        }
+        return nearest;
     }
 
     private Zombie findFrontZombie(int row, int col) {

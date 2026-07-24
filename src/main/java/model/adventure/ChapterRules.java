@@ -18,6 +18,7 @@ public final class ChapterRules {
     private final boolean gravesOnWaveStart;
     private final boolean necromancyTiles;
     private final boolean graveLootEnabled;
+    private final boolean lowBeachEmerge;
 
     private ChapterRules(Builder builder) {
         this.gravesAtStart = builder.gravesAtStart;
@@ -36,6 +37,7 @@ public final class ChapterRules {
         this.gravesOnWaveStart = builder.gravesOnWaveStart;
         this.necromancyTiles = builder.necromancyTiles;
         this.graveLootEnabled = builder.graveLootEnabled;
+        this.lowBeachEmerge = builder.lowBeachEmerge;
     }
 
     public boolean hasGravesAtStart() {
@@ -102,6 +104,10 @@ public final class ChapterRules {
         return graveLootEnabled;
     }
 
+    public boolean hasLowBeachEmerge() {
+        return lowBeachEmerge;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -131,6 +137,7 @@ public final class ChapterRules {
                 .waterColumns(true)
                 .initialWaterColumns(3)
                 .maxTideColumn(5)
+                .lowBeachEmerge(true)
                 .skySunEnabled(true)
                 .build();
     }
@@ -163,6 +170,7 @@ public final class ChapterRules {
         private boolean gravesOnWaveStart;
         private boolean necromancyTiles;
         private boolean graveLootEnabled;
+        private boolean lowBeachEmerge;
 
         public Builder gravesAtStart(boolean value) {
             this.gravesAtStart = value;
@@ -237,6 +245,11 @@ public final class ChapterRules {
 
         public Builder graveLootEnabled(boolean value) {
             this.graveLootEnabled = value;
+            return this;
+        }
+
+        public Builder lowBeachEmerge(boolean value) {
+            this.lowBeachEmerge = value;
             return this;
         }
 

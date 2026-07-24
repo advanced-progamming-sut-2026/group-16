@@ -1,6 +1,8 @@
 package model.game.entity.projectile;
 
 import model.game.board.GameBoard;
+import model.game.board.tile.GraveTile;
+import model.game.board.tile.IceTile;
 import model.game.board.tile.NormalTile;
 import model.game.entity.plant.Plant;
 import model.game.entity.plant.PlantCovering;
@@ -89,7 +91,7 @@ public final class ProjectileSystem {
                     iterator.remove();
                     continue;
                 }
-                move(projectile, board, zombies);
+                move(projectile, board, zombies, context);
                 if (projectile.isExpired()) {
                     iterator.remove();
                     continue;
@@ -168,7 +170,8 @@ public final class ProjectileSystem {
         return false;
     }
 
-    private void move(Projectile projectile, GameBoard board, List<Zombie> zombies) {
+    private void move(Projectile projectile, GameBoard board, List<Zombie> zombies,
+                      GameContext context) {
         if (projectile.getProfile().homing() && !projectile.isFromZombie()) {
             Zombie target = nearestLivingZombieAhead(projectile, zombies);
             if (target != null) {
@@ -181,11 +184,52 @@ public final class ProjectileSystem {
         } else {
             projectile.setX(projectile.getX() + speed);
         }
+        if (projectile.getProfile().trajectory() == ProjectileProfile.Trajectory.ARCING
+                || projectile.isFromZombie()) {
+            return;
+        }
         int col = (int) Math.floor(projectile.getX());
         int row = projectile.getRow();
-        if (board.inBounds(col, row) && projectile.getProfile().trajectory() != ProjectileProfile.Trajectory.ARCING
-                && board.getTile(col, row).blocksProjectiles()) {
+        if (!board.inBounds(col, row)) {
+            return;
+        }
+        var tile = board.getTile(col, row);
+        if (tile != null && tile.isGrave()) {
+            applyTileDamage(board, context, col, row, projectile, true);
             projectile.setX(-1);
+            return;
+        }
+        if (tile != null && tile.isIce()) {
+            applyTileDamage(board, context, col, row, projectile, false);
+            projectile.setX(-1);
+        }
+    }
+
+    private void applyTileDamage(GameBoard board, GameContext context, int col, int row,
+                                 Projectile projectile, boolean grave) {
+        int damage = projectile.getDamage();
+        if (!grave && projectile.getEffect() == ProjectileEffect.FIRE) {
+            damage = IceTile.MAX_HEALTH;
+        }
+        if (context != null) {
+            if (grave) {
+                context.damageGraveAt(col, row, damage);
+            } else {
+                context.damageIceAt(col, row, damage);
+            }
+            return;
+        }
+        var tile = board.getTile(col, row);
+        if (grave && tile instanceof GraveTile graveTile) {
+            graveTile.takeDamage(damage);
+            if (graveTile.isDestroyed()) {
+                board.setTile(col, row, new NormalTile());
+            }
+        } else if (!grave && tile instanceof IceTile iceTile) {
+            iceTile.takeDamage(damage);
+            if (iceTile.isDestroyed()) {
+                board.setTile(col, row, new NormalTile());
+            }
         }
     }
 
@@ -270,7 +314,7 @@ public final class ProjectileSystem {
             int warmRadius = projectile.getSource() == null ? 0
                     : (int) projectile.getSource().getStats()
                     .specialModifier(PlantSpecialModifiers.WARM_RADIUS_EXT);
-            meltIceNear(board, zombie.getRow(), (int) zombie.getX(), warmRadius);
+            meltIceNear(board, zombie.getRow(), (int) zombie.getX(), warmRadius, context);
         }
         String killer = projectile.getSource() == null ? null : projectile.getSource().getName();
         applySplash(projectile, zombie, zombies, onZombieKilled, killer);
@@ -300,12 +344,26 @@ public final class ProjectileSystem {
         }
     }
 
-    private void meltIceNear(GameBoard board, int row, int col, int bonusRadius) {
+    private void meltIceNear(GameBoard board, int row, int col, int bonusRadius,
+                             GameContext context) {
         int radius = 1 + bonusRadius;
         for (int targetRow = row - bonusRadius; targetRow <= row + bonusRadius; targetRow++) {
             for (int targetCol = col - radius; targetCol <= col + radius; targetCol++) {
-                if (board.inBounds(targetCol, targetRow)
-                        && board.getTile(targetCol, targetRow).isIce()) {
+                if (!board.inBounds(targetCol, targetRow)
+                        || !board.getTile(targetCol, targetRow).isIce()) {
+                    continue;
+                }
+                if (context != null) {
+                    context.damageIceAt(targetCol, targetRow, IceTile.MAX_HEALTH);
+                    continue;
+                }
+                var tile = board.getTile(targetCol, targetRow);
+                if (tile instanceof IceTile ice) {
+                    ice.takeDamage(IceTile.MAX_HEALTH);
+                    if (ice.isDestroyed()) {
+                        board.setTile(targetCol, targetRow, new NormalTile());
+                    }
+                } else {
                     board.setTile(targetCol, targetRow, new NormalTile());
                 }
             }

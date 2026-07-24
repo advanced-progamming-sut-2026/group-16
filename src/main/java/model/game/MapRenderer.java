@@ -1,6 +1,8 @@
 package model.game;
 
 import model.game.board.GameBoard;
+import model.game.board.tile.GraveTile;
+import model.game.board.tile.IceTile;
 import model.game.board.tile.Tile;
 import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
@@ -123,7 +125,13 @@ public final class MapRenderer {
         StringBuilder sb = new StringBuilder();
         Tile tile = board.getTile(col, row);
         sb.append("Tile (").append(col).append(',').append(row).append(") type=")
-                .append(coloredTileLabel(tile)).append('\n');
+                .append(coloredTileLabel(tile));
+        if (tile instanceof GraveTile grave) {
+            sb.append(" HP=").append(grave.getHealth()).append('/').append(grave.getMaxHealth());
+        } else if (tile instanceof IceTile ice) {
+            sb.append(" HP=").append(ice.getHealth()).append('/').append(ice.getMaxHealth());
+        }
+        sb.append('\n');
         Plant ground = board.getGroundPlantAt(col, row);
         Plant overlay = board.getOverlayPlantAt(col, row);
         if (ground != null) {
