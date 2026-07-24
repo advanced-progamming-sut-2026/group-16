@@ -59,6 +59,7 @@ class CliTravelLogTest {
                     "travel log page daily",
                     "travel log page main",
                     "travel log page epic",
+                    "travel log page progress",
                     "menu exit"
             )) {
                 parser.parseAndExecute(line);
@@ -69,6 +70,13 @@ class CliTravelLogTest {
 
         String output = captured.toString();
         assertTrue(output.contains("Travel Log"), output);
+        assertTrue(output.contains("Progress:"), output);
+        assertTrue(output.contains("Progress summary"), output);
+        assertTrue(output.contains("Quests overall:"), output);
+        assertTrue(output.contains("Daily:"), output);
+        assertTrue(output.contains("Main:"), output);
+        assertTrue(output.contains("Epic:"), output);
+        assertTrue(output.contains("Minigame stages completed:"), output);
         assertTrue(output.contains("daily_sun_3000") || output.contains("آفتاب"), output);
         assertTrue(output.contains("chapter_hunter") || output.contains("شکارچی"), output);
         assertTrue(parser.getCurrentController() instanceof GameController);

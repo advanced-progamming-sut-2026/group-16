@@ -7,6 +7,8 @@ public interface TravelLogView extends View {
 
     void showTravelLogPage(String pageName, List<String> questLines);
 
+    void showProgressSummary(List<String> lines);
+
     void errorInvalidCommand();
 
     void errorPageNameRequired();
