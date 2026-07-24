@@ -34,21 +34,33 @@ public final class ChapterProgress {
                 completedLevels.getOrDefault(chapter, Set.of()));
     }
 
-    public void markLevelCompleted(ChapterId chapter, int levelIndex) {
+    public LevelCompletionResult markLevelCompleted(ChapterId chapter, int levelIndex) {
         if (chapter == null || levelIndex < 1) {
-            return;
+            return LevelCompletionResult.none();
         }
         completedLevels.computeIfAbsent(chapter, ignored -> new HashSet<>()).add(levelIndex);
-        unlockNextIfNeeded(chapter, levelIndex);
+        Optional<ChapterId> newlyUnlocked = unlockNextIfNeeded(chapter, levelIndex);
+        boolean completedFinalChapterGate = levelIndex == 1
+                && chapter.ordinal() == ChapterId.values().length - 1;
+        return new LevelCompletionResult(newlyUnlocked, completedFinalChapterGate);
     }
 
-    private void unlockNextIfNeeded(ChapterId chapter, int levelIndex) {
+    private Optional<ChapterId> unlockNextIfNeeded(ChapterId chapter, int levelIndex) {
         // Completing NORMAL level 1 unlocks next chapter while specials are unimplemented.
         if (levelIndex == 1 && chapter.ordinal() < ChapterId.values().length - 1) {
             ChapterId next = ChapterId.values()[chapter.ordinal() + 1];
             if (next.ordinal() > unlockedChapter.ordinal()) {
                 unlockedChapter = next;
+                return Optional.of(next);
             }
+        }
+        return Optional.empty();
+    }
+
+    public record LevelCompletionResult(Optional<ChapterId> newlyUnlockedChapter,
+                                        boolean completedFinalChapterGate) {
+        public static LevelCompletionResult none() {
+            return new LevelCompletionResult(Optional.empty(), false);
         }
     }
 

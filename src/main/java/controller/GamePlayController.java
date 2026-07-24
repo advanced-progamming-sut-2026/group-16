@@ -1,6 +1,7 @@
 package controller;
 
 import model.adventure.ChapterConfig;
+import model.adventure.ChapterId;
 import model.adventure.LevelConfig;
 import model.command.GamePlayMenuCommands;
 import model.game.GameSession;
@@ -11,7 +12,9 @@ import model.game.entity.plant.Plant;
 import model.game.entity.zombie.Zombie;
 import model.game.mode.AdventureMode;
 import model.item.SunType;
+import model.minigame.MiniGameId;
 import model.quest.QuestTracker;
+import model.user.ChapterProgress;
 import model.user.UnlockService;
 import model.user.User;
 import model.user.UserDatabase;
@@ -286,11 +289,42 @@ public class GamePlayController extends ViewController implements MatchListener 
     protected void onMatchFinished(MatchResult result) {
         recordFinishedGame();
         if (result == MatchResult.WON && awardAdventureProgress && chapter != null && level != null) {
-            user.getChapterProgress().markLevelCompleted(chapter.getId(), level.getIndex());
+            ChapterProgress.LevelCompletionResult completion =
+                    user.getChapterProgress().markLevelCompleted(chapter.getId(), level.getIndex());
             userDatabase.saveAdventureProgress(user);
+            publishUnlockNews(completion);
         }
         detachQuestTracker();
         parser.switchController(returnController);
+    }
+
+    private void publishUnlockNews(ChapterProgress.LevelCompletionResult completion) {
+        boolean newlyUnlocked = false;
+        if (completion.newlyUnlockedChapter().isPresent()) {
+            ChapterId next = completion.newlyUnlockedChapter().get();
+            if (unlockService.unlockLevel(user, levelId(next))) {
+                newlyUnlocked = true;
+            }
+            MiniGameId[] minigames = MiniGameId.values();
+            if (next.ordinal() < minigames.length
+                    && unlockService.unlockMinigame(user, minigames[next.ordinal()].getKey())) {
+                newlyUnlocked = true;
+            }
+        }
+        if (completion.completedFinalChapterGate()) {
+            MiniGameId[] minigames = MiniGameId.values();
+            MiniGameId last = minigames[minigames.length - 1];
+            if (unlockService.unlockMinigame(user, last.getKey())) {
+                newlyUnlocked = true;
+            }
+        }
+        if (newlyUnlocked) {
+            userDatabase.saveUserWallet(user);
+        }
+    }
+
+    static String levelId(ChapterId chapterId) {
+        return (chapterId.ordinal() + 1) + "-1";
     }
 
     protected void recordFinishedGame() {

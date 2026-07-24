@@ -20,8 +20,7 @@ public final class UserProgressInitializer {
         user.setDailyOfferPlant(null);
         user.setDailyOfferDate(null);
         user.setDailyOfferPurchased(false);
-        for (MiniGameId id : MiniGameId.values()) {
-            user.getUnlockedMinigames().add(id.getKey());
-        }
+        user.getUnlockedMinigames().add(MiniGameId.VASE_BREAKER.getKey());
+        user.getUnlockedLevels().add("1-1");
     }
 }
