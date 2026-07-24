@@ -11,6 +11,7 @@ import model.item.SunType;
 import model.minigame.MiniGameStageConfig;
 import model.minigame.bowling.BowlingNutType;
 import model.minigame.mode.WalnutBowlingMode;
+import model.user.UnlockService;
 import model.user.User;
 import model.user.UserDatabase;
 import view.api.minigame.WalnutBowlingView;
@@ -26,6 +27,7 @@ public class WalnutBowlingController extends ViewController implements MatchList
     private final WalnutBowlingMode mode;
     private final GameSession session;
     private final MiniGameStageConfig stage;
+    private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
 
     public WalnutBowlingController(User user,
@@ -181,6 +183,7 @@ public class WalnutBowlingController extends ViewController implements MatchList
 
     @Override
     public void onZombieSpawned(String type, int wave, int lane, int cost) {
+        ZombieSeenUnlock.unlock(user, userDatabase, unlockService, type);
     }
 
     @Override

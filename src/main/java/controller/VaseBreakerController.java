@@ -11,6 +11,7 @@ import model.game.entity.zombie.Zombie;
 import model.item.SunType;
 import model.minigame.MiniGameStageConfig;
 import model.minigame.mode.VaseBreakerMode;
+import model.user.UnlockService;
 import model.user.User;
 import model.user.UserDatabase;
 import view.api.minigame.VaseBreakerView;
@@ -26,6 +27,7 @@ public class VaseBreakerController extends ViewController implements MatchListen
     private final VaseBreakerMode mode;
     private final GameSession session;
     private final MiniGameStageConfig stage;
+    private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
 
     public VaseBreakerController(User user,
@@ -195,6 +197,7 @@ public class VaseBreakerController extends ViewController implements MatchListen
 
     @Override
     public void onZombieSpawned(String type, int wave, int lane, int cost) {
+        ZombieSeenUnlock.unlock(user, userDatabase, unlockService, type);
         getViewApi().showZombieSpawned(type, lane, lane);
     }
 
