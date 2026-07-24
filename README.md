@@ -1,4 +1,13 @@
-# Plants vs. Zombies 2 — Advanced Programming Project
+# Plants vs. Zombies 2 - Advanced Programming Project
+
+<p align="center">
+  <a href="https://openjdk.org/"><img src="https://img.shields.io/badge/Java-25-ED8B00?style=flat&logo=openjdk&logoColor=white" alt="Java" /></a>
+  <a href="https://gradle.org/"><img src="https://img.shields.io/badge/Build-Gradle-02303A?style=flat&logo=gradle&logoColor=white" alt="Gradle" /></a>
+  <a href="https://junit.org/junit5/"><img src="https://img.shields.io/badge/Tests-JUnit%205-25A162?style=flat&logo=junit5&logoColor=white" alt="JUnit" /></a>
+  <a href="https://www.sqlite.org/"><img src="https://img.shields.io/badge/DB-SQLite-003B57?style=flat&logo=sqlite&logoColor=white" alt="SQLite" /></a>
+  <a href="#-technical-overview"><img src="https://img.shields.io/badge/Architecture-MVC-0A66C2?style=flat" alt="Architecture" /></a>
+  <a href="#-roadmap--development-phases"><img src="https://img.shields.io/badge/Phase-1%20CLI-brightgreen?style=flat" alt="Phase" /></a>
+</p>
 
 <img width="2752" height="1536" alt="group16-banner" src="https://github.com/user-attachments/assets/2f3a1eea-c378-4ea4-900c-d0236bf51388" />
 
