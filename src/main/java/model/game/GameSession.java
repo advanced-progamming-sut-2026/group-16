@@ -108,6 +108,8 @@ public final class GameSession {
     private boolean nightLevel;
     private int plantsLost;
     private int waveStartTick;
+    private int firstWaveStartTick = -1;
+    private int userDifficultyLevel = 3;
     private boolean running;
     private boolean tickingZombies;
     private model.quest.QuestTracker attachedQuestTracker;
@@ -789,10 +791,21 @@ public final class GameSession {
 
     public void markWaveStarted() {
         waveStartTick = currentTick;
+        if (firstWaveStartTick < 0) {
+            firstWaveStartTick = currentTick;
+        }
     }
 
     public int getWaveStartTick() {
         return waveStartTick;
+    }
+
+    public int getFirstWaveStartTick() {
+        return firstWaveStartTick < 0 ? waveStartTick : firstWaveStartTick;
+    }
+
+    public int getUserDifficultyLevel() {
+        return userDifficultyLevel;
     }
 
     public void attachQuestTracker(model.quest.QuestTracker questTracker) {
@@ -1322,13 +1335,24 @@ public final class GameSession {
         }
         rollZombieLootDrop();
         double secondsSinceWave = Math.max(0, (currentTick - waveStartTick) / (double) TICKS_PER_SECOND);
+        int firstWaveTick = getFirstWaveStartTick();
+        double secondsSinceFirstWave = Math.max(0, (currentTick - firstWaveTick) / (double) TICKS_PER_SECOND);
+        String killerFamily = null;
+        if (killerPlantType != null) {
+            var definition = plantRegistry.getDefinition(killerPlantType);
+            if (definition != null) {
+                killerFamily = definition.getCategory();
+            }
+        }
         eventBus.publish(new GameEvent.ZombieKilled(
                 zombie.getType(),
                 killerPlantType,
+                killerFamily,
                 chapterId,
                 (int) zombie.getX(),
                 zombie.getRow(),
                 secondsSinceWave,
+                secondsSinceFirstWave,
                 projectileId,
                 currentTick));
     }
@@ -1440,7 +1464,7 @@ public final class GameSession {
             matchListener.onWin();
         }
         eventBus.publish(new GameEvent.GameFinished(true, sunBalance, plantsLost,
-                currentTick / (long) TICKS_PER_SECOND));
+                currentTick / (long) TICKS_PER_SECOND, userDifficultyLevel));
     }
 
     public void loseMatch() {
@@ -1456,7 +1480,7 @@ public final class GameSession {
             matchListener.onLose();
         }
         eventBus.publish(new GameEvent.GameFinished(false, sunBalance, plantsLost,
-                currentTick / (long) TICKS_PER_SECOND));
+                currentTick / (long) TICKS_PER_SECOND, userDifficultyLevel));
     }
 
     public boolean pluckPlant(int col, int row) {
@@ -1498,6 +1522,7 @@ public final class GameSession {
 
     public void applyUserDifficulty(int difficultyLevel) {
         int dl = Math.max(1, Math.min(5, difficultyLevel));
+        userDifficultyLevel = dl;
         skySunSystem.setDifficultyScale(WaveManager.skySunIntervalScale(dl));
         if (waveManager != null) {
             waveManager.setWaveCostDifficultyScale(WaveManager.waveCostScale(dl));

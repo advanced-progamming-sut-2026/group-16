@@ -1,6 +1,11 @@
 package model.quest;
 
+import model.App;
 import model.adventure.ChapterId;
+import model.definition.PlantRegistry;
+import model.definition.plant.PlantDefinition;
+import model.game.board.GameBoard;
+import model.game.entity.plant.PlantCategory;
 import model.quest.condition.QuestConditions;
 import model.quest.reward.QuestReward;
 
@@ -10,45 +15,52 @@ import java.util.Set;
 
 public final class QuestFactory {
 
-    private QuestFactory() {}
-    
+    private QuestFactory() {
+    }
+
     public static List<Quest> createAllQuests() {
         List<Quest> all = new ArrayList<>();
-
-        // --- DAILY ---
-        all.add(createDailySunCollector(3000));
-        all.add(createPlantProKiller("peashooter"));       // example plant
+        for (int sun : List.of(3000, 4000, 5000)) all.add(createDailySunCollector(sun));
+        PlantRegistry registry = App.getInstance().getPlantRegistry();
+        if (registry != null) {
+            for (PlantDefinition def : registry.getAllDefinitions()) {
+                if (def.getDamage() > 0) {
+                    all.add(createPlantProKiller(def.getName()));
+                }
+            }
+        }
         all.add(createOnlyCactusKiller());
         all.add(createExplosiveExpert(3));
         all.add(createSymmetryWin());
-        all.add(createFamilyExclusiveKills("SHOOTER"));    // parameterized variant
-        all.add(createFamilyBanned("SHROOM"));             // parameterized variant
+        for (PlantCategory category : PlantCategory.values()) {
+            all.add(createFamilyExclusiveKills(category.name()));
+            all.add(createFamilyBanned(category.name()));
+        }
         all.add(createWinStreak(5));
-        all.add(createNearVictory(10, Set.of()));          // rowsWithMowers injected at runtime
+        all.add(createNearVictory(10, Set.of()));
         all.add(createAsymmetryWin());
         all.add(createLimitedSunProducers(3));
-        all.add(createEmptyColumn(1));                     // example: column 1
-        all.add(createEmptyRow(2));                        // example: row 2
-        all.add(createEmptyCross(2, 3));
-        all.add(createLawnMowerKills(10));
-
-        // --- MAIN ---
-        all.add(createChapterHunter(ChapterId.ANCIENT_EGYPT.getKey(), 50));
-        all.add(createLowPlantLoss(2));
-
-        // --- EPIC CHALLENGE ---
+        for (int col = 0; col < GameBoard.DEFAULT_COLS; col++) all.add(createEmptyColumn(col));
+        for (int row = 0; row < GameBoard.DEFAULT_ROWS; row++) all.add(createEmptyRow(row));
+        int crossLimit = Math.min(GameBoard.DEFAULT_ROWS, GameBoard.DEFAULT_COLS);
+        for (int n = 0; n < crossLimit; n++) {
+            all.add(createEmptyCross(n, n));
+        }
+        for (ChapterId chapterId : ChapterId.values()) {
+            all.add(createChapterHunter(chapterId.getKey(), 50));
+        }
+        for (int n = 0; n <= 5; n++) {
+            all.add(createLowPlantLoss(n));
+        }
         all.add(createFinishWithZeroSun());
         all.add(createSpeedKill(10, 30.0));
         all.add(createNightPlantsInDayLevel());
-
+        for (int n = 10; n <= 50; n += 10) {
+            all.add(createLawnMowerKills(n));
+        }
         return all;
     }
 
-    // -----------------------------------------------------------------------
-    // Individual factory methods (one per quest type in the xlsx)
-    // -----------------------------------------------------------------------
-
-    /** آفتاب گیر روزانه  Collect sunAmount sun in one day. Valid targets: 3000, 4000, 5000 */
     public static Quest createDailySunCollector(int sunAmount) {
         return new Quest(
                 "daily_sun_" + sunAmount,
@@ -60,7 +72,6 @@ public final class QuestFactory {
         );
     }
 
-    /** شکارچی chapter  Kill 50 zombies from a specific chapter. One quest per chapter. */
     public static Quest createChapterHunter(String chapterId, int targetCount) {
         return new Quest(
                 "chapter_hunter_" + chapterId,
@@ -72,10 +83,10 @@ public final class QuestFactory {
         );
     }
 
-    /** plant باز حرفه‌ای  Kill 10 zombies using only the given plant. */
     public static Quest createPlantProKiller(String plantType) {
+        String idSuffix = plantType == null ? "unknown" : plantType.replace(' ', '_').toLowerCase();
         return new Quest(
-                "plant_pro_" + plantType,
+                "plant_pro_" + idSuffix,
                 "حرفه‌ای " + plantType,
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
@@ -84,21 +95,19 @@ public final class QuestFactory {
         );
     }
 
-    /** only cactus  Kill 10 zombies with only cactus. */
     public static Quest createOnlyCactusKiller() {
         return new Quest(
                 "only_cactus",
                 "only cactus",
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
-                new QuestConditions.KillOnlyWithPlantCondition("cactus", 10),
+                new QuestConditions.KillOnlyWithPlantCondition("Cactus", 10),
                 QuestReward.diamonds(20)
         );
     }
 
-    /** گیاه خوار اقتصادی  Win losing at most n plants. Valid n: 0-5 */
     public static Quest createLowPlantLoss(int maxLost) {
-        int reward = 20 - maxLost; // 20-n seed packets per xlsx
+        int reward = 20 - maxLost;
         return new Quest(
                 "low_plant_loss_" + maxLost,
                 "گیاه خوار اقتصادی (max " + maxLost + " lost)",
@@ -109,7 +118,6 @@ public final class QuestFactory {
         );
     }
 
-    /** استاد دفاع  Finish a level with exactly 0 sun. Epic. */
     public static Quest createFinishWithZeroSun() {
         return new Quest(
                 "finish_zero_sun",
@@ -121,7 +129,6 @@ public final class QuestFactory {
         );
     }
 
-    /** سرعت عمل  Kill 10 zombies in under 30 seconds. */
     public static Quest createSpeedKill(int kills, double timeLimitSeconds) {
         return new Quest(
                 "speed_kill",
@@ -133,7 +140,6 @@ public final class QuestFactory {
         );
     }
 
-    /** تخریب گر حرفه ای  Plant 3 explosive plants in one level. */
     public static Quest createExplosiveExpert(int count) {
         return new Quest(
                 "explosive_expert",
@@ -145,7 +151,6 @@ public final class QuestFactory {
         );
     }
 
-    /** تقارن  Win with a symmetric layout. */
     public static Quest createSymmetryWin() {
         return new Quest(
                 "symmetry_win",
@@ -157,7 +162,6 @@ public final class QuestFactory {
         );
     }
 
-    /** کشتار خانوادگی  Win using only the given family to score kills. */
     public static Quest createFamilyExclusiveKills(String family) {
         return new Quest(
                 "family_kills_" + family,
@@ -169,7 +173,6 @@ public final class QuestFactory {
         );
     }
 
-    /** شکوفایی در محدودیت‌ها  Win without using any plant from the banned family. */
     public static Quest createFamilyBanned(String family) {
         return new Quest(
                 "family_banned_" + family,
@@ -181,7 +184,6 @@ public final class QuestFactory {
         );
     }
 
-    /** شب یا صبح  Win a day level using only night plants. Epic. */
     public static Quest createNightPlantsInDayLevel() {
         return new Quest(
                 "night_plants_day",
@@ -193,7 +195,6 @@ public final class QuestFactory {
         );
     }
 
-    /** برد پشت برد  Win n consecutive levels. */
     public static Quest createWinStreak(int n) {
         return new Quest(
                 "win_streak_" + n,
@@ -205,7 +206,6 @@ public final class QuestFactory {
         );
     }
 
-    /** تقریبا پیروز  Kill 10 zombies in column 0 in rows without a mower. */
     public static Quest createNearVictory(int kills, Set<Integer> rowsWithMowers) {
         return new Quest(
                 "near_victory",
@@ -217,7 +217,6 @@ public final class QuestFactory {
         );
     }
 
-    /** OCD نَمَنَ  Win with a fully asymmetric layout (no symmetry at all). */
     public static Quest createAsymmetryWin() {
         return new Quest(
                 "ocd_asymmetry",
@@ -229,7 +228,6 @@ public final class QuestFactory {
         );
     }
 
-    /** روز ابری  Win using at most 3 sun-producing plants. */
     public static Quest createLimitedSunProducers(int max) {
         return new Quest(
                 "limited_sun_producers",
@@ -241,7 +239,6 @@ public final class QuestFactory {
         );
     }
 
-    /** یه ستون کمتر  Win without planting in the given column. */
     public static Quest createEmptyColumn(int column) {
         return new Quest(
                 "empty_col_" + column,
@@ -253,7 +250,6 @@ public final class QuestFactory {
         );
     }
 
-    /** سطر بی دفاع  Win without planting in the given row. */
     public static Quest createEmptyRow(int row) {
         return new Quest(
                 "empty_row_" + row,
@@ -265,7 +261,6 @@ public final class QuestFactory {
         );
     }
 
-    /** صلیب بی دفاع  Win without planting in the given row or column. */
     public static Quest createEmptyCross(int row, int col) {
         return new Quest(
                 "empty_cross_" + row + "_" + col,
@@ -277,7 +272,6 @@ public final class QuestFactory {
         );
     }
 
-    /** وقت چمن‌زنی  Kill n zombies with lawnmowers. Valid n: 10-50 (Epic) */
     public static Quest createLawnMowerKills(int n) {
         return new Quest(
                 "lawnmower_kills_" + n,

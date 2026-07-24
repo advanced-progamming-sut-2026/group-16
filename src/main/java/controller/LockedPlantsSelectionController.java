@@ -90,7 +90,7 @@ public final class LockedPlantsSelectionController extends PlantSelectionControl
         session.activateLockedPlants(rules);
         QuestTracker tracker = user.ensureQuestTracker();
         tracker.registerOn(session.getEventBus());
-        tracker.beginSession();
+        tracker.beginSession(session);
         session.attachQuestTracker(tracker);
         getLockedPlantsView().showGameStarted();
         LockedPlantsLevelController gameplay = new LockedPlantsLevelController(

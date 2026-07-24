@@ -5,9 +5,11 @@ import model.collection.PlantCollection;
 import model.definition.PlantRegistry;
 import model.definition.plant.PlantDefinition;
 import model.quest.reward.QuestReward;
+import model.user.UnlockService;
 import model.user.User;
 import model.user.UserDatabase;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
@@ -29,7 +31,23 @@ public final class QuestService {
         tracker.setQuests(QuestFactory.createAllQuests());
         user.setQuestTracker(tracker);
         UserDatabase.getInstance().loadQuestProgress(user, tracker);
+        refreshDailyQuestsIfNeeded(user, tracker);
         return tracker;
+    }
+
+    public static void refreshDailyQuestsIfNeeded(User user, QuestTracker tracker) {
+        if (user == null || tracker == null) {
+            return;
+        }
+        LocalDate today = LocalDate.now();
+        LocalDate lastDay = user.getQuestDay();
+        if (today.equals(lastDay)) {
+            return;
+        }
+        tracker.resetDailyQuests();
+        user.setQuestDay(today);
+        UserDatabase.getInstance().saveQuestProgress(user);
+        UserDatabase.getInstance().saveUserWallet(user);
     }
 
     public static void applyReward(User user, QuestReward reward) {
@@ -55,11 +73,11 @@ public final class QuestService {
                 try {
                     collection.addSeedPackets(seedPlant, reward.getSeedPacketCount());
                 } catch (IllegalArgumentException ignored) {
-                    // unknown plant id - skip seeds
                 }
             }
         }
 
+        UnlockService unlockService = new UnlockService();
         String unlock = reward.getUnlockTargetId();
         if (unlock != null) {
             if ("RANDOM_PLANT".equals(unlock)) {
@@ -68,7 +86,7 @@ public final class QuestService {
             if (unlock != null) {
                 PlantDefinition def = registry.getDefinition(unlock);
                 if (def != null) {
-                    user.getPlantProgress().unlock(def.getName());
+                    unlockService.unlockPlant(user, def.getName());
                 }
             }
         }
@@ -76,6 +94,7 @@ public final class QuestService {
         user.setCoins(Math.max(user.getCoins(), collection.getCoins()));
         UserDatabase.getInstance().saveUserWallet(user);
         UserDatabase.getInstance().savePlantProgress(user);
+        UserDatabase.getInstance().saveUserNews(user);
     }
 
     private static String pickRandomUnlockedPlant(User user, PlantRegistry registry) {

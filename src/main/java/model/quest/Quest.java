@@ -36,13 +36,28 @@ public final class Quest {
         this.reward = reward;
     }
 
-
     public void startSession() {
+        if (completed) {
+            return;
+        }
+        if (!condition.persistsAcrossSessions()) {
+            condition.reset();
+        }
+    }
 
+    public void resetForNewDay() {
+        if (category != Category.DAILY) {
+            return;
+        }
+        completed = false;
+        rewardClaimed = false;
+        condition.reset();
     }
 
     public boolean onEvent(GameEvent event) {
-        if (completed) return false;
+        if (completed) {
+            return false;
+        }
         condition.onEvent(event);
         if (condition.isMet()) {
             completed = true;
