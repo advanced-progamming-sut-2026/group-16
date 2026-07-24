@@ -1,6 +1,8 @@
 package controller;
 
 import model.command.TravelLogMenuCommands;
+import model.minigame.MiniGameId;
+import model.minigame.MiniGameRegistry;
 import model.quest.Quest;
 import model.quest.QuestTracker;
 import model.user.User;
@@ -76,6 +78,10 @@ public class TravelLogController extends ViewController {
                 quests = tracker.getEpicQuests();
                 title = "Epic";
             }
+            case "progress", "summary" -> {
+                getTravelLogView().showProgressSummary(buildProgressSummary(tracker));
+                return;
+            }
             case "minigames", "mini-games", "mini games" -> {
                 parser.switchController(new MiniGameHubController(user, userDatabase, this));
                 return;
@@ -86,10 +92,39 @@ public class TravelLogController extends ViewController {
             }
         }
         List<String> lines = new ArrayList<>();
+        long completed = quests.stream().filter(Quest::isCompleted).count();
+        lines.add("Progress: " + completed + "/" + quests.size() + " completed");
         for (Quest quest : quests) {
             lines.add(formatQuestLine(quest));
         }
         getTravelLogView().showTravelLogPage(title, lines);
+    }
+
+    private List<String> buildProgressSummary(QuestTracker tracker) {
+        List<Quest> daily = tracker.getDailyQuests();
+        List<Quest> main = tracker.getMainQuests();
+        List<Quest> epic = tracker.getEpicQuests();
+        long dailyDone = daily.stream().filter(Quest::isCompleted).count();
+        long mainDone = main.stream().filter(Quest::isCompleted).count();
+        long epicDone = epic.stream().filter(Quest::isCompleted).count();
+        long overallDone = tracker.completedCount();
+        int overallTotal = tracker.totalCount();
+
+        int miniCompleted = user.getMiniGameProgress().completedStageCount();
+        int miniTotal = 0;
+        for (MiniGameId id : MiniGameRegistry.getInstance().getAllMiniGames()) {
+            miniTotal += MiniGameRegistry.getInstance().getStages(id).size();
+        }
+
+        List<String> lines = new ArrayList<>();
+        lines.add("Quests overall: " + overallDone + "/" + overallTotal + " completed");
+        lines.add("Daily: " + dailyDone + "/" + daily.size() + " completed");
+        lines.add("Main: " + mainDone + "/" + main.size() + " completed");
+        lines.add("Epic: " + epicDone + "/" + epic.size() + " completed");
+        lines.add("Adventure levels cleared: "
+                + user.getChapterProgress().countCompletedLevels());
+        lines.add("Minigame stages completed: " + miniCompleted + "/" + miniTotal);
+        return lines;
     }
 
     private static String formatQuestLine(Quest quest) {

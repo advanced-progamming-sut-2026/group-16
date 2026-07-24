@@ -23,6 +23,18 @@ public class TravelLogViewCli extends CliView implements TravelLogView {
     }
 
     @Override
+    public void showProgressSummary(List<String> lines) {
+        displayMessage("Travel Log - Progress summary:");
+        if (lines == null || lines.isEmpty()) {
+            displayMessage("(none)");
+            return;
+        }
+        for (String line : lines) {
+            displayMessage(line);
+        }
+    }
+
+    @Override
     public void errorInvalidCommand() {
         displayError("Invalid travel log command.");
     }
@@ -34,6 +46,7 @@ public class TravelLogViewCli extends CliView implements TravelLogView {
 
     @Override
     public void errorUnknownPage(String pageName) {
-        displayError("Unknown travel log page: " + pageName + ". Use daily, main, epic, or minigames.");
+        displayError("Unknown travel log page: " + pageName
+                + ". Use daily, main, epic, progress, or minigames.");
     }
 }
