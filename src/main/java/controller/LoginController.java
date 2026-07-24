@@ -42,9 +42,11 @@ public class LoginController extends ViewController {
                 case MENU_SHOW_CURRENT -> handleShowCurrent();
                 case MENU_EXIT -> handleMenuExit();
                 case LOGIN ->
-                        handleLogin(matcher.group("username"), matcher.group("password"), matcher.group("stayLoggedIn"));
+                        handleLogin(matcher.group("username"),
+                                matcher.group("password"), matcher.group("stayLoggedIn"));
                 case FORGET_PASSWORD ->
-                        handleForgetPassword(matcher.group("username"), matcher.group("email"), matcher.group("answer"));
+                        handleForgetPassword(matcher.group("username"),
+                                matcher.group("email"), matcher.group("answer"));
             }
             return;
         }

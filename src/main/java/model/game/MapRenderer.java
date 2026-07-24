@@ -22,8 +22,16 @@ public final class MapRenderer {
         int wave = waves == null ? 0 : waves.getCurrentWaveNumber();
         sb.append("Wave: ").append(AnsiColors.color(AnsiColors.CYAN, String.valueOf(wave)))
                 .append(" | Sun: ").append(AnsiColors.color(AnsiColors.YELLOW, String.valueOf(session.getSunBalance())))
-                .append(" | PlantFood: ").append(AnsiColors.color(AnsiColors.GREEN, String.valueOf(session.getPlantFoodCount())))
+                .append(" | PlantFood: ")
+                .append(AnsiColors.color(AnsiColors.GREEN, String.valueOf(session.getPlantFoodCount())))
                 .append(" | Result: ").append(coloredResult(session.getMatchResult()));
+        appendModeHeader(sb, session);
+        sb.append('\n');
+        appendBoard(sb, session);
+        return sb.toString();
+    }
+
+    private static void appendModeHeader(StringBuilder sb, GameSession session) {
         if (session.isDeadLineActive()) {
             sb.append(" | Dead line: column ").append(session.getDeadLineColumn());
         }
@@ -54,31 +62,32 @@ public final class MapRenderer {
                 sb.append(" | Combat started");
             }
         }
-        sb.append('\n');
+    }
 
+    private static void appendBoard(StringBuilder sb, GameSession session) {
         GameBoard board = session.getBoard();
         List<LawnMower> mowers = session.getLawnMowers();
         for (int row = 0; row < board.getRows(); row++) {
-            String rowMarker;
-            if (session.isIZombieActive()) {
-                rowMarker = session.isIZombieBrainEaten(row)
-                        ? AnsiColors.color(AnsiColors.RED, " [Eaten]")
-                        : AnsiColors.color(AnsiColors.CYAN, " [Brain]");
-            } else {
-                boolean mowerReady = row < mowers.size() && !mowers.get(row).isUsed();
-                rowMarker = mowerReady
-                        ? AnsiColors.color(AnsiColors.GREEN, " [Mower]")
-                        : AnsiColors.color(AnsiColors.GRAY, " [----]");
-            }
             sb.append("Row ").append(row + 1)
-                    .append(rowMarker)
+                    .append(rowMarker(session, mowers, row))
                     .append(": ");
             for (int col = 0; col < board.getCols(); col++) {
                 sb.append('[').append(cellLabel(session, col, row)).append(']');
             }
             sb.append('\n');
         }
-        return sb.toString();
+    }
+
+    private static String rowMarker(GameSession session, List<LawnMower> mowers, int row) {
+        if (session.isIZombieActive()) {
+            return session.isIZombieBrainEaten(row)
+                    ? AnsiColors.color(AnsiColors.RED, " [Eaten]")
+                    : AnsiColors.color(AnsiColors.CYAN, " [Brain]");
+        }
+        boolean mowerReady = row < mowers.size() && !mowers.get(row).isUsed();
+        return mowerReady
+                ? AnsiColors.color(AnsiColors.GREEN, " [Mower]")
+                : AnsiColors.color(AnsiColors.GRAY, " [----]");
     }
 
     public static String plantsStatus(GameSession session) {
@@ -156,17 +165,11 @@ public final class MapRenderer {
             parts.add(AnsiColors.color(AnsiColors.BRIGHT_RED, "RL"));
         } else if (session.isIZombieActive() && col == session.getIZombiePlacementColumn()) {
             parts.add(AnsiColors.color(AnsiColors.CYAN, "PL"));
-        } else {
-            parts.add(coloredTileLabel(tile));
-        }
+        } else parts.add(coloredTileLabel(tile));
         Plant ground = board.getGroundPlantAt(col, row);
         Plant overlay = board.getOverlayPlantAt(col, row);
-        if (ground != null) {
-            parts.add(AnsiColors.color(AnsiColors.GREEN, shortName(ground.getName())));
-        }
-        if (overlay != null) {
-            parts.add(AnsiColors.color(AnsiColors.GREEN, shortName(overlay.getName())));
-        }
+        if (ground != null) parts.add(AnsiColors.color(AnsiColors.GREEN, shortName(ground.getName())));
+        if (overlay != null) parts.add(AnsiColors.color(AnsiColors.GREEN, shortName(overlay.getName())));
         for (Zombie zombie : session.getZombies()) {
             if (zombie.isAlive() && zombie.getRow() == row
                     && (int) Math.floor(zombie.getX()) == col) {
@@ -188,9 +191,7 @@ public final class MapRenderer {
             };
             parts.add(AnsiColors.color(AnsiColors.MAGENTA, vaseLabel));
         }
-        if (session.getGroundSeedPacketAt(col, row) != null) {
-            parts.add(AnsiColors.color(AnsiColors.YELLOW, "Seed"));
-        }
+        if (session.getGroundSeedPacketAt(col, row) != null) parts.add(AnsiColors.color(AnsiColors.YELLOW, "Seed"));
         for (model.minigame.bowling.BowlingNut nut : session.getBowlingNutSystem().getNuts()) {
             if ((int) Math.floor(nut.getX()) == col && (int) Math.round(nut.getRow()) == row) {
                 String nutLabel = switch (nut.getType()) {

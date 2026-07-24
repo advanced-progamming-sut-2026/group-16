@@ -10,90 +10,88 @@ import java.sql.Statement;
 import java.time.LocalDate;
 
 public final class UserProgressStore {
+    private static final String[] PROGRESS_TABLE_DDLS = {
+            """
+                    CREATE TABLE IF NOT EXISTS user_wallet (
+                        userId INTEGER PRIMARY KEY,
+                        coins INTEGER NOT NULL DEFAULT 0,
+                        diamonds INTEGER NOT NULL DEFAULT 0,
+                        plantFood INTEGER NOT NULL DEFAULT 0,
+                        dailyOfferPlant TEXT,
+                        dailyOfferDate TEXT,
+                        dailyOfferPurchased INTEGER NOT NULL DEFAULT 0,
+                        gamesPlayed INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                    """,
+            """
+                    CREATE TABLE IF NOT EXISTS greenhouse_pots (
+                        userId INTEGER NOT NULL,
+                        x INTEGER NOT NULL,
+                        y INTEGER NOT NULL,
+                        locked INTEGER NOT NULL CHECK(locked IN (0, 1)),
+                        plantType TEXT,
+                        plantedAtMillis INTEGER NOT NULL DEFAULT 0,
+                        isMarigold INTEGER NOT NULL DEFAULT 0 CHECK(isMarigold IN (0, 1)),
+                        PRIMARY KEY (userId, x, y),
+                        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                    """,
+            """
+                    CREATE TABLE IF NOT EXISTS stored_boosts (
+                        userId INTEGER NOT NULL,
+                        plantType TEXT NOT NULL,
+                        PRIMARY KEY (userId, plantType),
+                        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                    """,
+            """
+                    CREATE TABLE IF NOT EXISTS user_news (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        userId INTEGER NOT NULL,
+                        type TEXT NOT NULL,
+                        subject TEXT,
+                        message TEXT NOT NULL,
+                        createdAtMillis INTEGER NOT NULL,
+                        isRead INTEGER NOT NULL CHECK(isRead IN (0, 1)),
+                        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                    """,
+            """
+                    CREATE TABLE IF NOT EXISTS user_unlocked_zombies (
+                        userId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        PRIMARY KEY (userId, name),
+                        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                    """,
+            """
+                    CREATE TABLE IF NOT EXISTS user_unlocked_levels (
+                        userId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        PRIMARY KEY (userId, name),
+                        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                    """,
+            """
+                    CREATE TABLE IF NOT EXISTS user_unlocked_minigames (
+                        userId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        PRIMARY KEY (userId, name),
+                        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                    """
+    };
+
     private UserProgressStore() {
     }
 
     public static void createTables() {
-        String walletSql = """
-                CREATE TABLE IF NOT EXISTS user_wallet (
-                    userId INTEGER PRIMARY KEY,
-                    coins INTEGER NOT NULL DEFAULT 0,
-                    diamonds INTEGER NOT NULL DEFAULT 0,
-                    plantFood INTEGER NOT NULL DEFAULT 0,
-                    dailyOfferPlant TEXT,
-                    dailyOfferDate TEXT,
-                    dailyOfferPurchased INTEGER NOT NULL DEFAULT 0,
-                    gamesPlayed INTEGER NOT NULL DEFAULT 0,
-                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-                );
-                """;
-        String potSql = """
-                CREATE TABLE IF NOT EXISTS greenhouse_pots (
-                    userId INTEGER NOT NULL,
-                    x INTEGER NOT NULL,
-                    y INTEGER NOT NULL,
-                    locked INTEGER NOT NULL CHECK(locked IN (0, 1)),
-                    plantType TEXT,
-                    plantedAtMillis INTEGER NOT NULL DEFAULT 0,
-                    isMarigold INTEGER NOT NULL DEFAULT 0 CHECK(isMarigold IN (0, 1)),
-                    PRIMARY KEY (userId, x, y),
-                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-                );
-                """;
-        String boostSql = """
-                CREATE TABLE IF NOT EXISTS stored_boosts (
-                    userId INTEGER NOT NULL,
-                    plantType TEXT NOT NULL,
-                    PRIMARY KEY (userId, plantType),
-                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-                );
-                """;
-        String newsSql = """
-                CREATE TABLE IF NOT EXISTS user_news (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    userId INTEGER NOT NULL,
-                    type TEXT NOT NULL,
-                    subject TEXT,
-                    message TEXT NOT NULL,
-                    createdAtMillis INTEGER NOT NULL,
-                    isRead INTEGER NOT NULL CHECK(isRead IN (0, 1)),
-                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-                );
-                """;
-        String zombiesSql = """
-                CREATE TABLE IF NOT EXISTS user_unlocked_zombies (
-                    userId INTEGER NOT NULL,
-                    name TEXT NOT NULL,
-                    PRIMARY KEY (userId, name),
-                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-                );
-                """;
-        String levelsSql = """
-                CREATE TABLE IF NOT EXISTS user_unlocked_levels (
-                    userId INTEGER NOT NULL,
-                    name TEXT NOT NULL,
-                    PRIMARY KEY (userId, name),
-                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-                );
-                """;
-        String minigamesSql = """
-                CREATE TABLE IF NOT EXISTS user_unlocked_minigames (
-                    userId INTEGER NOT NULL,
-                    name TEXT NOT NULL,
-                    PRIMARY KEY (userId, name),
-                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-                );
-                """;
-
         try (Connection conn = DatabaseUtil.getConnection();
              Statement stmt = conn.createStatement()) {
-            stmt.execute(walletSql);
-            stmt.execute(potSql);
-            stmt.execute(boostSql);
-            stmt.execute(newsSql);
-            stmt.execute(zombiesSql);
-            stmt.execute(levelsSql);
-            stmt.execute(minigamesSql);
+            for (String ddl : PROGRESS_TABLE_DDLS) {
+                stmt.execute(ddl);
+            }
             migrateGamesPlayedColumn(stmt);
         } catch (SQLException e) {
             throw new RuntimeException("Could not create user progress tables.", e);
