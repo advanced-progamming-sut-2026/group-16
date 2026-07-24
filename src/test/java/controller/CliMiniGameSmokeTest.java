@@ -1,6 +1,7 @@
 package controller;
 
 import model.minigame.MiniGameId;
+import model.user.UnlockService;
 import model.user.User;
 import model.user.UserDatabase;
 import org.junit.jupiter.api.AfterAll;
@@ -85,11 +86,13 @@ class CliMiniGameSmokeTest {
         assertInstanceOf(MiniGameHubController.class, parser.getCurrentController());
         User user = UserDatabase.getInstance().getUser(USERNAME);
         assertTrue(user.getMiniGameProgress().isStageCompleted(MiniGameId.VASE_BREAKER, 1));
+        unlockRemainingMinigamesForSmoke(user);
     }
 
     @Test
     @Order(2)
     void walnutBowlingStartsAndPlantsNut() {
+        unlockRemainingMinigamesForSmoke(UserDatabase.getInstance().getUser(USERNAME));
         CommandParser parser = new CommandParser();
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
@@ -123,6 +126,7 @@ class CliMiniGameSmokeTest {
     @Test
     @Order(3)
     void iZombieStartsAndPlacesZombie() {
+        unlockRemainingMinigamesForSmoke(UserDatabase.getInstance().getUser(USERNAME));
         CommandParser parser = new CommandParser();
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
@@ -154,6 +158,7 @@ class CliMiniGameSmokeTest {
     @Test
     @Order(4)
     void zombotanyStartsPlantsAndCompletesStage() {
+        unlockRemainingMinigamesForSmoke(UserDatabase.getInstance().getUser(USERNAME));
         CommandParser parser = new CommandParser();
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
@@ -187,6 +192,7 @@ class CliMiniGameSmokeTest {
     @Test
     @Order(5)
     void beghouledStartsSwapsAndCompletesStage() {
+        unlockRemainingMinigamesForSmoke(UserDatabase.getInstance().getUser(USERNAME));
         CommandParser parser = new CommandParser();
         parser.parseAndExecute("menu enter login");
         parser.parseAndExecute("login -u " + USERNAME + " -p " + PASSWORD);
@@ -215,5 +221,21 @@ class CliMiniGameSmokeTest {
         assertInstanceOf(MiniGameHubController.class, parser.getCurrentController());
         User user = UserDatabase.getInstance().getUser(USERNAME);
         assertTrue(user.getMiniGameProgress().isStageCompleted(MiniGameId.BEGHOULED, 1));
+    }
+
+    private static void unlockRemainingMinigamesForSmoke(User user) {
+        if (user == null) {
+            return;
+        }
+        UnlockService unlockService = new UnlockService();
+        boolean changed = false;
+        for (MiniGameId id : MiniGameId.values()) {
+            if (unlockService.unlockMinigame(user, id.getKey())) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            UserDatabase.getInstance().saveUserWallet(user);
+        }
     }
 }
