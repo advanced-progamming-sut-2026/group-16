@@ -33,6 +33,7 @@ public class User {
     private String dailyOfferPlant;
     private LocalDate dailyOfferDate;
     private boolean dailyOfferPurchased;
+    private LocalDate questDay;
     private QuestTracker questTracker;
     private final List<NewsItem> newsItems = new ArrayList<>();
     private final Set<String> unlockedZombies = new LinkedHashSet<>();
@@ -299,6 +300,14 @@ public class User {
 
     public void setDailyOfferDate(LocalDate dailyOfferDate) {
         this.dailyOfferDate = dailyOfferDate;
+    }
+
+    public LocalDate getQuestDay() {
+        return questDay;
+    }
+
+    public void setQuestDay(LocalDate questDay) {
+        this.questDay = questDay;
     }
 
     public boolean isDailyOfferPurchased() {

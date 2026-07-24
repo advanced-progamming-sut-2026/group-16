@@ -1,6 +1,7 @@
 package model.quest;
 
 import model.game.GameSession;
+import model.game.LawnMower;
 import model.game.board.GameBoard;
 import model.game.entity.plant.Plant;
 import model.quest.condition.QuestConditions;
@@ -9,7 +10,9 @@ import model.quest.event.GameEventBus;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public final class QuestTracker {
@@ -56,11 +59,41 @@ public final class QuestTracker {
     }
 
     public void beginSession() {
+        beginSession(null);
+    }
+
+    public void beginSession(GameSession session) {
         quests.forEach(Quest::startSession);
+        if (session != null) {
+            prepareNearVictoryMowers(session);
+        }
     }
 
     public void endSession() {
-        // persistence hooked by QuestService / UserDatabase from callers
+    }
+
+    public void resetDailyQuests() {
+        for (Quest quest : quests) {
+            quest.resetForNewDay();
+        }
+    }
+
+    public void prepareNearVictoryMowers(GameSession session) {
+        if (session == null) {
+            return;
+        }
+        Set<Integer> rowsWithMowers = new HashSet<>();
+        List<LawnMower> mowers = session.getLawnMowers();
+        for (int row = 0; row < mowers.size(); row++) {
+            if (!mowers.get(row).isUsed()) {
+                rowsWithMowers.add(row);
+            }
+        }
+        for (Quest quest : quests) {
+            if (quest.getCondition() instanceof QuestConditions.KillInFirstColumnNoMowerCondition near) {
+                near.setRowsWithMowers(rowsWithMowers);
+            }
+        }
     }
 
     public void prepareBoardSnapshots(GameSession session) {

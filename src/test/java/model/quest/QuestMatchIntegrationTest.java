@@ -56,7 +56,7 @@ class QuestMatchIntegrationTest {
         PlantRegistry registry = App.getInstance().getPlantRegistry();
         GameSession session = new GameSession(registry, 50);
         tracker.registerOn(session.getEventBus());
-        tracker.beginSession();
+        tracker.beginSession(session);
         session.attachQuestTracker(tracker);
         session.start();
 

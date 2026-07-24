@@ -57,14 +57,14 @@ public final class QuestConditions {
             try {
                 collected = Integer.parseInt(data.trim());
             } catch (NumberFormatException ignored) {
-                // keep default
             }
         }
-    }
 
-    // ======================================================================
-    // 2. Chapter Hunter
-    // ======================================================================
+        @Override
+        public boolean persistsAcrossSessions() {
+            return true;
+        }
+    }
 
     public static final class KillZombiesInChapterCondition implements QuestCondition {
         private final String chapterId;
@@ -111,8 +111,12 @@ public final class QuestConditions {
             try {
                 killed = Integer.parseInt(data.trim());
             } catch (NumberFormatException ignored) {
-                // keep default
             }
+        }
+
+        @Override
+        public boolean persistsAcrossSessions() {
+            return true;
         }
     }
 
@@ -208,10 +212,15 @@ public final class QuestConditions {
 
         @Override
         public void onEvent(GameEvent event) {
-            if (met) return;
-            if (event instanceof GameEvent.ZombieKilled e && e.secondsSinceWaveStart() <= timeLimitSeconds) {
+            if (met) {
+                return;
+            }
+            if (event instanceof GameEvent.ZombieKilled e
+                    && e.secondsSinceFirstWave() <= timeLimitSeconds) {
                 kills++;
-                if (kills >= targetKills) met = true;
+                if (kills >= targetKills) {
+                    met = true;
+                }
             }
         }
 
@@ -336,20 +345,14 @@ public final class QuestConditions {
         @Override
         public void onEvent(GameEvent event) {
             if (event instanceof GameEvent.ZombieKilled e) {
-                if (e.killerPlantType() != null
-                        && !family.equalsIgnoreCase(/* plant family lookup */ e.killerPlantType())) {
-                    // NOTE: replace the condition above with a PlantRegistry lookup once available:
-                    // PlantRegistry.getInstance().getFamily(e.killerPlantType()).equals(family)
+                if (e.killerPlantFamily() != null
+                        && !family.equalsIgnoreCase(e.killerPlantFamily())) {
+                    violated = true;
                 }
             }
             if (event instanceof GameEvent.GameFinished e && e.won()) {
                 won = true;
             }
-        }
-
-        // Package-visible so GamePlayController can report a family-mismatch kill
-        public void reportFamilyViolation() {
-            violated = true;
         }
 
         @Override
@@ -414,29 +417,33 @@ public final class QuestConditions {
     // ======================================================================
 
     public static final class NightPlantsInDayLevelCondition implements QuestCondition {
+        private boolean dayLevelActive;
         private boolean usedDayPlant;
         private boolean wonDayLevel;
 
         @Override
         public void onEvent(GameEvent event) {
-            if (event instanceof GameEvent.GameStarted e && !e.isNightLevel()) {
-                // We're in a day level - monitoring starts
+            if (event instanceof GameEvent.GameStarted e) {
+                dayLevelActive = !e.isNightLevel();
+                usedDayPlant = false;
+                wonDayLevel = false;
             }
-            if (event instanceof GameEvent.PlantPlanted e && !e.isNightPlant()) {
+            if (event instanceof GameEvent.PlantPlanted e && dayLevelActive && !e.isNightPlant()) {
                 usedDayPlant = true;
             }
-            if (event instanceof GameEvent.GameFinished e && e.won()) {
+            if (event instanceof GameEvent.GameFinished e && e.won() && dayLevelActive) {
                 wonDayLevel = true;
             }
         }
 
         @Override
         public boolean isMet() {
-            return wonDayLevel && !usedDayPlant;
+            return dayLevelActive && wonDayLevel && !usedDayPlant;
         }
 
         @Override
         public void reset() {
+            dayLevelActive = false;
             usedDayPlant = false;
             wonDayLevel = false;
         }
@@ -452,6 +459,7 @@ public final class QuestConditions {
     // ======================================================================
 
     public static final class WinStreakCondition implements QuestCondition {
+        private static final int MAX_DIFFICULTY = 5;
         private final int requiredWins;
         private int streak;
 
@@ -462,7 +470,7 @@ public final class QuestConditions {
         @Override
         public void onEvent(GameEvent event) {
             if (event instanceof GameEvent.GameFinished e) {
-                if (e.won()) {
+                if (e.won() && e.difficultyLevel() == MAX_DIFFICULTY) {
                     streak++;
                 } else {
                     streak = 0;
@@ -482,7 +490,7 @@ public final class QuestConditions {
 
         @Override
         public String describe() {
-            return "Win " + requiredWins + " consecutive levels (streak: " + streak + ")";
+            return "Win " + requiredWins + " consecutive levels at max difficulty (streak: " + streak + ")";
         }
 
         @Override
@@ -498,8 +506,12 @@ public final class QuestConditions {
             try {
                 streak = Integer.parseInt(data.trim());
             } catch (NumberFormatException ignored) {
-                // keep default
             }
+        }
+
+        @Override
+        public boolean persistsAcrossSessions() {
+            return true;
         }
     }
 
@@ -517,9 +529,21 @@ public final class QuestConditions {
             this.rowsWithMowers = new HashSet<>(rowsWithMowers);
         }
 
+        public void setRowsWithMowers(Set<Integer> rows) {
+            rowsWithMowers.clear();
+            if (rows != null) {
+                rowsWithMowers.addAll(rows);
+            }
+        }
+
         @Override
         public void onEvent(GameEvent event) {
-            if (event instanceof GameEvent.ZombieKilled e && e.column() == 0 && !rowsWithMowers.contains(e.row())) {
+            if (event instanceof GameEvent.LawnMowerTriggered e) {
+                rowsWithMowers.remove(e.row());
+            }
+            if (event instanceof GameEvent.ZombieKilled e
+                    && e.column() == 0
+                    && !rowsWithMowers.contains(e.row())) {
                 kills++;
             }
         }
@@ -572,6 +596,27 @@ public final class QuestConditions {
         @Override
         public String describe() {
             return "Have lawnmowers kill " + targetKills + " zombies (killed: " + kills + ")";
+        }
+
+        @Override
+        public String serializeProgress() {
+            return Integer.toString(kills);
+        }
+
+        @Override
+        public void deserializeProgress(String data) {
+            if (data == null || data.isBlank()) {
+                return;
+            }
+            try {
+                kills = Integer.parseInt(data.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        @Override
+        public boolean persistsAcrossSessions() {
+            return true;
         }
     }
 

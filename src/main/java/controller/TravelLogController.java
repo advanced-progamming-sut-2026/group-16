@@ -4,6 +4,7 @@ import model.command.TravelLogMenuCommands;
 import model.minigame.MiniGameId;
 import model.minigame.MiniGameRegistry;
 import model.quest.Quest;
+import model.quest.QuestService;
 import model.quest.QuestTracker;
 import model.user.User;
 import model.user.UserDatabase;
@@ -63,6 +64,7 @@ public class TravelLogController extends ViewController {
         }
         String page = pageName.trim().toLowerCase();
         QuestTracker tracker = user.ensureQuestTracker();
+        QuestService.refreshDailyQuestsIfNeeded(user, tracker);
         List<Quest> quests;
         String title;
         switch (page) {

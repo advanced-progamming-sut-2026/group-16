@@ -44,9 +44,9 @@ class QuestTrackerTest {
         GameEventBus bus = new GameEventBus();
         tracker.registerOn(bus);
 
-        bus.publish(new GameEvent.GameFinished(true, 0, 0, 10));
+        bus.publish(new GameEvent.GameFinished(true, 0, 0, 10, 5));
         tracker.beginSession();
-        bus.publish(new GameEvent.GameFinished(true, 0, 0, 10));
+        bus.publish(new GameEvent.GameFinished(true, 0, 0, 10, 5));
 
         assertTrue(streakQuest.isCompleted());
         assertEquals(1, completions.get());

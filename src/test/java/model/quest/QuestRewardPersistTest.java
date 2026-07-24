@@ -69,21 +69,16 @@ class QuestRewardPersistTest {
     }
 
     @Test
-    void anySeedPacketResolvesToUnlockedPlant() {
-        User user = new User("seed-user", HashUtil.hashSHA256("Passw0rd!"),
-                "SU", "seed@example.com", Gender.MALE);
+    void randomPlantUnlockPublishesNews() {
+        User user = new User("unlock-news", HashUtil.hashSHA256("Passw0rd!"),
+                "UN", "unlock-news@example.com", Gender.MALE);
         user.setSecurityQuestionId(1);
         user.setSecurityAnswerHash(HashUtil.hashSHA256("a"));
         UserDatabase.getInstance().registerUser(user);
 
-        // Restrict unlocked set to a single plant so ANY is deterministic.
-        user.setPlantProgress(PlayerPlantProgress.fromOwnedPlants(
-                java.util.List.of(new model.collection.OwnedPlant("Peashooter", 1, true, 0))));
-        int before = user.getPlantProgress().getOwnedPlant("Peashooter").orElseThrow().getSeedPackets();
-
-        QuestService.applyReward(user, QuestReward.seedPackets("ANY", 5));
-
-        assertEquals(before + 5,
-                user.getPlantProgress().getOwnedPlant("Peashooter").orElseThrow().getSeedPackets());
+        int newsBefore = user.getNewsItems().size();
+        QuestService.applyReward(user, QuestReward.randomPlantUnlock());
+        assertTrue(user.getNewsItems().size() > newsBefore);
+        assertTrue(user.hasUnreadNews());
     }
 }

@@ -124,7 +124,7 @@ public class AdventureController extends ViewController {
         GameSession session = mode.createSession();
         QuestTracker tracker = user.ensureQuestTracker();
         tracker.registerOn(session.getEventBus());
-        tracker.beginSession();
+        tracker.beginSession(session);
         session.attachQuestTracker(tracker);
         List<String> availablePlants = user.getPlantProgress().getUnlockedPlantNames();
         ConveyBeltLevelController gameplay = new ConveyBeltLevelController(

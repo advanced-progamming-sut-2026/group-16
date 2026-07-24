@@ -17,16 +17,21 @@ public sealed interface GameEvent permits
     record GameFinished(boolean won,
                         int sunRemaining,
                         int plantsLost,
-                        long durationSeconds) implements GameEvent {
+                        long durationSeconds,
+                        int difficultyLevel) implements GameEvent {
+        public GameFinished(boolean won, int sunRemaining, int plantsLost, long durationSeconds) {
+            this(won, sunRemaining, plantsLost, durationSeconds, 3);
+        }
     }
-
 
     record ZombieKilled(String zombieType,
                         String killerPlantType,
+                        String killerPlantFamily,
                         String chapterId,
                         int column,
                         int row,
                         double secondsSinceWaveStart,
+                        double secondsSinceFirstWave,
                         String projectileId,
                         long tick) implements GameEvent {
         public ZombieKilled(String zombieType,
@@ -35,7 +40,20 @@ public sealed interface GameEvent permits
                             int column,
                             int row,
                             double secondsSinceWaveStart) {
-            this(zombieType, killerPlantType, chapterId, column, row, secondsSinceWaveStart, null, 0L);
+            this(zombieType, killerPlantType, null, chapterId, column, row,
+                    secondsSinceWaveStart, secondsSinceWaveStart, null, 0L);
+        }
+
+        public ZombieKilled(String zombieType,
+                            String killerPlantType,
+                            String chapterId,
+                            int column,
+                            int row,
+                            double secondsSinceWaveStart,
+                            String projectileId,
+                            long tick) {
+            this(zombieType, killerPlantType, null, chapterId, column, row,
+                    secondsSinceWaveStart, secondsSinceWaveStart, projectileId, tick);
         }
     }
 

@@ -11,6 +11,10 @@ public interface QuestCondition {
 
     String describe();
 
+    default boolean persistsAcrossSessions() {
+        return false;
+    }
+
     default String serializeProgress() {
         return "";
     }

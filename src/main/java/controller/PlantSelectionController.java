@@ -173,7 +173,7 @@ public class PlantSelectionController extends ViewController {
         session.setSelectedLoadout(Set.copyOf(selected));
         QuestTracker tracker = user.ensureQuestTracker();
         tracker.registerOn(session.getEventBus());
-        tracker.beginSession();
+        tracker.beginSession(session);
         session.attachQuestTracker(tracker);
         getViewApi().showGameStarted();
         GamePlayController gameplay = level.getType() == LevelType.NORMAL
