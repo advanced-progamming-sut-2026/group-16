@@ -16,7 +16,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class PlantAbilityTest {
 
     private PlantRegistry registry;
-    private PlantFactory factory;
     private GameSession session;
     private BoardGameContext context;
 
@@ -24,7 +23,6 @@ class PlantAbilityTest {
     void setUp() throws IOException {
         registry = new PlantRegistry();
         registry.loadFromJson("src/main/resources/plants.json");
-        factory = new PlantFactory();
         session = new GameSession(registry, 500);
         session.start();
         context = session.getContext();

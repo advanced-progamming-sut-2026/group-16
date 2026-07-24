@@ -16,7 +16,6 @@ public final class SunStealBehavior implements ZombieBehavior {
     private final double range;
     private final int laserColumns;
     private int chargeTicks;
-    private int pulseCountdown;
     private int stolen;
 
     public SunStealBehavior(Mode mode, int durationTicks, int pulseTicks,

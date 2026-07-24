@@ -10,14 +10,12 @@ import java.util.Random;
 
 public final class WalnutBowlingHandler implements MiniGameHandler {
 
-    private final MiniGameStageConfig stage;
     private final ConveyBeltHandler conveyorHandler;
 
     public WalnutBowlingHandler(MiniGameStageConfig stage, Random random) {
         if (stage == null) {
             throw new IllegalArgumentException("stage must not be null");
         }
-        this.stage = stage;
         List<String> pool = stage.getConveyorPlantPool();
         this.conveyorHandler = new ConveyBeltHandler(pool, random);
     }
