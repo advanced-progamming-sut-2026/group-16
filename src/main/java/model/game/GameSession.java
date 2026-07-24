@@ -2,14 +2,11 @@ package model.game;
 
 import model.definition.PlantRegistry;
 import model.definition.ZombieRegistry;
-import model.definition.plant.PlantDefinition;
 import model.game.board.BoardGameContext;
 import model.game.board.GameBoard;
 import model.game.board.PlantPlacementResult;
-import model.game.board.tile.GraveTile;
 import model.game.entity.Vase;
 import model.game.entity.plant.*;
-import model.game.entity.plant.ability.ExplosiveAbility;
 import model.game.entity.projectile.ProjectileSystem;
 import model.game.entity.zombie.ArcadeObstacle;
 import model.game.entity.zombie.Zombie;
@@ -21,20 +18,14 @@ import model.minigame.beghouled.BeghouledBoard;
 import model.minigame.beghouled.BeghouledSwapResult;
 import model.minigame.beghouled.BeghouledUpgradeCatalog;
 import model.minigame.beghouled.BeghouledUpgradeResult;
-import model.minigame.bowling.BowlingNut;
 import model.minigame.bowling.BowlingNutSystem;
-import model.minigame.bowling.BowlingNutType;
-import model.quest.event.GameEvent;
 import model.quest.event.GameEventBus;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashMap;
 import java.util.Random;
 
 public final class GameSession {
@@ -50,46 +41,18 @@ public final class GameSession {
     private final GameEventBus eventBus;
     private final List<Zombie> zombies = new ArrayList<>();
     private final List<Zombie> pendingZombies = new ArrayList<>();
-    private final List<PlantCovering> plantCoverings = new ArrayList<>();
-    private final List<ArcadeObstacle> arcadeObstacles = new ArrayList<>();
-    private final List<Sun> sunItems = new ArrayList<>();
-    private final List<Vase> vases = new ArrayList<>();
-    private final List<GroundSeedPacket> groundSeedPackets = new ArrayList<>();
-    private int seedPacketExpiryTicks = 100;
     private MiniGameHandler activeMiniGameHandler;
     private final Set<String> destroyedPlantIds = new HashSet<>();
     private final Set<String> killedZombieIds = new HashSet<>();
-    private final Map<PlantCategory, Integer> familyBoostEndTicks = new HashMap<>();
-    private final Map<Integer, FieldModifier> rowModifiers = new HashMap<>();
-    private final Map<Integer, Map<String, Integer>> rowEffects = new HashMap<>();
     private final ZombieFactory zombieFactory;
     private final int zombieDifficulty;
     private final Random random;
     private Set<String> selectedLoadout = Set.of();
-    private final List<String> conveyorBeltPlants = new ArrayList<>();
-    private boolean conveyorBeltActive;
-    private boolean walnutBowlingActive;
-    private int walnutBowlingRedLineColumn = -1;
-    private BowlingNutSystem bowlingNutSystem;
-    private boolean iZombieActive;
-    private int iZombiePlacementColumn = -1;
-    private List<String> iZombieZombiePool = List.of();
-    private Map<String, Integer> iZombieZombieCosts = Map.of();
-    private boolean[] iZombieBrainsEaten = new boolean[0];
-    private boolean beghouledActive;
-    private int beghouledMatchTarget;
-    private final BeghouledBoard beghouledBoard = new BeghouledBoard();
-    private final Set<String> levelLockedPlants = new HashSet<>();
-    private final Set<String> protectedSeedPlantIds = new HashSet<>();
-    private final List<SeedPlacement> protectedSeedPlacements = new ArrayList<>();
-    private boolean timedWarActive;
-    private TimedWarRules timedWarRules;
-    private int timedWarTicksElapsed;
-    private int timedWarProgress;
-    private Integer deadLineColumn;
-    private Integer loveYourPlantsMaxLoss;
-    private boolean plantWhatYouGetActive;
-    private boolean prepPhaseActive;
+    private final GameSessionSpecialLevelState specialLevelState = new GameSessionSpecialLevelState();
+    private final GameSessionMiniGameState miniGameState;
+    private final GameSessionTileEffects tileEffects;
+    private final GameSessionPlanting planting;
+    private final GameSessionCombat combat;
     private SpecialLevelHandler activeSpecialLevelHandler;
 
     private final List<LawnMower> lawnMowers = new ArrayList<>();
@@ -174,7 +137,10 @@ public final class GameSession {
         this.sunBalance = startingSun;
         this.plantFoodCount = 0;
         this.skySunSystem = new SkySunSystem(this.random);
-        this.bowlingNutSystem = new BowlingNutSystem(this.random);
+        this.miniGameState = new GameSessionMiniGameState(this, this.random);
+        this.tileEffects = new GameSessionTileEffects(this);
+        this.planting = new GameSessionPlanting(this);
+        this.combat = new GameSessionCombat(this);
         initLawnMowers();
     }
 
@@ -219,123 +185,59 @@ public final class GameSession {
     }
 
     public List<Sun> getSunItems() {
-        return List.copyOf(sunItems);
+        return planting.getSunItems();
     }
 
     public List<PlantCovering> getPlantCoverings() {
-        return List.copyOf(plantCoverings);
+        return tileEffects.getPlantCoverings();
     }
 
     public List<ArcadeObstacle> getArcadeObstacles() {
-        return List.copyOf(arcadeObstacles);
+        return tileEffects.getArcadeObstacles();
     }
 
     public List<Vase> getVases() {
-        return List.copyOf(vases);
+        return planting.getVases();
     }
 
     public void addVase(Vase vase) {
-        if (vase != null && vase.isAlive()) {
-            vases.add(vase);
-        }
+        planting.addVase(vase);
     }
 
     public Vase getVaseAt(int col, int row) {
-        for (Vase vase : vases) {
-            if (vase.isAlive()
-                    && (int) Math.floor(vase.getX()) == col
-                    && (int) Math.floor(vase.getY()) == row) {
-                return vase;
-            }
-        }
-        return null;
+        return planting.getVaseAt(col, row);
     }
 
     public boolean smashVase(int col, int row) {
-        Vase vase = getVaseAt(col, row);
-        if (vase == null) {
-            return false;
-        }
-        Vase.Content content = vase.getContent();
-        vase.smash(context);
-        vases.remove(vase);
-        if (matchListener != null) {
-            matchListener.onVaseSmashed(col, row, content);
-        }
-        if (activeMiniGameHandler != null) {
-            activeMiniGameHandler.onTick(this);
-        }
-        return true;
+        return planting.smashVase(col, row);
     }
 
     public boolean areAllVasesSmashed() {
-        return vases.isEmpty() || vases.stream().noneMatch(Vase::isAlive);
+        return planting.areAllVasesSmashed();
     }
 
     public List<GroundSeedPacket> getGroundSeedPackets() {
-        return List.copyOf(groundSeedPackets);
+        return planting.getGroundSeedPackets();
     }
 
     public void setSeedPacketExpiryTicks(int seedPacketExpiryTicks) {
-        this.seedPacketExpiryTicks = Math.max(1, seedPacketExpiryTicks);
+        planting.setSeedPacketExpiryTicks(seedPacketExpiryTicks);
     }
 
     public int getSeedPacketExpiryTicks() {
-        return seedPacketExpiryTicks;
+        return planting.getSeedPacketExpiryTicks();
     }
 
     public void addGroundSeedPacket(String plantName, int col, int row) {
-        if (plantName == null || plantName.isBlank() || !board.inBounds(col, row)) {
-            return;
-        }
-        groundSeedPackets.removeIf(packet -> packet.col() == col && packet.row() == row);
-        GroundSeedPacket packet = new GroundSeedPacket(
-                plantName, col, row, currentTick + seedPacketExpiryTicks);
-        groundSeedPackets.add(packet);
-        if (matchListener != null) {
-            matchListener.onSeedPacketDropped(plantName, col, row);
-        }
+        planting.addGroundSeedPacket(plantName, col, row);
     }
 
     public GroundSeedPacket getGroundSeedPacketAt(int col, int row) {
-        for (GroundSeedPacket packet : groundSeedPackets) {
-            if (packet.col() == col && packet.row() == row) {
-                return packet;
-            }
-        }
-        return null;
+        return planting.getGroundSeedPacketAt(col, row);
     }
 
     public PlantPlacementResult plantFromSeedPacket(int col, int row) {
-        GroundSeedPacket packet = getGroundSeedPacketAt(col, row);
-        if (packet == null) {
-            return PlantPlacementResult.NO_SEED_PACKET;
-        }
-        PlantDefinition definition = plantRegistry.getDefinition(packet.plantName());
-        if (definition == null) {
-            return PlantPlacementResult.UNKNOWN_PLANT;
-        }
-        if (getVaseAt(col, row) != null) {
-            return PlantPlacementResult.TILE_BLOCKED;
-        }
-        PlantPlacementResult placement = board.canPlace(definition, col, row);
-        if (placement != PlantPlacementResult.SUCCESS) {
-            return placement;
-        }
-        Plant plant = plantFactory.create(definition, 1, col, row);
-        board.placePlant(plant);
-        plant.onPlanted(context);
-        groundSeedPackets.remove(packet);
-        if (matchListener != null) {
-            matchListener.onSeedPacketPlanted(packet.plantName(), col, row);
-        }
-        eventBus.publish(new GameEvent.PlantPlanted(
-                plant.getName(),
-                plant.getCategory().name(),
-                col,
-                row,
-                plant.hasTag(PlantTag.NIGHT) || plant.hasTag(PlantTag.SHROOM)));
-        return PlantPlacementResult.SUCCESS;
+        return planting.plantFromSeedPacket(col, row);
     }
 
     public void setActiveMiniGameHandler(MiniGameHandler handler) {
@@ -387,307 +289,175 @@ public final class GameSession {
     }
 
     public void activateConveyorBelt() {
-        conveyorBeltActive = true;
+        specialLevelState.activateConveyorBelt();
     }
 
     public boolean isConveyorBeltActive() {
-        return conveyorBeltActive;
+        return specialLevelState.isConveyorBeltActive();
     }
 
     public void addConveyorBeltPlant(String plantName) {
-        if (plantName != null) {
-            conveyorBeltPlants.add(plantName);
-        }
+        specialLevelState.addConveyorBeltPlant(plantName);
     }
 
     public List<String> getConveyorBeltPlants() {
-        return List.copyOf(conveyorBeltPlants);
+        return specialLevelState.getConveyorBeltPlants();
+    }
+
+    boolean hasConveyorBeltPlant(String plantName) {
+        return specialLevelState.hasConveyorBeltPlant(plantName);
+    }
+
+    void removeConveyorBeltPlant(String plantName) {
+        specialLevelState.removeConveyorBeltPlant(plantName);
     }
 
     public void activateWalnutBowling(int redLineColumn) {
-        walnutBowlingActive = true;
-        walnutBowlingRedLineColumn = Math.max(0, redLineColumn);
+        miniGameState.activateWalnutBowling(redLineColumn);
     }
 
     public boolean isWalnutBowlingActive() {
-        return walnutBowlingActive;
+        return miniGameState.isWalnutBowlingActive();
     }
 
     public int getWalnutBowlingRedLineColumn() {
-        return walnutBowlingRedLineColumn;
+        return miniGameState.getWalnutBowlingRedLineColumn();
     }
 
     public BowlingNutSystem getBowlingNutSystem() {
-        return bowlingNutSystem;
+        return miniGameState.getBowlingNutSystem();
     }
 
     public PlantPlacementResult tryPlantBowlingNut(String plantName, int col, int row) {
-        if (!walnutBowlingActive) {
-            return PlantPlacementResult.TILE_BLOCKED;
-        }
-        BowlingNutType type = BowlingNutType.fromPlantName(plantName);
-        if (type == null) {
-            return PlantPlacementResult.UNKNOWN_PLANT;
-        }
-        if (!board.inBounds(col, row)) {
-            return PlantPlacementResult.OUT_OF_BOUNDS;
-        }
-        if (col > walnutBowlingRedLineColumn) {
-            return PlantPlacementResult.BEYOND_PLANTING_LINE;
-        }
-        if (!conveyorBeltActive || !conveyorBeltPlants.contains(plantName)) {
-            return PlantPlacementResult.NOT_ON_CONVEYOR_BELT;
-        }
-        if (board.getGroundPlantAt(col, row) != null || board.getOverlayPlantAt(col, row) != null) {
-            return PlantPlacementResult.GROUND_OCCUPIED;
-        }
-        conveyorBeltPlants.remove(plantName);
-        BowlingNut nut = new BowlingNut(type, col, row);
-        bowlingNutSystem.spawn(nut);
-        if (matchListener != null) {
-            matchListener.onBowlingNutSpawned(plantName, col, row);
-        }
-        return PlantPlacementResult.SUCCESS;
+        return miniGameState.tryPlantBowlingNut(plantName, col, row);
     }
 
     public void activateIZombie(int placementColumn,
                                 List<String> zombiePool,
                                 Map<String, Integer> zombieCosts) {
-        iZombieActive = true;
-        iZombiePlacementColumn = Math.max(0, placementColumn);
-        iZombieZombiePool = zombiePool == null ? List.of() : List.copyOf(zombiePool);
-        iZombieZombieCosts = zombieCosts == null ? Map.of() : Map.copyOf(zombieCosts);
-        iZombieBrainsEaten = new boolean[board.getRows()];
+        miniGameState.activateIZombie(placementColumn, zombiePool, zombieCosts);
     }
 
     public boolean isIZombieActive() {
-        return iZombieActive;
+        return miniGameState.isIZombieActive();
     }
 
     public int getIZombiePlacementColumn() {
-        return iZombiePlacementColumn;
+        return miniGameState.getIZombiePlacementColumn();
     }
 
     public List<String> getIZombieZombiePool() {
-        return iZombieZombiePool;
+        return miniGameState.getIZombieZombiePool();
     }
 
     public Map<String, Integer> getIZombieZombieCosts() {
-        return iZombieZombieCosts;
+        return miniGameState.getIZombieZombieCosts();
     }
 
     public boolean isIZombieBrainEaten(int row) {
-        return row >= 0 && row < iZombieBrainsEaten.length && iZombieBrainsEaten[row];
+        return miniGameState.isIZombieBrainEaten(row);
     }
 
     public int getIZombieBrainsEatenCount() {
-        int count = 0;
-        for (boolean eaten : iZombieBrainsEaten) {
-            if (eaten) {
-                count++;
-            }
-        }
-        return count;
+        return miniGameState.getIZombieBrainsEatenCount();
     }
 
     public boolean areAllIZombieBrainsEaten() {
-        if (!iZombieActive || iZombieBrainsEaten.length == 0) {
-            return false;
-        }
-        for (boolean eaten : iZombieBrainsEaten) {
-            if (!eaten) {
-                return false;
-            }
-        }
-        return true;
+        return miniGameState.areAllIZombieBrainsEaten();
     }
 
     public PlantPlacementResult tryPlaceZombie(String alias, int col, int row) {
-        if (!iZombieActive) {
-            return PlantPlacementResult.TILE_BLOCKED;
-        }
-        if (alias == null || alias.isBlank()) {
-            return PlantPlacementResult.UNKNOWN_PLANT;
-        }
-        String trimmed = alias.trim();
-        if (!iZombieZombiePool.contains(trimmed)) {
-            return PlantPlacementResult.NOT_IN_LOADOUT;
-        }
-        if (!board.inBounds(col, row)) {
-            return PlantPlacementResult.OUT_OF_BOUNDS;
-        }
-        if (col <= iZombiePlacementColumn) {
-            return PlantPlacementResult.BEYOND_PLANTING_LINE;
-        }
-        Integer cost = iZombieZombieCosts.get(trimmed);
-        if (cost == null) {
-            return PlantPlacementResult.UNKNOWN_PLANT;
-        }
-        if (sunBalance < cost) {
-            return PlantPlacementResult.INSUFFICIENT_SUN;
-        }
-        if (zombieFactory == null) {
-            return PlantPlacementResult.UNKNOWN_PLANT;
-        }
-        try {
-            spawnZombieOfType(trimmed, row, col);
-        } catch (IllegalArgumentException e) {
-            return PlantPlacementResult.UNKNOWN_PLANT;
-        }
-        sunBalance -= cost;
-        eventBus.publish(new GameEvent.SunSpent(cost));
-        return PlantPlacementResult.SUCCESS;
+        return miniGameState.tryPlaceZombie(alias, col, row);
     }
 
     public Plant placeDefensePlant(String plantName, int col, int row) {
-        PlantDefinition definition = plantRegistry.getDefinition(plantName);
-        if (definition == null) {
-            throw new IllegalArgumentException("Unknown plant: " + plantName);
-        }
-        Plant plant = plantFactory.create(definition, 1, col, row);
-        board.placePlant(plant);
-        plant.onPlanted(context);
-        return plant;
+        return planting.placeDefensePlant(plantName, col, row);
     }
 
     public int getIZombieCheapestRosterCost() {
-        if (iZombieZombieCosts.isEmpty()) {
-            return Integer.MAX_VALUE;
-        }
-        int cheapest = Integer.MAX_VALUE;
-        for (int cost : iZombieZombieCosts.values()) {
-            cheapest = Math.min(cheapest, cost);
-        }
-        return cheapest;
+        return miniGameState.getIZombieCheapestRosterCost();
     }
 
     public void activateBeghouled(List<String> plantPool,
                                   int matchTarget,
                                   BeghouledUpgradeCatalog catalog) {
-        beghouledActive = true;
-        beghouledMatchTarget = Math.max(1, matchTarget);
-        beghouledBoard.configure(plantPool, catalog, random);
-        beghouledBoard.fillRandomly(this);
+        miniGameState.activateBeghouled(plantPool, matchTarget, catalog);
     }
 
     public boolean isBeghouledActive() {
-        return beghouledActive;
+        return miniGameState.isBeghouledActive();
     }
 
     public BeghouledBoard getBeghouledBoard() {
-        return beghouledBoard;
+        return miniGameState.getBeghouledBoard();
     }
 
     public int getBeghouledMatchTarget() {
-        return beghouledMatchTarget;
+        return miniGameState.getBeghouledMatchTarget();
     }
 
     public BeghouledSwapResult trySwapBeghouledPlants(int colA, int rowA, int colB, int rowB) {
-        if (!beghouledActive) {
-            return BeghouledSwapResult.failure(
-                    model.minigame.beghouled.BeghouledSwapOutcome.OUT_OF_BOUNDS);
-        }
-        BeghouledSwapResult result = beghouledBoard.trySwap(this, colA, rowA, colB, rowB);
-        if (result.outcome() == model.minigame.beghouled.BeghouledSwapOutcome.SUCCESS
-                && activeMiniGameHandler != null) {
-            activeMiniGameHandler.onTick(this);
-        }
-        return result;
+        return miniGameState.trySwapBeghouledPlants(colA, rowA, colB, rowB);
     }
 
     public BeghouledUpgradeResult tryBeghouledUpgrade(String plantName) {
-        if (!beghouledActive) {
-            return BeghouledUpgradeResult.failure(
-                    model.minigame.beghouled.BeghouledUpgradeOutcome.UNKNOWN_UPGRADE);
-        }
-        return beghouledBoard.applyUpgrade(this, plantName);
+        return miniGameState.tryBeghouledUpgrade(plantName);
     }
 
     public void activateLockedPlants(LockedPlantsRules rules) {
-        levelLockedPlants.clear();
-        if (rules != null) {
-            levelLockedPlants.addAll(rules.getLockedPlants());
-        }
+        specialLevelState.activateLockedPlants(rules);
     }
 
     public Set<String> getLevelLockedPlants() {
-        return Set.copyOf(levelLockedPlants);
+        return specialLevelState.getLevelLockedPlants();
     }
 
     public boolean isLevelLockedPlant(String plantName) {
-        return plantName != null && levelLockedPlants.contains(plantName);
+        return specialLevelState.isLevelLockedPlant(plantName);
     }
 
     public Plant placeProtectedSeed(String plantName, int col, int row) {
-        PlantDefinition definition = plantRegistry.getDefinition(plantName);
-        if (definition == null) {
-            throw new IllegalArgumentException("Unknown plant: " + plantName);
-        }
-        Plant plant = plantFactory.create(definition, 1, col, row);
-        board.placePlant(plant);
-        plant.onPlanted(context);
-        protectedSeedPlantIds.add(plant.getId());
-        protectedSeedPlacements.add(new SeedPlacement(plantName, col, row));
-        return plant;
+        return planting.placeProtectedSeed(plantName, col, row);
     }
 
     public boolean isProtectedSeed(Plant plant) {
-        return plant != null && protectedSeedPlantIds.contains(plant.getId());
+        return plant != null && specialLevelState.isProtectedSeedId(plant.getId());
     }
 
     public List<SeedPlacement> getProtectedSeedPlacements() {
-        return List.copyOf(protectedSeedPlacements);
+        return specialLevelState.getProtectedSeedPlacements();
     }
 
     public List<Integer> getDangerRows() {
-        Set<Integer> rows = new LinkedHashSet<>();
-        for (SeedPlacement placement : protectedSeedPlacements) {
-            rows.add(placement.getRow());
-        }
-        return List.copyOf(rows);
+        return specialLevelState.getDangerRows();
     }
 
     public void activateTimedWar(TimedWarRules rules) {
-        if (rules == null || !rules.isActiveRules()) {
-            timedWarActive = false;
-            timedWarRules = null;
-            timedWarTicksElapsed = 0;
-            timedWarProgress = 0;
-            return;
-        }
-        timedWarActive = true;
-        timedWarRules = rules;
-        timedWarTicksElapsed = 0;
-        timedWarProgress = 0;
+        specialLevelState.activateTimedWar(rules);
     }
 
     public boolean isTimedWarActive() {
-        return timedWarActive;
+        return specialLevelState.isTimedWarActive();
     }
 
     public TimedWarRules getTimedWarRules() {
-        return timedWarRules;
+        return specialLevelState.getTimedWarRules();
     }
 
     public int getTimedWarProgress() {
-        return timedWarProgress;
+        return specialLevelState.getTimedWarProgress();
     }
 
     public int getTimedWarRemainingTicks() {
-        if (!timedWarActive || timedWarRules == null) {
-            return 0;
-        }
-        return Math.max(0, timedWarRules.getDurationTicks() - timedWarTicksElapsed);
+        return specialLevelState.getTimedWarRemainingTicks();
     }
 
     public boolean isTimedWarGoalMet() {
-        return timedWarActive && timedWarRules != null && timedWarRules.isGoalMet(timedWarProgress);
+        return specialLevelState.isTimedWarGoalMet();
     }
 
     public void advanceTimedWarTick() {
-        if (timedWarActive) {
-            timedWarTicksElapsed++;
-        }
+        specialLevelState.advanceTimedWarTick();
     }
 
     public void activateDeadLine(int column) {
@@ -695,43 +465,31 @@ public final class GameSession {
             throw new IllegalArgumentException(
                     "dead line column must be between 0 and " + (board.getCols() - 1));
         }
-        deadLineColumn = column;
+        specialLevelState.activateDeadLine(column);
     }
 
     public boolean isDeadLineActive() {
-        return deadLineColumn != null;
+        return specialLevelState.isDeadLineActive();
     }
 
     public int getDeadLineColumn() {
-        if (deadLineColumn == null) {
-            throw new IllegalStateException("dead line is not active");
-        }
-        return deadLineColumn;
+        return specialLevelState.getDeadLineColumn();
     }
 
     public void activateLoveYourPlants(int maxLoss) {
-        if (maxLoss < 1) {
-            throw new IllegalArgumentException("maxLoss must be at least 1");
-        }
-        loveYourPlantsMaxLoss = maxLoss;
+        specialLevelState.activateLoveYourPlants(maxLoss);
     }
 
     public boolean isLoveYourPlantsActive() {
-        return loveYourPlantsMaxLoss != null;
+        return specialLevelState.isLoveYourPlantsActive();
     }
 
     public int getLoveYourPlantsMaxLoss() {
-        if (loveYourPlantsMaxLoss == null) {
-            throw new IllegalStateException("love your plants mode is not active");
-        }
-        return loveYourPlantsMaxLoss;
+        return specialLevelState.getLoveYourPlantsMaxLoss();
     }
 
     public int getLoveYourPlantsRemaining() {
-        if (loveYourPlantsMaxLoss == null) {
-            throw new IllegalStateException("love your plants mode is not active");
-        }
-        return Math.max(0, loveYourPlantsMaxLoss - plantsLost);
+        return specialLevelState.getLoveYourPlantsRemaining(plantsLost);
     }
 
     public void activatePlantWhatYouGet(int startingSun) {
@@ -741,20 +499,19 @@ public final class GameSession {
         setSunBalance(startingSun);
         skySunSystem.setEnabled(false);
         setWavesAutoStart(false);
-        plantWhatYouGetActive = true;
-        prepPhaseActive = true;
+        specialLevelState.activatePlantWhatYouGet();
     }
 
     public boolean isPlantWhatYouGetActive() {
-        return plantWhatYouGetActive;
+        return specialLevelState.isPlantWhatYouGetActive();
     }
 
     public boolean isPrepPhaseActive() {
-        return prepPhaseActive;
+        return specialLevelState.isPrepPhaseActive();
     }
 
     public void endPrepPhase() {
-        prepPhaseActive = false;
+        specialLevelState.endPrepPhase();
     }
 
     public void setSunBalance(int amount) {
@@ -861,12 +618,7 @@ public final class GameSession {
     }
 
     public void start() {
-        running = true;
-        matchResult = MatchResult.IN_PROGRESS;
-        if (wavesAutoStart && waveManager != null && !waveManager.areWavesStarted()) {
-            waveManager.startWaves(this);
-        }
-        eventBus.publish(new GameEvent.GameStarted(levelId, chapterId, nightLevel));
+        combat.start();
     }
 
     public void stop() {
@@ -886,160 +638,31 @@ public final class GameSession {
     }
 
     public void startZombieWaves() {
-        boolean endingPrep = prepPhaseActive && plantWhatYouGetActive;
-        if (endingPrep) {
-            endPrepPhase();
-        }
-        if (waveManager != null) {
-            waveManager.startWaves(this);
-        }
-        if (endingPrep && matchListener != null) {
-            matchListener.onPlantWhatYouGetWavesStarted();
-        }
+        combat.startZombieWaves();
     }
 
     public PlantPlacementResult tryPlant(String plantName, int col, int row, int level) {
-        PlantDefinition definition = plantRegistry.getDefinition(plantName);
-        if (definition == null) {
-            return PlantPlacementResult.UNKNOWN_PLANT;
-        }
-        if (level < 1 || level > definition.getMaxLevel()) {
-            return PlantPlacementResult.INVALID_LEVEL;
-        }
-        if (conveyorBeltActive) {
-            if (!conveyorBeltPlants.contains(plantName)) {
-                return PlantPlacementResult.NOT_ON_CONVEYOR_BELT;
-            }
-        } else if (!levelLockedPlants.isEmpty() && levelLockedPlants.contains(plantName)) {
-            return PlantPlacementResult.LEVEL_PLANT_LOCKED;
-        } else if (!selectedLoadout.isEmpty() && !selectedLoadout.contains(plantName)) {
-            return PlantPlacementResult.NOT_IN_LOADOUT;
-        }
-        PlantStatsAtLevel stats = new PlantStatsAtLevel(definition, level);
-        if (!prepPhaseActive && !cooldownTracker.isReady(plantName)) {
-            return PlantPlacementResult.ON_COOLDOWN;
-        }
-        if (sunBalance < stats.cost()) {
-            return PlantPlacementResult.INSUFFICIENT_SUN;
-        }
-        PlantPlacementResult placement = board.canPlace(definition, col, row);
-        if (placement != PlantPlacementResult.SUCCESS) {
-            return placement;
-        }
-        Plant plant = plantFactory.create(definition, level, col, row);
-        sunBalance -= stats.cost();
-        board.placePlant(plant);
-        plant.onPlanted(context);
-        if (!prepPhaseActive) {
-            cooldownTracker.startCooldown(plantName, plant.getStats().recharge(), TICKS_PER_SECOND);
-        }
-        eventBus.publish(new GameEvent.PlantPlanted(
-                plant.getName(),
-                plant.getCategory().name(),
-                col,
-                row,
-                plant.hasTag(PlantTag.NIGHT) || plant.hasTag(PlantTag.SHROOM)));
-        eventBus.publish(new GameEvent.SunSpent(stats.cost()));
-        if (conveyorBeltActive) {
-            conveyorBeltPlants.remove(plantName);
-        }
-        return PlantPlacementResult.SUCCESS;
+        return planting.tryPlant(plantName, col, row, level);
     }
 
     public boolean collectSun(Sun sun) {
-        if (sun == null || !sunItems.contains(sun)) {
-            return false;
-        }
-        if (sun.getType() == model.item.SunType.RADIOACTIVE && sun.isFalling()) {
-            sunItems.remove(sun);
-            explodeRadioactiveSun(sun.getCol(), sun.getRow());
-            return true;
-        }
-        if (!sunItems.remove(sun)) {
-            return false;
-        }
-        sunBalance += sun.getValue();
-        eventBus.publish(new GameEvent.SunCollected(sun.getValue()));
-        return true;
+        return planting.collectSun(sun);
     }
 
     public boolean collectSunAt(int col, int row) {
-        Sun target = null;
-        for (Sun sun : sunItems) {
-            if (sun.getCol() == col && sun.getRow() == row) {
-                target = sun;
-                break;
-            }
-        }
-        return collectSun(target);
-    }
-
-    private void explodeRadioactiveSun(int col, int row) {
-        if (matchListener != null) {
-            matchListener.onRadioactiveSunExploded(col, row);
-        }
-        for (Zombie zombie : getZombies()) {
-            if (!zombie.isAlive()) {
-                continue;
-            }
-            int zCol = (int) Math.floor(zombie.getX());
-            if (Math.abs(zCol - col) <= 2 && Math.abs(zombie.getRow() - row) <= 2) {
-                zombie.takeDirectDamage(150);
-                if (zombie.isDead()) {
-                    handleZombieKilled(zombie);
-                }
-            }
-        }
-        for (Plant plant : board.getAllPlants()) {
-            if (!plant.isAlive()) {
-                continue;
-            }
-            if (Math.abs(plant.getCol() - col) <= 1 && Math.abs(plant.getRow() - row) <= 1) {
-                plant.takeDamage(80);
-            }
-        }
-        cleanupDeadZombies();
-        cleanupDeadPlants();
+        return planting.collectSunAt(col, row);
     }
 
     public boolean usePlantFood(int col, int row) {
-        if (plantFoodCount <= 0) {
-            return false;
-        }
-        Plant plant = board.getPlantAt(col, row);
-        if (plant == null || !plant.isAlive()) {
-            return false;
-        }
-        plantFoodCount--;
-        plant.activatePlantFoodEffect(context);
-        return true;
+        return planting.usePlantFood(col, row);
     }
 
     public void addZombie(Zombie zombie) {
-        if (zombie == null) {
-            return;
-        }
-        zombie.bindContext(context);
-        if (zombie.isDead()) {
-            handleZombieKilled(zombie);
-        } else if (tickingZombies) {
-            pendingZombies.add(zombie);
-        } else {
-            zombies.add(zombie);
-        }
+        combat.addZombie(zombie);
     }
 
     public Zombie spawnZombieOfType(String alias, int row, double x) {
-        if (zombieFactory == null) {
-            throw new IllegalStateException("This session has no ZombieFactory");
-        }
-        if (row < 0 || row >= board.getRows() || !Double.isFinite(x)
-                || x < 0 || x > board.getCols()) {
-            throw new IllegalArgumentException("Zombie spawn position is outside the board");
-        }
-        Zombie zombie = zombieFactory.createZombie(alias, x, row, zombieDifficulty);
-        addZombie(zombie);
-        return zombie;
+        return combat.spawnZombieOfType(alias, row, x);
     }
 
     public ZombieFactory getZombieFactory() {
@@ -1051,193 +674,19 @@ public final class GameSession {
     }
 
     public void spawnSkySun(int col, int row, int value) {
-        if (board.inBounds(col, row) && value > 0) {
-            sunItems.add(new Sun(col, row, value, model.item.SunType.NORMAL, false));
-        }
+        planting.spawnSkySun(col, row, value);
     }
 
     public void tick() {
-        if (!running || matchResult != MatchResult.IN_PROGRESS) {
-            return;
-        }
-        currentTick++;
-        cooldownTracker.tick();
-        expireTimedEffects();
-        plantCoverings.removeIf(covering -> {
-            covering.onTickUpdate(context);
-            return covering.isDead();
-        });
-        arcadeObstacles.removeIf(ArcadeObstacle::isDead);
-        tickAdjacentFireIceMelt();
-        tickLivingPlants();
-        tickZombies();
-        projectileSystem.tick(board, zombies, this::handleProjectileKill, context);
-        if (walnutBowlingActive) {
-            bowlingNutSystem.tick(this);
-        }
-        plantCoverings.removeIf(PlantCovering::isDead);
-        arcadeObstacles.removeIf(ArcadeObstacle::isDead);
-        cleanupDeadZombies();
-        tickSunItems();
-        tickSkySun();
-        cleanupDeadPlants();
-        if (waveManager != null) {
-            waveManager.tick(this);
-            waveManager.publishClearedWaves(this);
-        }
-        checkWinCondition();
-        tickGroundSeedPackets();
-        notifyHandlersOnTick();
-    }
-
-    private void expireTimedEffects() {
-        familyBoostEndTicks.entrySet().removeIf(entry -> entry.getValue() <= currentTick);
-        rowModifiers.entrySet().removeIf(entry -> entry.getValue().endTick() <= currentTick);
-        rowEffects.values().forEach(effects ->
-                effects.entrySet().removeIf(entry -> entry.getValue() <= currentTick));
-        rowEffects.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-    }
-
-    private void tickLivingPlants() {
-        for (Plant plant : board.getAllPlants()) {
-            if (plant.isAlive()) {
-                plant.onTickUpdate(context);
-            }
-        }
-    }
-
-    private void tickZombies() {
-        tickingZombies = true;
-        try {
-            Iterator<Zombie> zombieIterator = zombies.iterator();
-            while (zombieIterator.hasNext()) {
-                Zombie zombie = zombieIterator.next();
-                if (zombie.isDead()) {
-                    handleZombieKilled(zombie);
-                    zombieIterator.remove();
-                    continue;
-                }
-                zombie.tickStatuses();
-                if (zombie.isDead()) {
-                    handleZombieKilled(zombie);
-                    zombieIterator.remove();
-                    continue;
-                }
-                zombie.onTickUpdate(context);
-                checkArmedTraps(zombie);
-                if (zombie.isDead()) {
-                    handleZombieKilled(zombie);
-                    zombieIterator.remove();
-                }
-            }
-        } finally {
-            tickingZombies = false;
-            zombies.addAll(pendingZombies);
-            pendingZombies.clear();
-        }
-    }
-
-    private void notifyHandlersOnTick() {
-        if (activeSpecialLevelHandler != null) {
-            activeSpecialLevelHandler.onTick(this);
-        }
-        if (activeMiniGameHandler != null) {
-            activeMiniGameHandler.onTick(this);
-        }
-    }
-
-    private void tickGroundSeedPackets() {
-        Iterator<GroundSeedPacket> iterator = groundSeedPackets.iterator();
-        while (iterator.hasNext()) {
-            GroundSeedPacket packet = iterator.next();
-            if (packet.expiresAtTick() <= currentTick) {
-                iterator.remove();
-                if (matchListener != null) {
-                    matchListener.onSeedPacketExpired(packet.plantName(), packet.col(), packet.row());
-                }
-            }
-        }
-    }
-
-    private void tickSkySun() {
-        Sun sun = skySunSystem.tick(currentTick, TICKS_PER_SECOND, board.getCols(), board.getRows());
-        if (sun != null) {
-            sunItems.add(sun);
-            if (matchListener != null) {
-                matchListener.onSunDropped(sun.getType(), sun.getCol(), sun.getRow());
-            }
-        }
-    }
-
-    private void checkArmedTraps(Zombie zombie) {
-        if (zombie.isTrapImmune()) {
-            return;
-        }
-        int col = (int) Math.floor(zombie.getX());
-        int row = zombie.getRow();
-        Plant plant = board.getGroundPlantAt(col, row);
-        if (plant == null || !plant.isAlive() || !plant.hasTag(PlantTag.TRAP) || !plant.isArmedTrap()) {
-            return;
-        }
-        if (plant.getAbility() instanceof ExplosiveAbility explosive) {
-            explosive.detonate(plant, context);
-        } else {
-            context.explode(plant, plant.getStats().damage(), 1.0);
-            plant.consumeInstantly();
-        }
-    }
-
-    private void tickSunItems() {
-        Iterator<Sun> iterator = sunItems.iterator();
-        while (iterator.hasNext()) {
-            Sun sun = iterator.next();
-            boolean justLanded = sun.tick();
-            if (justLanded && matchListener != null) {
-                matchListener.onSunReachedGround(sun.getCol(), sun.getRow());
-            }
-            if (sun.isExpired()) {
-                iterator.remove();
-            }
-        }
-    }
-
-    private void cleanupDeadPlants() {
-        for (Plant plant : board.getAllPlants()) {
-            if (plant.isDead()) {
-                if (matchListener != null) {
-                    matchListener.onPlantDestroyed(plant, plant.getCol(), plant.getRow());
-                }
-                board.removePlant(plant);
-            }
-        }
-    }
-
-    private void cleanupDeadZombies() {
-        zombies.removeIf(zombie -> {
-            if (!zombie.isDead()) {
-                return false;
-            }
-            handleZombieKilled(zombie);
-            return true;
-        });
+        combat.runTick();
     }
 
     public void spawnSunItem(Sun sun) {
-        if (sun == null) {
-            return;
-        }
-        sunItems.add(sun);
-        if (timedWarActive && timedWarRules != null && timedWarRules.getMode() == TimedWarMode.SUN) {
-            timedWarProgress += Math.max(0, sun.getValue());
-        }
+        planting.spawnSunItem(sun);
     }
 
     public Plant createClone(Plant source, int col, int row) {
-        Plant clone = plantFactory.create(
-                source.getDefinition(), source.getLevel(), col, row);
-        board.placePlant(clone);
-        clone.onPlanted(context);
-        return clone;
+        return planting.createClone(source, col, row);
     }
 
     public void addSunBalance(int amount) {
@@ -1251,19 +700,7 @@ public final class GameSession {
     }
 
     public int stealGroundSun(int maximum) {
-        int remaining = Math.max(0, maximum);
-        int stolen = 0;
-        Iterator<Sun> iterator = sunItems.iterator();
-        while (iterator.hasNext() && remaining > 0) {
-            Sun sun = iterator.next();
-            int value = sun.takeValue(remaining);
-            stolen += value;
-            remaining -= value;
-            if (sun.getValue() == 0) {
-                iterator.remove();
-            }
-        }
-        return stolen;
+        return planting.stealGroundSun(maximum);
     }
 
     public boolean removePlantFromBoard(Plant plant) {
@@ -1271,34 +708,7 @@ public final class GameSession {
     }
 
     public boolean removePlantFromBoard(Plant plant, boolean countsAsLoss) {
-        if (plant == null || destroyedPlantIds.contains(plant.getId())) {
-            return false;
-        }
-        boolean wasProtectedSeed = protectedSeedPlantIds.contains(plant.getId());
-        destroyedPlantIds.add(plant.getId());
-        board.removePlant(plant);
-        if (countsAsLoss) {
-            plantsLost++;
-            if (activeSpecialLevelHandler != null) {
-                activeSpecialLevelHandler.onPlantLost(this, plant);
-            }
-            if (activeMiniGameHandler != null) {
-                activeMiniGameHandler.onPlantLost(this, plant);
-            }
-            if (matchListener != null) {
-                matchListener.onPlantDestroyed(plant, plant.getCol(), plant.getRow());
-            }
-        }
-        eventBus.publish(new GameEvent.PlantDestroyed(
-                plant.getName(),
-                plant.getCategory().name()));
-        if (countsAsLoss && wasProtectedSeed) {
-            if (matchListener != null) {
-                matchListener.onProtectedSeedDestroyed(plant, plant.getCol(), plant.getRow());
-            }
-            loseMatch();
-        }
-        return true;
+        return planting.removePlantFromBoard(plant, countsAsLoss);
     }
 
     public void handleZombieKilled(Zombie zombie) {
@@ -1314,173 +724,19 @@ public final class GameSession {
     }
 
     public void handleZombieKilled(Zombie zombie, String killerPlantType, String projectileId) {
-        if (zombie == null || !zombie.isDead()) {
-            return;
-        }
-        zombie.runDeathBehaviors(context);
-        if (!killedZombieIds.add(zombie.getId())) {
-            return;
-        }
-        if (timedWarActive && timedWarRules != null && timedWarRules.getMode() == TimedWarMode.KILL) {
-            timedWarProgress++;
-        }
-        if (matchListener != null) {
-            matchListener.onZombieDied(zombie.getType(), zombie.getX(), zombie.getRow());
-        }
-        if (zombie.isGlowing() && plantFoodCount < 3) {
-            plantFoodCount++;
-            if (matchListener != null) {
-                matchListener.onGlowingZombieDroppedFood(plantFoodCount);
-            }
-        }
-        rollZombieLootDrop();
-        double secondsSinceWave = Math.max(0, (currentTick - waveStartTick) / (double) TICKS_PER_SECOND);
-        int firstWaveTick = getFirstWaveStartTick();
-        double secondsSinceFirstWave = Math.max(0, (currentTick - firstWaveTick) / (double) TICKS_PER_SECOND);
-        String killerFamily = null;
-        if (killerPlantType != null) {
-            var definition = plantRegistry.getDefinition(killerPlantType);
-            if (definition != null) {
-                killerFamily = definition.getCategory();
-            }
-        }
-        eventBus.publish(new GameEvent.ZombieKilled(
-                zombie.getType(),
-                killerPlantType,
-                killerFamily,
-                chapterId,
-                (int) zombie.getX(),
-                zombie.getRow(),
-                secondsSinceWave,
-                secondsSinceFirstWave,
-                projectileId,
-                currentTick));
-    }
-
-    private void rollZombieLootDrop() {
-        if (random.nextInt(100) >= 10) {
-            return;
-        }
-        int roll = random.nextInt(3);
-        if (matchListener == null) {
-            return;
-        }
-        if (roll == 0) {
-            matchListener.onItemDropped("coin", 50);
-        } else if (roll == 1) {
-            matchListener.onItemDropped("diamond", 1);
-        } else {
-            matchListener.onItemDropped("pot", 1);
-        }
+        combat.handleZombieKilled(zombie, killerPlantType, projectileId);
     }
 
     public void handleZombieReachedHouse(Zombie zombie) {
-        if (zombie == null || matchResult != MatchResult.IN_PROGRESS) {
-            return;
-        }
-        int row = zombie.getRow();
-        if (iZombieActive) {
-            if (row >= 0 && row < iZombieBrainsEaten.length && !iZombieBrainsEaten[row]) {
-                iZombieBrainsEaten[row] = true;
-                if (matchListener != null) {
-                    matchListener.onBrainEaten(row);
-                }
-            }
-            if (zombie.isAlive()) {
-                zombie.takeDirectDamage(zombie.getHealth() + 99999);
-                handleZombieKilled(zombie);
-            }
-            if (!tickingZombies) {
-                zombies.removeIf(Zombie::isDead);
-            }
-            return;
-        }
-        if (row < 0 || row >= lawnMowers.size()) {
-            loseMatch();
-            return;
-        }
-        LawnMower mower = lawnMowers.get(row);
-        if (mower.trigger()) {
-            List<Zombie> killed = new ArrayList<>();
-            for (Zombie candidate : List.copyOf(zombies)) {
-                if (!candidate.isAlive() || candidate.getRow() != row) {
-                    continue;
-                }
-                if (isBossZombie(candidate)) continue;
-                candidate.takeDirectDamage(candidate.getHealth() + 99999);
-                handleZombieKilled(candidate);
-                killed.add(candidate);
-            }
-            if (!tickingZombies) zombies.removeIf(Zombie::isDead);
-            if (matchListener != null) {
-                matchListener.onLawnMowerTriggered(row + 1, killed);
-            }
-            eventBus.publish(new GameEvent.LawnMowerTriggered(row, killed.size()));
-        } else {
-            if (matchListener != null) {
-                matchListener.onLawnMowerFailed(row + 1);
-            }
-            loseMatch();
-        }
-    }
-
-    private static boolean isBossZombie(Zombie zombie) {
-        String type = zombie.getType();
-        return type != null && (type.contains("Gargantuar") || type.contains("King"));
-    }
-
-    private void checkWinCondition() {
-        if (matchResult != MatchResult.IN_PROGRESS || waveManager == null) {
-            return;
-        }
-        if (timedWarActive || beghouledActive) {
-            return;
-        }
-        if (waveManager.areAllWavesCleared() && getLivingZombieCount() == 0) {
-            winMatch();
-        }
-    }
-
-    private int getLivingZombieCount() {
-        int count = 0;
-        for (Zombie zombie : zombies) {
-            if (zombie.isAlive()) {
-                count++;
-            }
-        }
-        return count;
+        combat.handleZombieReachedHouse(zombie);
     }
 
     public void winMatch() {
-        if (matchResult != MatchResult.IN_PROGRESS) {
-            return;
-        }
-        matchResult = MatchResult.WON;
-        running = false;
-        if (attachedQuestTracker != null) {
-            attachedQuestTracker.prepareBoardSnapshots(this);
-        }
-        if (matchListener != null) {
-            matchListener.onWin();
-        }
-        eventBus.publish(new GameEvent.GameFinished(true, sunBalance, plantsLost,
-                currentTick / (long) TICKS_PER_SECOND, userDifficultyLevel));
+        combat.winMatch();
     }
 
     public void loseMatch() {
-        if (matchResult != MatchResult.IN_PROGRESS) {
-            return;
-        }
-        matchResult = MatchResult.LOST;
-        running = false;
-        if (attachedQuestTracker != null) {
-            attachedQuestTracker.prepareBoardSnapshots(this);
-        }
-        if (matchListener != null) {
-            matchListener.onLose();
-        }
-        eventBus.publish(new GameEvent.GameFinished(false, sunBalance, plantsLost,
-                currentTick / (long) TICKS_PER_SECOND, userDifficultyLevel));
+        combat.loseMatch();
     }
 
     public boolean pluckPlant(int col, int row) {
@@ -1495,13 +751,7 @@ public final class GameSession {
     }
 
     public void nukeAllZombies() {
-        for (Zombie zombie : getZombies()) {
-            if (zombie.isAlive()) {
-                zombie.takeDirectDamage(zombie.getHealth() + 99999);
-                handleZombieKilled(zombie);
-            }
-        }
-        zombies.removeIf(Zombie::isDead);
+        combat.nukeAllZombies();
     }
 
     public void removeAllCooldowns() {
@@ -1530,199 +780,146 @@ public final class GameSession {
     }
 
     public PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health) {
-        if (plant == null || !plant.isAlive() || type == null) {
-            return null;
-        }
-        for (PlantCovering covering : plantCoverings) {
-            if (covering.isAlive() && covering.getCoveredPlant() == plant
-                    && covering.getType() == type) {
-                return covering;
-            }
-        }
-        PlantCovering covering = new PlantCovering(type, plant, Math.max(1, health));
-        plantCoverings.add(covering);
-        return covering;
+        return tileEffects.coverPlant(plant, type, health);
     }
 
     public void registerHunterIceHit(Plant plant) {
-        addPlantFrostStack(plant);
+        tileEffects.registerHunterIceHit(plant);
     }
 
     public void addPlantFrostStack(Plant plant) {
-        if (plant == null || !plant.isAlive()) {
-            return;
-        }
-        int hits = plant.addHostileIceStack("frost");
-        if (hits >= 3) {
-            coverPlant(plant, PlantCovering.Type.HUNTER_ICE, 600);
-            plant.clearHostileIce();
-        }
+        tileEffects.addPlantFrostStack(plant);
     }
 
     public void clearGraveAt(int col, int row) {
-        if (!board.inBounds(col, row) || !board.getTile(col, row).isGrave()) {
-            return;
-        }
-        var tile = board.getTile(col, row);
-        GraveTile.Loot loot = GraveTile.Loot.NONE;
-        if (tile instanceof GraveTile grave) {
-            loot = grave.getLoot();
-        }
-        board.setTile(col, row, new model.game.board.tile.NormalTile());
-        if (loot == GraveTile.Loot.SUN_50) {
-            addSunBalance(50);
-        } else if (loot == GraveTile.Loot.PLANT_FOOD) {
-            addPlantFood(1);
-        }
+        tileEffects.clearGraveAt(col, row);
     }
 
     public boolean damageGraveAt(int col, int row, int amount) {
-        if (!board.inBounds(col, row) || amount <= 0) {
-            return false;
-        }
-        var tile = board.getTile(col, row);
-        if (!(tile instanceof GraveTile grave) || grave.isDestroyed()) {
-            return false;
-        }
-        grave.takeDamage(amount);
-        if (grave.isDestroyed()) {
-            clearGraveAt(col, row);
-        }
-        return true;
+        return tileEffects.damageGraveAt(col, row, amount);
     }
 
     public boolean damageIceAt(int col, int row, int amount) {
-        if (!board.inBounds(col, row) || amount <= 0) {
-            return false;
-        }
-        var tile = board.getTile(col, row);
-        if (!(tile instanceof model.game.board.tile.IceTile ice) || ice.isDestroyed()) {
-            return false;
-        }
-        ice.takeDamage(amount);
-        if (ice.isDestroyed()) {
-            clearIceAt(col, row);
-        }
-        return true;
+        return tileEffects.damageIceAt(col, row, amount);
     }
 
     public void clearIceAt(int col, int row) {
-        if (!board.inBounds(col, row) || !board.getTile(col, row).isIce()) {
-            return;
-        }
-        board.setTile(col, row, new model.game.board.tile.NormalTile());
-    }
-
-    private void tickAdjacentFireIceMelt() {
-        for (int row = 0; row < board.getRows(); row++) {
-            for (int col = 0; col < board.getCols(); col++) {
-                if (!(board.getTile(col, row) instanceof model.game.board.tile.IceTile ice)
-                        || ice.isDestroyed()) {
-                    continue;
-                }
-                if (hasAdjacentFirePlant(col, row)) {
-                    damageIceAt(col, row, model.game.board.tile.IceTile.ADJACENT_FIRE_DAMAGE_PER_TICK);
-                }
-            }
-        }
-    }
-
-    private boolean hasAdjacentFirePlant(int col, int row) {
-        for (int dRow = -1; dRow <= 1; dRow++) {
-            for (int dCol = -1; dCol <= 1; dCol++) {
-                if (dRow == 0 && dCol == 0) {
-                    continue;
-                }
-                int nCol = col + dCol;
-                int nRow = row + dRow;
-                if (!board.inBounds(nCol, nRow)) {
-                    continue;
-                }
-                Plant plant = board.getPlantAt(nCol, nRow);
-                if (plant != null && plant.isAlive() && plant.hasTag(PlantTag.FIRE)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        tileEffects.clearIceAt(col, row);
     }
 
     public void pushArcadeObstacle(Zombie pusher) {
-        if (pusher == null || pusher.isDead()) {
-            return;
-        }
-        ArcadeObstacle obstacle = arcadeObstacles.stream()
-                .filter(candidate -> pusher.getId().equals(candidate.getPusherId()))
-                .findFirst()
-                .orElseGet(() -> {
-                    ArcadeObstacle created = new ArcadeObstacle(pusher);
-                    arcadeObstacles.add(created);
-                    return created;
-                });
-        obstacle.follow(pusher);
-        int col = (int) Math.floor(obstacle.getX());
-        Plant plant = board.getPlantAt(col, obstacle.getRow());
-        if (plant != null && plant.canBeTargetedByZombie()) {
-            plant.takeDamage(plant.getHealth());
-        }
-        for (Zombie zombie : getZombies()) {
-            if (zombie != pusher && zombie.isAlive() && zombie.isHypnotized()
-                    && zombie.getRow() == obstacle.getRow()
-                    && Math.abs(zombie.getX() - obstacle.getX()) <= 0.55) {
-                zombie.takeDirectDamage(zombie.getHealth());
-                handleZombieKilled(zombie);
-            }
-        }
+        tileEffects.pushArcadeObstacle(pusher);
     }
 
     public void releaseArcadeObstacle(String pusherId) {
-        arcadeObstacles.forEach(obstacle -> obstacle.releasePusher(pusherId));
+        tileEffects.releaseArcadeObstacle(pusherId);
     }
 
     public void resetFamilyCooldowns(PlantCategory category) {
-        cooldownTracker.resetCategory(plantRegistry, category.name());
+        tileEffects.resetFamilyCooldowns(category);
     }
 
     public void boostFamily(PlantCategory category, double durationSeconds) {
-        int endTick = currentTick + (int) Math.ceil(durationSeconds * TICKS_PER_SECOND);
-        familyBoostEndTicks.merge(category, endTick, Math::max);
+        tileEffects.boostFamily(category, durationSeconds);
     }
 
     public boolean isFamilyBoosted(PlantCategory category) {
-        return familyBoostEndTicks.getOrDefault(category, 0) > currentTick;
+        return tileEffects.isFamilyBoosted(category);
     }
 
     public void applyFieldModifier(int row, double magnitude, double durationSeconds) {
-        int endTick = currentTick + (int) Math.ceil(durationSeconds * TICKS_PER_SECOND);
-        rowModifiers.put(row, new FieldModifier(magnitude, endTick));
+        tileEffects.applyFieldModifier(row, magnitude, durationSeconds);
     }
 
     public double getFieldModifier(int row) {
-        FieldModifier modifier = rowModifiers.get(row);
-        return modifier == null || modifier.endTick() <= currentTick ? 0.0 : modifier.magnitude();
+        return tileEffects.getFieldModifier(row);
     }
 
     public void applyRowEffect(int row, String effectType, int durationTicks) {
-        if (row < 0 || row >= board.getRows() || effectType == null
-                || effectType.isBlank() || durationTicks <= 0) {
-            return;
-        }
-        int endTick = currentTick + durationTicks;
-        rowEffects.computeIfAbsent(row, ignored -> new HashMap<>())
-                .merge(effectType, endTick, Math::max);
+        tileEffects.applyRowEffect(row, effectType, durationTicks);
     }
 
     public boolean isRowEffectActive(int row, String effectType) {
-        return rowEffects.getOrDefault(row, Map.of())
-                .getOrDefault(effectType, 0) > currentTick;
+        return tileEffects.isRowEffectActive(row, effectType);
     }
 
-    private record PlantStatsAtLevel(PlantDefinition definition, int level) {
-        int cost() {
-            return model.game.entity.plant.PlantStatsCalculator.compute(definition, level).cost();
+    // --- package-private support for extracted helpers ---
+
+    GameSessionSpecialLevelState getSpecialLevelState() {
+        return specialLevelState;
+    }
+
+    GameSessionMiniGameState getMiniGameState() {
+        return miniGameState;
+    }
+
+    GameSessionTileEffects getTileEffects() {
+        return tileEffects;
+    }
+
+    GameSessionPlanting getPlanting() {
+        return planting;
+    }
+
+    GameSessionCombat getCombat() {
+        return combat;
+    }
+
+    PlantFactory getPlantFactory() {
+        return plantFactory;
+    }
+
+    List<Zombie> zombieList() {
+        return zombies;
+    }
+
+    List<Zombie> pendingZombieList() {
+        return pendingZombies;
+    }
+
+    List<LawnMower> lawnMowerList() {
+        return lawnMowers;
+    }
+
+    Set<String> killedZombieIds() {
+        return killedZombieIds;
+    }
+
+    Set<String> destroyedPlantIds() {
+        return destroyedPlantIds;
+    }
+
+    boolean isTickingZombies() {
+        return tickingZombies;
+    }
+
+    void setTickingZombies(boolean tickingZombies) {
+        this.tickingZombies = tickingZombies;
+    }
+
+    void setMatchResult(MatchResult matchResult) {
+        this.matchResult = matchResult;
+    }
+
+    void setRunning(boolean running) {
+        this.running = running;
+    }
+
+    void incrementCurrentTick() {
+        currentTick++;
+    }
+
+    model.quest.QuestTracker getAttachedQuestTracker() {
+        return attachedQuestTracker;
+    }
+
+    void incrementPlantsLost() {
+        plantsLost++;
+    }
+
+    void consumePlantFood() {
+        if (plantFoodCount > 0) {
+            plantFoodCount--;
         }
-    }
-
-    private record FieldModifier(double magnitude, int endTick) {
     }
 }
