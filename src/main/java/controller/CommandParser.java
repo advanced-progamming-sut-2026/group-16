@@ -82,29 +82,22 @@ public class CommandParser {
         settingView = new SettingViewCli();
         leaderboardView = new LeaderboardViewCli();
         scoreGameView = new ScoreGameViewCli();
-
         LoginController loginController = new LoginController(userDatabase);
         registrationController = new RegistrationController(userDatabase);
-
         ProfileController profileController = new ProfileController(userDatabase);
         MainMenuController mainMenuController = new MainMenuController(
                 App.getInstance().getCurrentUser(), registrationController, userDatabase);
-
         loginController.setRegistrationController(registrationController);
         registrationController.setLoginController(loginController);
         profileController.setMainMenuController(mainMenuController);
-
         loginController.setView(authView);
         registrationController.setView(authView);
         profileController.setView(profileView);
-
         User stayLoggedInUser = restoreStayLoggedInUser(userDatabase);
         if (stayLoggedInUser != null) {
             App.getInstance().setCurrentUser(stayLoggedInUser);
             switchController(new MainMenuController(stayLoggedInUser, registrationController, userDatabase));
-        } else {
-            switchController(registrationController);
-        }
+        } else switchController(registrationController);
     }
 
     private User restoreStayLoggedInUser(UserDatabase db) {
@@ -152,6 +145,22 @@ public class CommandParser {
 
         this.currentController = newController;
         newController.setParser(this);
+        bindView(newController);
+        newController.displayMenu();
+    }
+
+    private void bindView(ViewController newController) {
+        if (bindMenuViews(newController) || bindAdventureViews(newController)
+                || bindSpecialLevelViews(newController) || bindMiniGameViews(newController)
+                || bindMiscViews(newController)) {
+            return;
+        }
+        if (newController.getView() == null) {
+            newController.setView(authView);
+        }
+    }
+
+    private boolean bindMenuViews(ViewController newController) {
         if (newController instanceof MainMenuController) {
             newController.setView(mainMenuView);
         } else if (newController instanceof ProfileController) {
@@ -164,7 +173,14 @@ public class CommandParser {
             newController.setView(greenhouseView);
         } else if (newController instanceof ShopController) {
             newController.setView(shopView);
-        } else if (newController instanceof AdventureController) {
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean bindAdventureViews(ViewController newController) {
+        if (newController instanceof AdventureController) {
             newController.setView(adventureView);
         } else if (newController instanceof LockedPlantsSelectionController) {
             newController.setView(lockedPlantsSelectionView);
@@ -172,7 +188,14 @@ public class CommandParser {
             newController.setView(lockedPlantsLevelView);
         } else if (newController instanceof PlantSelectionController) {
             newController.setView(plantSelectionView);
-        } else if (newController instanceof ConveyBeltLevelController) {
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean bindSpecialLevelViews(ViewController newController) {
+        if (newController instanceof ConveyBeltLevelController) {
             newController.setView(conveyBeltLevelView);
         } else if (newController instanceof SaveOurSeedsLevelController) {
             newController.setView(saveOurSeedsLevelView);
@@ -190,7 +213,14 @@ public class CommandParser {
             newController.setView(specialLevelView);
         } else if (newController instanceof GamePlayController) {
             newController.setView(gamePlayView);
-        } else if (newController instanceof TravelLogController) {
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean bindMiniGameViews(ViewController newController) {
+        if (newController instanceof TravelLogController) {
             newController.setView(travelLogView);
         } else if (newController instanceof MiniGameHubController) {
             newController.setView(miniGameHubView);
@@ -204,7 +234,14 @@ public class CommandParser {
             newController.setView(beghouledView);
         } else if (newController instanceof ZombotanyController) {
             newController.setView(zombotanyView);
-        } else if (newController instanceof SettingController) {
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean bindMiscViews(ViewController newController) {
+        if (newController instanceof SettingController) {
             newController.setView(settingView);
         } else if (newController instanceof NewsController) {
             newController.setView(newsView);
@@ -214,9 +251,9 @@ public class CommandParser {
             newController.setView(scoreGameView);
         } else if (newController instanceof ScoreGamePlantSelectionController) {
             newController.setView(plantSelectionView);
-        } else if (newController.getView() == null) {
-            newController.setView(authView);
+        } else {
+            return false;
         }
-        newController.displayMenu();
+        return true;
     }
 }

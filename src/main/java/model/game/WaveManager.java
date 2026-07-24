@@ -178,20 +178,15 @@ public final class WaveManager {
                 x = Math.max(0.5, spawnX - offset);
             }
             Zombie zombie = session.spawnZombieOfType(alias, lane, x);
-            if (random.nextInt(100) < 5) {
-                zombie.setGlowing(true);
-            }
+            if (random.nextInt(100) < 5) zombie.setGlowing(true);
             wave.registerSpawn(zombie);
             spent += Math.max(1, zombie.getWaveCost());
             if (listener != null) {
                 listener.onZombieSpawned(zombie.getType(), wave.getNumber(), lane + 1,
                         zombie.getWaveCost());
             }
-            if (spent >= wave.getTargetCost()) {
-                break;
-            }
+            if (spent >= wave.getTargetCost()) break;
         }
-
         if (index == waves.size() - 1) {
             allWavesSpawned = true;
         }

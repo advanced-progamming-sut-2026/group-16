@@ -1049,24 +1049,50 @@ public final class GameSession {
         }
         currentTick++;
         cooldownTracker.tick();
-        familyBoostEndTicks.entrySet().removeIf(entry -> entry.getValue() <= currentTick);
-        rowModifiers.entrySet().removeIf(entry -> entry.getValue().endTick() <= currentTick);
-        rowEffects.values().forEach(effects ->
-                effects.entrySet().removeIf(entry -> entry.getValue() <= currentTick));
-        rowEffects.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-
+        expireTimedEffects();
         plantCoverings.removeIf(covering -> {
             covering.onTickUpdate(context);
             return covering.isDead();
         });
         arcadeObstacles.removeIf(ArcadeObstacle::isDead);
+        tickLivingPlants();
+        tickZombies();
+        projectileSystem.tick(board, zombies, this::handleProjectileKill, context);
+        if (walnutBowlingActive) {
+            bowlingNutSystem.tick(this);
+        }
+        plantCoverings.removeIf(PlantCovering::isDead);
+        arcadeObstacles.removeIf(ArcadeObstacle::isDead);
+        cleanupDeadZombies();
+        tickSunItems();
+        tickSkySun();
+        cleanupDeadPlants();
+        if (waveManager != null) {
+            waveManager.tick(this);
+            waveManager.publishClearedWaves(this);
+        }
+        checkWinCondition();
+        tickGroundSeedPackets();
+        notifyHandlersOnTick();
+    }
 
+    private void expireTimedEffects() {
+        familyBoostEndTicks.entrySet().removeIf(entry -> entry.getValue() <= currentTick);
+        rowModifiers.entrySet().removeIf(entry -> entry.getValue().endTick() <= currentTick);
+        rowEffects.values().forEach(effects ->
+                effects.entrySet().removeIf(entry -> entry.getValue() <= currentTick));
+        rowEffects.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+    }
+
+    private void tickLivingPlants() {
         for (Plant plant : board.getAllPlants()) {
             if (plant.isAlive()) {
                 plant.onTickUpdate(context);
             }
         }
+    }
 
+    private void tickZombies() {
         tickingZombies = true;
         try {
             Iterator<Zombie> zombieIterator = zombies.iterator();
@@ -1095,23 +1121,9 @@ public final class GameSession {
             zombies.addAll(pendingZombies);
             pendingZombies.clear();
         }
+    }
 
-        projectileSystem.tick(board, zombies, this::handleProjectileKill, context);
-        if (walnutBowlingActive) {
-            bowlingNutSystem.tick(this);
-        }
-        plantCoverings.removeIf(PlantCovering::isDead);
-        arcadeObstacles.removeIf(ArcadeObstacle::isDead);
-        cleanupDeadZombies();
-        tickSunItems();
-        tickSkySun();
-        cleanupDeadPlants();
-        if (waveManager != null) {
-            waveManager.tick(this);
-            waveManager.publishClearedWaves(this);
-        }
-        checkWinCondition();
-        tickGroundSeedPackets();
+    private void notifyHandlersOnTick() {
         if (activeSpecialLevelHandler != null) {
             activeSpecialLevelHandler.onTick(this);
         }
@@ -1369,16 +1381,12 @@ public final class GameSession {
                 if (!candidate.isAlive() || candidate.getRow() != row) {
                     continue;
                 }
-                if (isBossZombie(candidate)) {
-                    continue;
-                }
+                if (isBossZombie(candidate)) continue;
                 candidate.takeDirectDamage(candidate.getHealth() + 99999);
                 handleZombieKilled(candidate);
                 killed.add(candidate);
             }
-            if (!tickingZombies) {
-                zombies.removeIf(Zombie::isDead);
-            }
+            if (!tickingZombies) zombies.removeIf(Zombie::isDead);
             if (matchListener != null) {
                 matchListener.onLawnMowerTriggered(row + 1, killed);
             }

@@ -331,6 +331,8 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{" + "id=" + id + ", username='" + username + '\'' + ", passwordHash='" + passwordHash + '\'' + ", nickname='" + nickname + '\'' + ", email='" + email + '\'' + ", gender=" + gender + '}';
+        return "User{" + "id=" + id + ", username='" + username + '\'' + ", passwordHash='"
+                + passwordHash + '\'' + ", nickname='" +
+                nickname + '\'' + ", email='" + email + '\'' + ", gender=" + gender + '}';
     }
 }

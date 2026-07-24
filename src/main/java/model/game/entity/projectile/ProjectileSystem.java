@@ -95,8 +95,7 @@ public final class ProjectileSystem {
                     continue;
                 }
                 if (projectile.isFromZombie()) {
-                    Plant target = board.getPlantAt(
-                            (int) Math.floor(projectile.getX()), projectile.getRow());
+                    Plant target = board.getPlantAt((int) Math.floor(projectile.getX()), projectile.getRow());
                     if (target != null && target.canBeTargetedByZombie()) {
                         applyHostileHit(projectile, target, context);
                         iterator.remove();
@@ -105,8 +104,7 @@ public final class ProjectileSystem {
                     projectile.decrementLifetime();
                     continue;
                 }
-                if (context != null
-                        && projectile.getProfile().trajectory()
+                if (context != null && projectile.getProfile().trajectory()
                         != ProjectileProfile.Trajectory.ARCING
                         && hitBoardObject(projectile, context)) {
                     iterator.remove();
@@ -120,11 +118,8 @@ public final class ProjectileSystem {
                     }
                     projectile.recordHit(hit.getId());
                     applyHit(projectile, hit, board, zombies, onZombieKilled, context);
-                    if (!projectile.canPierce()) {
-                        iterator.remove();
-                    } else {
-                        projectile.consumePierce();
-                    }
+                    if (!projectile.canPierce()) iterator.remove();
+                     else projectile.consumePierce();
                 }
                 projectile.decrementLifetime();
             }
