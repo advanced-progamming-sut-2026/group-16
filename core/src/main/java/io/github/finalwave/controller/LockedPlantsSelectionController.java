@@ -21,11 +21,10 @@ public final class LockedPlantsSelectionController extends PlantSelectionControl
 
     public LockedPlantsSelectionController(User user,
                                            UserDatabase userDatabase,
-                                           AdventureController adventureController,
                                            ChapterConfig chapter,
                                            LevelConfig level,
                                            LockedPlantsRules rules) {
-        super(user, userDatabase, adventureController, chapter, level);
+        super(user, userDatabase, chapter, level);
         this.rules = rules;
     }
 
@@ -94,8 +93,8 @@ public final class LockedPlantsSelectionController extends PlantSelectionControl
         session.attachQuestTracker(tracker);
         getLockedPlantsView().showGameStarted();
         LockedPlantsLevelController gameplay = new LockedPlantsLevelController(
-                user, userDatabase, adventureController, mode, session, chapter, level, boosted, rules);
-        parser.switchController(gameplay);
+                user, userDatabase, mode, session, chapter, level, boosted, rules);
+        navigator.replace(gameplay);
         session.start();
     }
 

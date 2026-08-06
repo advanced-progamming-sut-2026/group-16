@@ -11,13 +11,11 @@ import java.util.regex.Matcher;
 public class GreenhouseController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
-    private final GameController gameController;
     private final GreenhouseService greenhouseService;
 
-    public GreenhouseController(User user, UserDatabase userDatabase, GameController gameController) {
+    public GreenhouseController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.gameController = gameController;
         this.greenhouseService = new GreenhouseService(io.github.finalwave.model.App.getInstance().getPlantRegistry());
     }
 
@@ -52,7 +50,7 @@ public class GreenhouseController extends ViewController {
     }
 
     private void handleMenuExit() {
-        parser.switchController(gameController);
+        navigator.pop();
     }
 
     private void handleShowGreenhouse() {
@@ -118,7 +116,7 @@ public class GreenhouseController extends ViewController {
     }
 
     private void handleEnterShop() {
-        parser.switchController(new ShopController(user, userDatabase, this));
+        navigator.push(new ShopController(user, userDatabase));
     }
 
     private int parseCoordinate(String value) {

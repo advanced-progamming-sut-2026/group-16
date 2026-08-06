@@ -15,26 +15,24 @@ public final class PlantWhatYouGetLevelController extends SpecialLevelController
 
     public PlantWhatYouGetLevelController(User user,
                                           UserDatabase userDatabase,
-                                          AdventureController adventureController,
                                           AdventureMode adventureMode,
                                           GameSession session,
                                           ChapterConfig chapter,
                                           LevelConfig level,
                                           Set<String> boostedPlants) {
-        this(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants,
+        this(user, userDatabase, adventureMode, session, chapter, level, boostedPlants,
                 new PlantWhatYouGetHandler());
     }
 
     PlantWhatYouGetLevelController(User user,
                                    UserDatabase userDatabase,
-                                   AdventureController adventureController,
                                    AdventureMode adventureMode,
                                    GameSession session,
                                    ChapterConfig chapter,
                                    LevelConfig level,
                                    Set<String> boostedPlants,
                                    PlantWhatYouGetHandler handler) {
-        super(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants,
+        super(user, userDatabase, adventureMode, session, chapter, level, boostedPlants,
                 handler);
     }
 

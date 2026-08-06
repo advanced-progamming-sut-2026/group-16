@@ -10,12 +10,9 @@ import java.util.regex.Matcher;
 public class SettingController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
-    private final MainMenuController mainMenuController;
-
-    public SettingController(User user, UserDatabase userDatabase, MainMenuController mainMenuController) {
+    public SettingController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.mainMenuController = mainMenuController;
     }
 
     @Override
@@ -46,7 +43,7 @@ public class SettingController extends ViewController {
     }
 
     private void handleMenuExit() {
-        parser.switchController(mainMenuController);
+        navigator.pop();
     }
 
     private void handleChangeDifficulty(String difficultyLevel) {

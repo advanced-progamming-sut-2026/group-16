@@ -167,9 +167,7 @@ final class GameSessionPlanting {
         if (!special.isPrepPhaseActive() && !session.getCooldownTracker().isReady(plantName)) {
             return PlantPlacementResult.ON_COOLDOWN;
         }
-        if (session.getSunBalance() < cost) {
-            return PlantPlacementResult.INSUFFICIENT_SUN;
-        }
+        if (session.getSunBalance() < cost) return PlantPlacementResult.INSUFFICIENT_SUN;
         PlantPlacementResult placement = session.getBoard().canPlace(definition, col, row);
         if (placement != PlantPlacementResult.SUCCESS) {
             return placement;

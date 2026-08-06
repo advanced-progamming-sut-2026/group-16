@@ -18,26 +18,24 @@ public final class SaveOurSeedsLevelController extends SpecialLevelController {
 
     public SaveOurSeedsLevelController(User user,
                                        UserDatabase userDatabase,
-                                       AdventureController adventureController,
                                        AdventureMode adventureMode,
                                        GameSession session,
                                        ChapterConfig chapter,
                                        LevelConfig level,
                                        Set<String> boostedPlants) {
-        this(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants,
+        this(user, userDatabase, adventureMode, session, chapter, level, boostedPlants,
                 SaveOurSeedsLayoutFactory.create(chapter, level));
     }
 
     public SaveOurSeedsLevelController(User user,
                                        UserDatabase userDatabase,
-                                       AdventureController adventureController,
                                        AdventureMode adventureMode,
                                        GameSession session,
                                        ChapterConfig chapter,
                                        LevelConfig level,
                                        Set<String> boostedPlants,
                                        SaveOurSeedsLayout layout) {
-        super(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants,
+        super(user, userDatabase, adventureMode, session, chapter, level, boostedPlants,
                 new SaveOurSeedsHandler(layout));
     }
 

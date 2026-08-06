@@ -19,25 +19,23 @@ public final class LockedPlantsLevelController extends SpecialLevelController {
 
     public LockedPlantsLevelController(User user,
                                        UserDatabase userDatabase,
-                                       AdventureController adventureController,
                                        AdventureMode adventureMode,
                                        GameSession session,
                                        ChapterConfig chapter,
                                        LevelConfig level,
                                        Set<String> boostedPlants) {
-        this(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants, null);
+        this(user, userDatabase, adventureMode, session, chapter, level, boostedPlants, null);
     }
 
     public LockedPlantsLevelController(User user,
                                        UserDatabase userDatabase,
-                                       AdventureController adventureController,
                                        AdventureMode adventureMode,
                                        GameSession session,
                                        ChapterConfig chapter,
                                        LevelConfig level,
                                        Set<String> boostedPlants,
                                        LockedPlantsRules rules) {
-        super(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants,
+        super(user, userDatabase, adventureMode, session, chapter, level, boostedPlants,
                 new LockedPlantsHandler(rules));
         this.rules = rules;
     }

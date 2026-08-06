@@ -26,16 +26,13 @@ public class AdventureController extends ViewController {
 
     private final User user;
     private final UserDatabase userDatabase;
-    private final GameController gameController;
     private final ChapterConfig chapter;
 
     public AdventureController(User user,
                                UserDatabase userDatabase,
-                               GameController gameController,
                                ChapterConfig chapter) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.gameController = gameController;
         this.chapter = chapter;
     }
 
@@ -58,7 +55,7 @@ public class AdventureController extends ViewController {
             }
             switch (cmd) {
                 case MENU_SHOW_CURRENT -> getAdventureView().showCurrentMenu(chapter.getDisplayName());
-                case MENU_EXIT -> parser.switchController(gameController);
+                case MENU_EXIT -> navigator.pop();
                 case SHOW_LEVELS -> getAdventureView().showLevels(chapter, chapter.getLevels());
                 case START_LEVEL -> handleStartLevel(matcher.group("level"));
                 case SHOW_PROGRESS -> handleShowProgress();
@@ -107,13 +104,13 @@ public class AdventureController extends ViewController {
                     user.getPlantProgress().getUnlockedPlantNames(),
                     new Random());
             LockedPlantsSelectionController selection = new LockedPlantsSelectionController(
-                    user, userDatabase, this, chapter, level, rules);
-            parser.switchController(selection);
+                    user, userDatabase, chapter, level, rules);
+            navigator.push(selection);
             return;
         }
         PlantSelectionController selection = new PlantSelectionController(
-                user, userDatabase, this, chapter, level);
-        parser.switchController(selection);
+                user, userDatabase, chapter, level);
+        navigator.push(selection);
     }
 
     private void startConveyorBeltLevel(ChapterConfig chapter, LevelConfig level) {
@@ -128,8 +125,8 @@ public class AdventureController extends ViewController {
         session.attachQuestTracker(tracker);
         List<String> availablePlants = user.getPlantProgress().getUnlockedPlantNames();
         ConveyBeltLevelController gameplay = new ConveyBeltLevelController(
-                user, userDatabase, this, mode, session, chapter, level, Set.of(), availablePlants);
-        parser.switchController(gameplay);
+                user, userDatabase, mode, session, chapter, level, Set.of(), availablePlants);
+        navigator.push(gameplay);
         session.start();
     }
 

@@ -12,12 +12,9 @@ import java.util.regex.Matcher;
 public class GameController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
-    private final MainMenuController mainMenuController;
-
-    public GameController(User user, UserDatabase userDatabase, MainMenuController mainMenuController) {
+    public GameController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.mainMenuController = mainMenuController;
     }
 
     @Override
@@ -52,7 +49,7 @@ public class GameController extends ViewController {
     private void handleMenuEnter(String menuName) {
         String normalized = menuName.trim().toLowerCase(Locale.ROOT);
         if ("collection".equals(normalized)) {
-            parser.switchController(new CollectionController(user, userDatabase, this));
+            navigator.push(new CollectionController(user, userDatabase));
             return;
         }
         getGameView().errorNotImplemented("menu enter " + menuName);
@@ -63,7 +60,7 @@ public class GameController extends ViewController {
     }
 
     private void handleMenuExit() {
-        parser.switchController(mainMenuController);
+        navigator.pop();
     }
 
     private void handleEnterChapter(String chapterName) {
@@ -77,19 +74,19 @@ public class GameController extends ViewController {
             getGameView().errorChapterLocked(chapter.getDisplayName());
             return;
         }
-        parser.switchController(new AdventureController(user, userDatabase, this, chapter));
+        navigator.push(new AdventureController(user, userDatabase, chapter));
     }
 
     private void handleGreenhouse() {
-        parser.switchController(new GreenhouseController(user, userDatabase, this));
+        navigator.push(new GreenhouseController(user, userDatabase));
     }
 
     private void handleTravelLog() {
-        parser.switchController(new TravelLogController(user, userDatabase, this));
+        navigator.push(new TravelLogController(user, userDatabase));
     }
 
     private void handleLeaderboard() {
-        parser.switchController(new LeaderboardController(userDatabase, this));
+        navigator.push(new LeaderboardController(userDatabase));
     }
 
     private void handleCoinWallet() {

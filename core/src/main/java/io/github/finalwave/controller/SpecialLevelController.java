@@ -16,14 +16,13 @@ public abstract class SpecialLevelController extends GamePlayController {
 
     protected SpecialLevelController(User user,
                                      UserDatabase userDatabase,
-                                     AdventureController adventureController,
                                      AdventureMode adventureMode,
                                      GameSession session,
                                      ChapterConfig chapter,
                                      LevelConfig level,
                                      Set<String> boostedPlants,
                                      SpecialLevelHandler handler) {
-        super(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants);
+        super(user, userDatabase, adventureMode, session, chapter, level, boostedPlants);
         this.handler = handler;
         session.setActiveSpecialLevelHandler(handler);
         this.handler.onLevelStart(getSession());

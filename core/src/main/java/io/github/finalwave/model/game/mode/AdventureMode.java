@@ -16,6 +16,7 @@ import io.github.finalwave.model.game.board.tile.IceTile;
 import io.github.finalwave.model.game.board.tile.LowBeachTile;
 import io.github.finalwave.model.game.board.tile.NecromancyTile;
 import io.github.finalwave.model.game.board.tile.NormalTile;
+import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 
 import java.util.ArrayList;
@@ -185,7 +186,7 @@ public class AdventureMode extends GameMode {
         GameBoard board = session.getBoard();
         int fromCol = Math.max(0, board.getCols() - currentWaterColumns);
         for (var plant : board.getAllPlants()) {
-            if (plant.getCol() >= fromCol && !plant.hasTag(io.github.finalwave.model.game.entity.plant.PlantTag.WATER)) {
+            if (plant.getCol() >= fromCol && !plant.hasTag(PlantTag.WATER)) {
                 plant.takeDamage(plant.getHealth() + 99999);
                 session.removePlantFromBoard(plant);
             }

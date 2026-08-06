@@ -14,7 +14,7 @@ import io.github.finalwave.view.cli.minigame.ZombotanyViewCli;
 
 import java.util.Scanner;
 
-public class CommandParser {
+public class CommandParser implements NavigationBinder {
     private final AuthViewCli authView;
     private final CollectionViewCli collectionView;
     private final GameViewCli gameView;
@@ -47,7 +47,7 @@ public class CommandParser {
     private final LeaderboardViewCli leaderboardView;
     private final ScoreGameViewCli scoreGameView;
     private final RegistrationController registrationController;
-    private ViewController currentController;
+    private final ControllerNavigator navigator;
 
     public CommandParser() {
         UserDatabase userDatabase = UserDatabase.getInstance();
@@ -82,22 +82,15 @@ public class CommandParser {
         settingView = new SettingViewCli();
         leaderboardView = new LeaderboardViewCli();
         scoreGameView = new ScoreGameViewCli();
-        LoginController loginController = new LoginController(userDatabase);
         registrationController = new RegistrationController(userDatabase);
-        ProfileController profileController = new ProfileController(userDatabase);
-        MainMenuController mainMenuController = new MainMenuController(
-                App.getInstance().getCurrentUser(), registrationController, userDatabase);
-        loginController.setRegistrationController(registrationController);
-        registrationController.setLoginController(loginController);
-        profileController.setMainMenuController(mainMenuController);
-        loginController.setView(authView);
-        registrationController.setView(authView);
-        profileController.setView(profileView);
+        navigator = new ControllerNavigator(this);
         User stayLoggedInUser = restoreStayLoggedInUser(userDatabase);
         if (stayLoggedInUser != null) {
             App.getInstance().setCurrentUser(stayLoggedInUser);
-            switchController(new MainMenuController(stayLoggedInUser, registrationController, userDatabase));
-        } else switchController(registrationController);
+            navigator.reset(new MainMenuController(stayLoggedInUser, userDatabase));
+        } else {
+            navigator.reset(registrationController);
+        }
     }
 
     private User restoreStayLoggedInUser(UserDatabase db) {
@@ -123,7 +116,8 @@ public class CommandParser {
     }
 
     public void parseAndExecute(String input) {
-        if (input == null || currentController == null) {
+        ViewController current = navigator.current();
+        if (input == null || current == null) {
             return;
         }
 
@@ -131,25 +125,23 @@ public class CommandParser {
         if (trimmed.isEmpty()) {
             return;
         }
-        currentController.handleCommand(trimmed);
+        current.handleCommand(trimmed);
     }
 
     public ViewController getCurrentController() {
-        return currentController;
+        return navigator.current();
     }
 
-    public void switchController(ViewController newController) {
-        if (newController == null) {
-            return;
-        }
-
-        this.currentController = newController;
-        newController.setParser(this);
-        bindView(newController);
-        newController.displayMenu();
+    public Navigator getNavigator() {
+        return navigator;
     }
 
-    private void bindView(ViewController newController) {
+    public RegistrationController getRegistrationController() {
+        return registrationController;
+    }
+
+    @Override
+    public void bind(ViewController newController) {
         if (bindMenuViews(newController) || bindAdventureViews(newController)
                 || bindSpecialLevelViews(newController) || bindMiniGameViews(newController)
                 || bindMiscViews(newController)) {

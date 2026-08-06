@@ -11,13 +11,10 @@ import java.util.regex.Matcher;
 
 public class MainMenuController extends ViewController {
     private final User activeUser;
-    private final RegistrationController registrationController;
     private final UserDatabase userDatabase;
 
-    public
-    MainMenuController(User activeUser, RegistrationController registrationController, UserDatabase userDatabase) {
+    public MainMenuController(User activeUser, UserDatabase userDatabase) {
         this.activeUser = activeUser;
-        this.registrationController = registrationController;
         this.userDatabase = userDatabase;
     }
 
@@ -45,19 +42,13 @@ public class MainMenuController extends ViewController {
 
     private void handleMenuEnter(String menuName) {
         switch (normalizeMenuName(menuName)) {
-            case "game" -> parser.switchController(new GameController(activeUser, userDatabase, this));
-            case "settings" -> parser.switchController(
-                    new SettingController(activeUser, userDatabase, this));
-            case "news" -> parser.switchController(new NewsController(activeUser, userDatabase, this));
-            case "profile" -> {
-                ProfileController profileController = new ProfileController(userDatabase);
-                profileController.setMainMenuController(this);
-                parser.switchController(profileController);
-            }
-            case "leaderboard" -> parser.switchController(
-                    new LeaderboardController(userDatabase, this));
-            case "score-game", "scoregame" -> parser.switchController(
-                    new ScoreGameController(activeUser, userDatabase, this));
+            case "game" -> navigator.push(new GameController(activeUser, userDatabase));
+            case "settings" -> navigator.push(new SettingController(activeUser, userDatabase));
+            case "news" -> navigator.push(new NewsController(activeUser, userDatabase));
+            case "profile" -> navigator.push(new ProfileController(userDatabase));
+            case "leaderboard" -> navigator.push(new LeaderboardController(userDatabase));
+            case "score-game", "scoregame" -> navigator.push(
+                    new ScoreGameController(activeUser, userDatabase));
             default -> getMainMenuView().errorInvalidMenuName();
         }
     }
@@ -69,7 +60,7 @@ public class MainMenuController extends ViewController {
     private void handleLogout() {
         StayLoggedInStorage.clear();
         getMainMenuView().showLoggedOut();
-        parser.switchController(registrationController);
+        navigator.reset(new RegistrationController(userDatabase));
     }
 
     private String normalizeMenuName(String menuName) {

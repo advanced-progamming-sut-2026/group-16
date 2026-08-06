@@ -23,7 +23,6 @@ public class VaseBreakerController extends ViewController implements MatchListen
 
     private final User user;
     private final UserDatabase userDatabase;
-    private final MiniGameHubController hubController;
     private final VaseBreakerMode mode;
     private final GameSession session;
     private final MiniGameStageConfig stage;
@@ -32,13 +31,11 @@ public class VaseBreakerController extends ViewController implements MatchListen
 
     public VaseBreakerController(User user,
                                  UserDatabase userDatabase,
-                                 MiniGameHubController hubController,
                                  VaseBreakerMode mode,
                                  GameSession session,
                                  MiniGameStageConfig stage) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.hubController = hubController;
         this.mode = mode;
         this.session = session;
         this.stage = stage;
@@ -72,7 +69,7 @@ public class VaseBreakerController extends ViewController implements MatchListen
                 }
                 case MENU_EXIT -> {
                     session.stop();
-                    parser.switchController(hubController);
+                    navigator.pop();
                     return;
                 }
             }
@@ -138,11 +135,11 @@ public class VaseBreakerController extends ViewController implements MatchListen
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
-            parser.switchController(hubController);
+            navigator.pop();
         } else if (result == MatchResult.LOST) {
             finishedHandled = true;
             recordFinishedGame();
-            parser.switchController(hubController);
+            navigator.pop();
         }
     }
 

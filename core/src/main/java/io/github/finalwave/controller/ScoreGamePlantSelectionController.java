@@ -66,7 +66,7 @@ public class ScoreGamePlantSelectionController extends ViewController {
                     getViewApi().showCurrentMenu();
                     getViewApi().showSelectedPlants(List.copyOf(selected));
                 }
-                case MENU_EXIT -> parser.switchController(scoreGameController);
+                case MENU_EXIT -> navigator.pop();
                 case SHOW_ALL_PLANTS -> getViewApi().showAllPlants(
                         plantRegistry.getAllDefinitions().stream()
                                 .map(def -> def.getName())
@@ -147,7 +147,7 @@ public class ScoreGamePlantSelectionController extends ViewController {
         ScoreGamePlayController gameplay = new ScoreGamePlayController(
                 user, userDatabase, scoreGameController, match.mode(), session,
                 match.chapter(), match.level(), boosted, tracker);
-        parser.switchController(gameplay);
+        navigator.replace(gameplay);
         session.start();
     }
 

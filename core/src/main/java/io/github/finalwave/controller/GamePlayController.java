@@ -28,7 +28,6 @@ public class GamePlayController extends ViewController implements MatchListener 
 
     private final User user;
     private final UserDatabase userDatabase;
-    private final ViewController returnController;
     private final AdventureMode adventureMode;
     private final GameSession session;
     private final ChapterConfig chapter;
@@ -40,19 +39,16 @@ public class GamePlayController extends ViewController implements MatchListener 
 
     public GamePlayController(User user,
                               UserDatabase userDatabase,
-                              AdventureController adventureController,
                               AdventureMode adventureMode,
                               GameSession session,
                               ChapterConfig chapter,
                               LevelConfig level,
                               Set<String> boostedPlants) {
-        this(user, userDatabase, adventureController, adventureMode, session, chapter, level,
-                boostedPlants, true);
+        this(user, userDatabase, adventureMode, session, chapter, level, boostedPlants, true);
     }
 
     protected GamePlayController(User user,
                                  UserDatabase userDatabase,
-                                 ViewController returnController,
                                  AdventureMode adventureMode,
                                  GameSession session,
                                  ChapterConfig chapter,
@@ -61,7 +57,6 @@ public class GamePlayController extends ViewController implements MatchListener 
                                  boolean awardAdventureProgress) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.returnController = returnController;
         this.adventureMode = adventureMode;
         this.session = session;
         this.chapter = chapter;
@@ -69,6 +64,11 @@ public class GamePlayController extends ViewController implements MatchListener 
         this.boostedPlants = boostedPlants == null ? Set.of() : Set.copyOf(boostedPlants);
         this.awardAdventureProgress = awardAdventureProgress;
         this.session.setMatchListener(this);
+    }
+
+    @Override
+    public void onExit() {
+        detachQuestTracker();
     }
 
     @Override
@@ -107,8 +107,7 @@ public class GamePlayController extends ViewController implements MatchListener 
             return;
         }
         if ("menu exit".equalsIgnoreCase(input.trim())) {
-            detachQuestTracker();
-            parser.switchController(returnController);
+            navigator.pop();
             return;
         }
         getGamePlayView().errorInvalidCommand();
@@ -294,8 +293,7 @@ public class GamePlayController extends ViewController implements MatchListener 
             userDatabase.saveAdventureProgress(user);
             publishUnlockNews(completion);
         }
-        detachQuestTracker();
-        parser.switchController(returnController);
+        navigator.pop();
     }
 
     private void publishUnlockNews(ChapterProgress.LevelCompletionResult completion) {

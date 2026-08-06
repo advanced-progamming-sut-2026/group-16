@@ -24,7 +24,6 @@ public class PlantSelectionController extends ViewController {
 
     protected final User user;
     protected final UserDatabase userDatabase;
-    protected final AdventureController adventureController;
     protected final ChapterConfig chapter;
     protected final LevelConfig level;
     protected final List<String> selected = new ArrayList<>();
@@ -34,12 +33,10 @@ public class PlantSelectionController extends ViewController {
 
     public PlantSelectionController(User user,
                                     UserDatabase userDatabase,
-                                    AdventureController adventureController,
                                     ChapterConfig chapter,
                                     LevelConfig level) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.adventureController = adventureController;
         this.chapter = chapter;
         this.level = level;
         this.plantRegistry = App.getInstance().getPlantRegistry();
@@ -80,7 +77,7 @@ public class PlantSelectionController extends ViewController {
     }
 
     private void handleMenuExit() {
-        parser.switchController(adventureController);
+        navigator.pop();
     }
 
     private void handleShowAllPlants() {
@@ -178,11 +175,11 @@ public class PlantSelectionController extends ViewController {
         getViewApi().showGameStarted();
         GamePlayController gameplay = level.getType() == LevelType.NORMAL
                 ? new GamePlayController(
-                user, userDatabase, adventureController, mode, session, chapter, level, boosted)
+                user, userDatabase, mode, session, chapter, level, boosted)
                 : SpecialLevelControllerFactory.create(
-                level.getType(), user, userDatabase, adventureController, mode, session, chapter, level,
+                level.getType(), user, userDatabase, mode, session, chapter, level,
                 boosted);
-        parser.switchController(gameplay);
+        navigator.replace(gameplay);
         session.start();
     }
 

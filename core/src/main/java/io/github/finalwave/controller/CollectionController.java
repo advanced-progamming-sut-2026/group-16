@@ -14,14 +14,12 @@ import java.util.regex.Matcher;
 public class CollectionController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
-    private final GameController gameController;
     private final CollectionService collectionService;
     private final UnlockService unlockService = new UnlockService();
 
-    public CollectionController(User user, UserDatabase userDatabase, GameController gameController) {
+    public CollectionController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.gameController = gameController;
         this.collectionService = CollectionService.createDefault(App.getInstance().getPlantRegistry());
     }
 
@@ -59,7 +57,7 @@ public class CollectionController extends ViewController {
     }
 
     private void handleMenuExit() {
-        parser.switchController(gameController);
+        navigator.pop();
     }
 
     private void handleShowPlants() {

@@ -11,13 +11,11 @@ import java.util.regex.Matcher;
 public class ShopController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
-    private final GreenhouseController greenhouseController;
     private final ShopManager shopManager;
 
-    public ShopController(User user, UserDatabase userDatabase, GreenhouseController greenhouseController) {
+    public ShopController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.greenhouseController = greenhouseController;
         this.shopManager = new ShopManager();
     }
 
@@ -51,7 +49,7 @@ public class ShopController extends ViewController {
     }
 
     private void handleMenuExit() {
-        parser.switchController(greenhouseController);
+        navigator.pop();
     }
 
     private void handleShopList() {

@@ -13,7 +13,6 @@ import java.util.regex.Matcher;
 
 public class ProfileController extends ViewController {
     private final UserDatabase userDatabase;
-    private MainMenuController mainMenuController;
     private boolean pendingUsername;
     private boolean pendingNickname;
     private boolean pendingEmail;
@@ -24,10 +23,6 @@ public class ProfileController extends ViewController {
             throw new IllegalArgumentException("userDatabase must not be null");
         }
         this.userDatabase = userDatabase;
-    }
-
-    public void setMainMenuController(MainMenuController mainMenuController) {
-        this.mainMenuController = mainMenuController;
     }
 
     @Override
@@ -84,7 +79,7 @@ public class ProfileController extends ViewController {
 
     private void handleMenuExit() {
         clearPendingStates();
-        parser.switchController(mainMenuController);
+        navigator.pop();
     }
 
     private void handleChangeUsername(String username) {

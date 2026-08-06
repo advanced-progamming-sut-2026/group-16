@@ -22,7 +22,6 @@ public class IZombieController extends ViewController implements MatchListener {
 
     private final User user;
     private final UserDatabase userDatabase;
-    private final MiniGameHubController hubController;
     private final IZombieMode mode;
     private final GameSession session;
     private final MiniGameStageConfig stage;
@@ -31,13 +30,11 @@ public class IZombieController extends ViewController implements MatchListener {
 
     public IZombieController(User user,
                              UserDatabase userDatabase,
-                             MiniGameHubController hubController,
                              IZombieMode mode,
                              GameSession session,
                              MiniGameStageConfig stage) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.hubController = hubController;
         this.mode = mode;
         this.session = session;
         this.stage = stage;
@@ -70,7 +67,7 @@ public class IZombieController extends ViewController implements MatchListener {
                 case ZOMBIES_INFO -> getViewApi().showZombiesInfo(session.getZombies());
                 case MENU_EXIT -> {
                     session.stop();
-                    parser.switchController(hubController);
+                    navigator.pop();
                     return;
                 }
             }
@@ -132,11 +129,11 @@ public class IZombieController extends ViewController implements MatchListener {
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
-            parser.switchController(hubController);
+            navigator.pop();
         } else if (result == MatchResult.LOST) {
             finishedHandled = true;
             recordFinishedGame();
-            parser.switchController(hubController);
+            navigator.pop();
         }
     }
 
