@@ -14,14 +14,12 @@ import java.util.regex.Matcher;
 
 public class LeaderboardController extends ViewController {
     private final UserDatabase userDatabase;
-    private final ViewController parentController;
     private LeaderboardSortColumn sortColumn = LeaderboardSortColumn.USERNAME;
     private boolean ascending = true;
     private List<LeaderboardEntry> entries = new ArrayList<>();
 
-    public LeaderboardController(UserDatabase userDatabase, ViewController parentController) {
+    public LeaderboardController(UserDatabase userDatabase) {
         this.userDatabase = userDatabase;
-        this.parentController = parentController;
     }
 
     @Override
@@ -40,7 +38,7 @@ public class LeaderboardController extends ViewController {
             }
             switch (cmd) {
                 case MENU_SHOW_CURRENT -> getLeaderboardView().showCurrentMenu();
-                case MENU_EXIT -> parser.switchController(parentController);
+                case MENU_EXIT -> navigator.pop();
                 case SORT -> handleSort(matcher.group("column"), matcher.group("order"));
                 case REFRESH -> handleRefresh();
             }

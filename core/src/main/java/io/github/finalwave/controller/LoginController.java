@@ -13,16 +13,11 @@ import java.util.regex.Matcher;
 
 public class LoginController extends ViewController {
     private final UserDatabase db;
-    private RegistrationController registrationController;
     private String pendingPasswordResetUsername;
     private String pendingNewPassword;
 
     public LoginController(UserDatabase db) {
         this.db = db;
-    }
-
-    public void setRegistrationController(RegistrationController registrationController) {
-        this.registrationController = registrationController;
     }
 
     @Override
@@ -60,7 +55,6 @@ public class LoginController extends ViewController {
     }
 
     private void handleMenuEnter(String menuName) {
-        // TODO: implement after main menu navigation is done.
         getAuthView().errorInvalidMenuName();
     }
 
@@ -70,7 +64,7 @@ public class LoginController extends ViewController {
 
     private void handleMenuExit() {
         clearPendingPasswordReset();
-        parser.switchController(registrationController);
+        navigator.pop();
     }
 
     private void handleLogin(String username, String password, String stayLoggedIn) {
@@ -89,7 +83,7 @@ public class LoginController extends ViewController {
 
         App.getInstance().setCurrentUser(user);
         getAuthView().showUserLoggedIn();
-        parser.switchController(new MainMenuController(user, registrationController, db));
+        navigator.reset(new MainMenuController(user, db));
     }
 
     private void handleForgetPassword(String username, String email, String answer) {
@@ -102,7 +96,7 @@ public class LoginController extends ViewController {
         if (!user.validateSecurityAnswer(answer)) {
             getAuthView().errorWrongSecurityAnswer();
             clearPendingPasswordReset();
-            parser.switchController(registrationController);
+            navigator.pop();
             return;
         }
 

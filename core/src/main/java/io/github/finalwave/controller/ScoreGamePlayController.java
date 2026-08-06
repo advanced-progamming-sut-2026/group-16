@@ -25,7 +25,7 @@ public class ScoreGamePlayController extends GamePlayController {
                                    LevelConfig level,
                                    Set<String> boostedPlants,
                                    MeowPointTracker meowPointTracker) {
-        super(user, userDatabase, scoreGameController, adventureMode, session, chapter, level,
+        super(user, userDatabase, adventureMode, session, chapter, level,
                 boostedPlants, false);
         this.scoreGameController = scoreGameController;
         this.meowPointTracker = meowPointTracker;
@@ -41,6 +41,6 @@ public class ScoreGamePlayController extends GamePlayController {
         }
         meowPointTracker.unregister();
         scoreGameController.onMatchCompleted(breakdown, newBest);
-        parser.switchController(scoreGameController);
+        navigator.pop();
     }
 }

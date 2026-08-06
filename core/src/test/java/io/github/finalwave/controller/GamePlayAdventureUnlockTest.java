@@ -129,8 +129,8 @@ class GamePlayAdventureUnlockTest {
 
         TestableGamePlayController controller = new TestableGamePlayController(
                 user, database, mode, session, chapter, level);
-        CommandParser parser = new CommandParser();
-        controller.setParser(parser);
+        ControllerNavigator navigator = new ControllerNavigator(c -> { });
+        navigator.reset(controller);
         controller.setView(new GamePlayViewCli());
         return controller;
     }
@@ -142,7 +142,7 @@ class GamePlayAdventureUnlockTest {
                                    GameSession session,
                                    ChapterConfig chapter,
                                    LevelConfig level) {
-            super(user, userDatabase, null, adventureMode, session, chapter, level, Set.of(), true);
+            super(user, userDatabase, adventureMode, session, chapter, level, Set.of(), true);
         }
 
         void finish(MatchResult result) {

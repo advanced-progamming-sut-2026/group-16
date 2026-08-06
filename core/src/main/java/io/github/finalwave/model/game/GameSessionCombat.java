@@ -280,12 +280,8 @@ final class GameSessionCombat {
         if (mower.trigger()) {
             List<Zombie> killed = new ArrayList<>();
             for (Zombie candidate : List.copyOf(session.zombieList())) {
-                if (!candidate.isAlive() || candidate.getRow() != row) {
-                    continue;
-                }
-                if (isBossZombie(candidate)) {
-                    continue;
-                }
+                if (!candidate.isAlive() || candidate.getRow() != row) continue;
+                if (isBossZombie(candidate)) continue;
                 candidate.takeDirectDamage(candidate.getHealth() + 99999);
                 session.handleZombieKilled(candidate);
                 killed.add(candidate);

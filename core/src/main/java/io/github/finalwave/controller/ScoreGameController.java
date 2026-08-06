@@ -11,19 +11,16 @@ import java.util.regex.Matcher;
 public class ScoreGameController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
-    private final MainMenuController mainMenuController;
     private MeowPointBreakdown pendingBreakdown;
     private boolean pendingNewBest;
 
-    public ScoreGameController(User user, UserDatabase userDatabase,
-                               MainMenuController mainMenuController) {
+    public ScoreGameController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.mainMenuController = mainMenuController;
     }
 
-    public ScoreGameController(User user, MainMenuController mainMenuController) {
-        this(user, UserDatabase.getInstance(), mainMenuController);
+    public ScoreGameController(User user) {
+        this(user, UserDatabase.getInstance());
     }
 
     @Override
@@ -46,8 +43,8 @@ public class ScoreGameController extends ViewController {
             }
             switch (cmd) {
                 case MENU_SHOW_CURRENT -> getScoreGameView().showCurrentMenu();
-                case MENU_EXIT -> parser.switchController(mainMenuController);
-                case START -> parser.switchController(
+                case MENU_EXIT -> navigator.pop();
+                case START -> navigator.push(
                         new ScoreGamePlantSelectionController(user, userDatabase, this));
             }
             return;

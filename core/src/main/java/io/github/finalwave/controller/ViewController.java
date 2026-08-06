@@ -4,7 +4,7 @@ import io.github.finalwave.view.api.View;
 
 public abstract class ViewController {
     protected View view;
-    protected CommandParser parser;
+    protected Navigator navigator;
 
     public final View getView() {
         return view;
@@ -14,13 +14,27 @@ public abstract class ViewController {
         this.view = view;
     }
 
-    public final void setParser(CommandParser parser) {
-        this.parser = parser;
+    public final void setNavigator(Navigator navigator) {
+        this.navigator = navigator;
     }
 
     public void handleCommand(String command) {
     }
 
     public void displayMenu() {
+    }
+
+    public void onEnter() {
+        displayMenu();
+    }
+
+    public void onResume() {
+        displayMenu();
+    }
+
+    public void onPause() {
+    }
+
+    public void onExit() {
     }
 }

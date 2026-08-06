@@ -13,13 +13,11 @@ import java.util.regex.Matcher;
 public class NewsController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
-    private final MainMenuController mainMenuController;
     private final NewsManager newsManager = new NewsManager();
 
-    public NewsController(User user, UserDatabase userDatabase, MainMenuController mainMenuController) {
+    public NewsController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.mainMenuController = mainMenuController;
     }
 
     @Override
@@ -51,7 +49,7 @@ public class NewsController extends ViewController {
     }
 
     private void handleMenuExit() {
-        parser.switchController(mainMenuController);
+        navigator.pop();
     }
 
     private void handleShowUnread() {

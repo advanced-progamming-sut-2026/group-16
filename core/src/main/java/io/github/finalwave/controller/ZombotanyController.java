@@ -22,7 +22,6 @@ public class ZombotanyController extends ViewController implements MatchListener
 
     private final User user;
     private final UserDatabase userDatabase;
-    private final MiniGameHubController hubController;
     private final ZombotanyMode mode;
     private final GameSession session;
     private final MiniGameStageConfig stage;
@@ -31,13 +30,11 @@ public class ZombotanyController extends ViewController implements MatchListener
 
     public ZombotanyController(User user,
                                UserDatabase userDatabase,
-                               MiniGameHubController hubController,
                                ZombotanyMode mode,
                                GameSession session,
                                MiniGameStageConfig stage) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.hubController = hubController;
         this.mode = mode;
         this.session = session;
         this.stage = stage;
@@ -72,7 +69,7 @@ public class ZombotanyController extends ViewController implements MatchListener
                 case MENU_SHOW_CURRENT -> getViewApi().showCurrentMenu();
                 case MENU_EXIT -> {
                     session.stop();
-                    parser.switchController(hubController);
+                    navigator.pop();
                     return;
                 }
             }
@@ -158,11 +155,11 @@ public class ZombotanyController extends ViewController implements MatchListener
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
-            parser.switchController(hubController);
+            navigator.pop();
         } else if (result == MatchResult.LOST) {
             finishedHandled = true;
             recordFinishedGame();
-            parser.switchController(hubController);
+            navigator.pop();
         }
     }
 

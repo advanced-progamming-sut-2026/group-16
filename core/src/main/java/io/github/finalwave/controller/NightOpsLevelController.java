@@ -15,13 +15,12 @@ public final class NightOpsLevelController extends SpecialLevelController {
 
     public NightOpsLevelController(User user,
                                    UserDatabase userDatabase,
-                                   AdventureController adventureController,
                                    AdventureMode adventureMode,
                                    GameSession session,
                                    ChapterConfig chapter,
                                    LevelConfig level,
                                    Set<String> boostedPlants) {
-        super(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants,
+        super(user, userDatabase, adventureMode, session, chapter, level, boostedPlants,
                 new NightOpsHandler());
     }
 

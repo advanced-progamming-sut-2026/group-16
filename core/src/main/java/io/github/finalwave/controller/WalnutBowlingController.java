@@ -23,7 +23,6 @@ public class WalnutBowlingController extends ViewController implements MatchList
 
     private final User user;
     private final UserDatabase userDatabase;
-    private final MiniGameHubController hubController;
     private final WalnutBowlingMode mode;
     private final GameSession session;
     private final MiniGameStageConfig stage;
@@ -32,13 +31,11 @@ public class WalnutBowlingController extends ViewController implements MatchList
 
     public WalnutBowlingController(User user,
                                    UserDatabase userDatabase,
-                                   MiniGameHubController hubController,
                                    WalnutBowlingMode mode,
                                    GameSession session,
                                    MiniGameStageConfig stage) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.hubController = hubController;
         this.mode = mode;
         this.session = session;
         this.stage = stage;
@@ -67,7 +64,7 @@ public class WalnutBowlingController extends ViewController implements MatchList
                 case ZOMBIES_INFO -> getViewApi().showZombiesInfo(session.getZombies());
                 case MENU_EXIT -> {
                     session.stop();
-                    parser.switchController(hubController);
+                    navigator.pop();
                     return;
                 }
             }
@@ -124,11 +121,11 @@ public class WalnutBowlingController extends ViewController implements MatchList
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
-            parser.switchController(hubController);
+            navigator.pop();
         } else if (result == MatchResult.LOST) {
             finishedHandled = true;
             recordFinishedGame();
-            parser.switchController(hubController);
+            navigator.pop();
         }
     }
 

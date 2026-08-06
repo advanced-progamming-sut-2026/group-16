@@ -60,9 +60,8 @@ class MinigameZombieCollectionUnlockTest {
         MiniGameStageConfig stage = MiniGameStageConfig.walnutBowling(1);
         WalnutBowlingMode mode = new WalnutBowlingMode(stage, plantRegistry, zombieRegistry, new Random(1));
         GameSession session = mode.createSession();
-        MiniGameHubController hub = new MiniGameHubController(user, database, null);
         WalnutBowlingController controller = new WalnutBowlingController(
-                user, database, hub, mode, session, stage);
+                user, database, mode, session, stage);
 
         controller.onZombieSpawned("ZombieDefault", 1, 1, 100);
         assertTrue(user.getUnlockedZombies().contains("ZombieDefault"));

@@ -27,15 +27,12 @@ public class MiniGameHubController extends ViewController {
 
     private final User user;
     private final UserDatabase userDatabase;
-    private final TravelLogController travelLogController;
     private MiniGameId selectedGame;
 
     public MiniGameHubController(User user,
-                                 UserDatabase userDatabase,
-                                 TravelLogController travelLogController) {
+                                 UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.travelLogController = travelLogController;
     }
 
     @Override
@@ -71,7 +68,7 @@ public class MiniGameHubController extends ViewController {
             handleShowGames();
             return;
         }
-        parser.switchController(travelLogController);
+        navigator.pop();
     }
 
     private void handleShowGames() {
@@ -183,8 +180,8 @@ public class MiniGameHubController extends ViewController {
         ZombotanyMode mode = new ZombotanyMode(stage, plantRegistry, zombieRegistry, new Random());
         GameSession session = mode.createSession();
         ZombotanyController controller = new ZombotanyController(
-                user, userDatabase, this, mode, session, stage);
-        parser.switchController(controller);
+                user, userDatabase, mode, session, stage);
+        navigator.push(controller);
         session.start();
     }
 
@@ -194,8 +191,8 @@ public class MiniGameHubController extends ViewController {
         BeghouledMode mode = new BeghouledMode(stage, plantRegistry, zombieRegistry, new Random());
         GameSession session = mode.createSession();
         BeghouledController controller = new BeghouledController(
-                user, userDatabase, this, mode, session, stage);
-        parser.switchController(controller);
+                user, userDatabase, mode, session, stage);
+        navigator.push(controller);
         session.start();
     }
 
@@ -205,8 +202,8 @@ public class MiniGameHubController extends ViewController {
         IZombieMode mode = new IZombieMode(stage, plantRegistry, zombieRegistry, new Random());
         GameSession session = mode.createSession();
         IZombieController controller = new IZombieController(
-                user, userDatabase, this, mode, session, stage);
-        parser.switchController(controller);
+                user, userDatabase, mode, session, stage);
+        navigator.push(controller);
         session.start();
     }
 
@@ -216,8 +213,8 @@ public class MiniGameHubController extends ViewController {
         WalnutBowlingMode mode = new WalnutBowlingMode(stage, plantRegistry, zombieRegistry, new Random());
         GameSession session = mode.createSession();
         WalnutBowlingController controller = new WalnutBowlingController(
-                user, userDatabase, this, mode, session, stage);
-        parser.switchController(controller);
+                user, userDatabase, mode, session, stage);
+        navigator.push(controller);
         session.start();
     }
 
@@ -227,8 +224,8 @@ public class MiniGameHubController extends ViewController {
         VaseBreakerMode mode = new VaseBreakerMode(stage, plantRegistry, zombieRegistry, new Random());
         GameSession session = mode.createSession();
         VaseBreakerController controller = new VaseBreakerController(
-                user, userDatabase, this, mode, session, stage);
-        parser.switchController(controller);
+                user, userDatabase, mode, session, stage);
+        navigator.push(controller);
         session.start();
     }
 

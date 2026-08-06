@@ -18,26 +18,24 @@ public final class TimedWarLevelController extends SpecialLevelController {
 
     public TimedWarLevelController(User user,
                                    UserDatabase userDatabase,
-                                   AdventureController adventureController,
                                    AdventureMode adventureMode,
                                    GameSession session,
                                    ChapterConfig chapter,
                                    LevelConfig level,
                                    Set<String> boostedPlants) {
-        this(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants,
+        this(user, userDatabase, adventureMode, session, chapter, level, boostedPlants,
                 TimedWarRulesFactory.create(chapter, level));
     }
 
     public TimedWarLevelController(User user,
                                    UserDatabase userDatabase,
-                                   AdventureController adventureController,
                                    AdventureMode adventureMode,
                                    GameSession session,
                                    ChapterConfig chapter,
                                    LevelConfig level,
                                    Set<String> boostedPlants,
                                    TimedWarRules rules) {
-        super(user, userDatabase, adventureController, adventureMode, session, chapter, level, boostedPlants,
+        super(user, userDatabase, adventureMode, session, chapter, level, boostedPlants,
                 new TimedWarHandler(rules));
     }
 

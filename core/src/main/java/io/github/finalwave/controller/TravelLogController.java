@@ -17,12 +17,9 @@ import java.util.regex.Matcher;
 public class TravelLogController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
-    private final GameController gameController;
-
-    public TravelLogController(User user, UserDatabase userDatabase, GameController gameController) {
+    public TravelLogController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
-        this.gameController = gameController;
     }
 
     @Override
@@ -54,7 +51,7 @@ public class TravelLogController extends ViewController {
     }
 
     private void handleMenuExit() {
-        parser.switchController(gameController);
+        navigator.pop();
     }
 
     private void handleTravelLogPage(String pageName) {
@@ -85,7 +82,7 @@ public class TravelLogController extends ViewController {
                 return;
             }
             case "minigames", "mini-games", "mini games" -> {
-                parser.switchController(new MiniGameHubController(user, userDatabase, this));
+                navigator.push(new MiniGameHubController(user, userDatabase));
                 return;
             }
             default -> {
