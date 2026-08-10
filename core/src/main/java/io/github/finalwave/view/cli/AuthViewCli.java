@@ -4,8 +4,8 @@ import io.github.finalwave.model.user.SecurityQuestion;
 import io.github.finalwave.view.api.AuthView;
 
 public class AuthViewCli extends CliView implements AuthView {
-    // register command
-    //     errors:
+
+
     @Override
     public void errorDuplicateName() {
         displayError("This username is already taken. Please use another one.");
@@ -33,14 +33,13 @@ public class AuthViewCli extends CliView implements AuthView {
         displayError("This email is not a correct one.");
     }
 
-    //     success:
+
     @Override
     public void showUserCreated() {
         displayMessage("User account has been successfully created.");
     }
 
-    // login command
-    //     errors:
+
     @Override
     public void errorWrongUsernameOrPassword() {
         displayError("Wrong Username or Password has been given.");
@@ -111,7 +110,7 @@ public class AuthViewCli extends CliView implements AuthView {
         displayMessage("Please confirm your new password.");
     }
 
-    //     success:
+
     @Override
     public void showUserLoggedIn() {
         displayMessage("You have been successfully logged in.");

@@ -78,7 +78,7 @@ subprojects {
     implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
     testImplementation "org.junit.jupiter:junit-jupiter:$junitVersion"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    implementation 'com.github.pizpizi:libPVZ:v0.1.3'
+    implementation 'com.github.pizpizi:libPVZ:v0.1.5'
     implementation 'com.github.pizpizi:pvz-skin:v0.1.0'
     implementation 'com.github.raeleus.TenPatch:tenpatch:5.2.3'
   }

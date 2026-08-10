@@ -35,13 +35,11 @@ public class LoginController extends ViewController {
             switch (cmd) {
                 case MENU_ENTER -> handleMenuEnter(matcher.group("menuName"));
                 case MENU_SHOW_CURRENT -> handleShowCurrent();
-                case MENU_EXIT -> handleMenuExit();
-                case LOGIN ->
-                        handleLogin(matcher.group("username"),
-                                matcher.group("password"), matcher.group("stayLoggedIn"));
-                case FORGET_PASSWORD ->
-                        handleForgetPassword(matcher.group("username"),
-                                matcher.group("email"), matcher.group("answer"));
+                case MENU_EXIT -> back();
+                case LOGIN -> login(matcher.group("username"),
+                        matcher.group("password"), matcher.group("stayLoggedIn") != null);
+                case FORGET_PASSWORD -> verifyIdentity(matcher.group("username"),
+                        matcher.group("email"), matcher.group("answer"));
             }
             return;
         }
@@ -54,20 +52,7 @@ public class LoginController extends ViewController {
         getAuthView().errorInvalidLoginCommand();
     }
 
-    private void handleMenuEnter(String menuName) {
-        getAuthView().errorInvalidMenuName();
-    }
-
-    private void handleShowCurrent() {
-        getAuthView().showCurrentLoginMenu();
-    }
-
-    private void handleMenuExit() {
-        clearPendingPasswordReset();
-        navigator.pop();
-    }
-
-    private void handleLogin(String username, String password, String stayLoggedIn) {
+    public void login(String username, String password, boolean stayLoggedIn) {
         User user = db.getUser(username);
         if (user == null || !user.authenticate(password)) {
             getAuthView().errorWrongUsernameOrPassword();
@@ -75,7 +60,7 @@ public class LoginController extends ViewController {
         }
 
         clearPendingPasswordReset();
-        if (stayLoggedIn != null) {
+        if (stayLoggedIn) {
             StayLoggedInStorage.saveSession(user.getUsername(), user.getPasswordHash());
         } else {
             StayLoggedInStorage.clear();
@@ -86,14 +71,14 @@ public class LoginController extends ViewController {
         navigator.reset(new MainMenuController(user, db));
     }
 
-    private void handleForgetPassword(String username, String email, String answer) {
+    public void verifyIdentity(String username, String email, String securityAnswer) {
         User user = db.getUser(username);
         if (user == null || !user.getEmail().equalsIgnoreCase(email)) {
             getAuthView().errorWrongUsernameOrEmail();
             return;
         }
 
-        if (!user.validateSecurityAnswer(answer)) {
+        if (!user.validateSecurityAnswer(securityAnswer)) {
             getAuthView().errorWrongSecurityAnswer();
             clearPendingPasswordReset();
             navigator.pop();
@@ -103,6 +88,44 @@ public class LoginController extends ViewController {
         pendingPasswordResetUsername = username;
         pendingNewPassword = null;
         getAuthView().promptNewPassword();
+    }
+
+    public void resetPassword(String newPassword, String confirm) {
+        if (pendingPasswordResetUsername == null) {
+            getAuthView().errorInvalidLoginCommand();
+            return;
+        }
+
+        if (!RegistrationValidator.isStrongPassword(newPassword)) {
+            getAuthView().errorWeakPassword();
+            getAuthView().promptNewPassword();
+            return;
+        }
+
+        if (!newPassword.equals(confirm)) {
+            getAuthView().errorRepeatPasswordDoseNotMatch();
+            pendingNewPassword = null;
+            getAuthView().promptNewPassword();
+            return;
+        }
+
+        db.updatePassword(pendingPasswordResetUsername, HashUtil.hashSHA256(newPassword));
+        StayLoggedInStorage.clear();
+        clearPendingPasswordReset();
+        getAuthView().showPasswordChanged();
+    }
+
+    public void back() {
+        clearPendingPasswordReset();
+        navigator.pop();
+    }
+
+    private void handleMenuEnter(String menuName) {
+        getAuthView().errorInvalidMenuName();
+    }
+
+    private void handleShowCurrent() {
+        getAuthView().showCurrentLoginMenu();
     }
 
     private void handlePendingPasswordInput(String input) {
@@ -117,17 +140,7 @@ public class LoginController extends ViewController {
             return;
         }
 
-        if (!pendingNewPassword.equals(input)) {
-            getAuthView().errorRepeatPasswordDoseNotMatch();
-            pendingNewPassword = null;
-            getAuthView().promptNewPassword();
-            return;
-        }
-
-        db.updatePassword(pendingPasswordResetUsername, HashUtil.hashSHA256(pendingNewPassword));
-        StayLoggedInStorage.clear();
-        clearPendingPasswordReset();
-        getAuthView().showPasswordChanged();
+        resetPassword(pendingNewPassword, input);
     }
 
     private void clearPendingPasswordReset() {

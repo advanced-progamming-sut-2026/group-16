@@ -1,9 +1,6 @@
 package io.github.finalwave.controller;
 
-import io.github.finalwave.model.App;
-import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
-import io.github.finalwave.util.StayLoggedInStorage;
 import io.github.finalwave.view.cli.*;
 import io.github.finalwave.view.cli.minigame.BeghouledViewCli;
 import io.github.finalwave.view.cli.minigame.IZombieViewCli;
@@ -47,10 +44,9 @@ public class CommandParser implements NavigationBinder {
     private final LeaderboardViewCli leaderboardView;
     private final ScoreGameViewCli scoreGameView;
     private final RegistrationController registrationController;
-    private final ControllerNavigator navigator;
+    private final AppBootstrap bootstrap;
 
     public CommandParser() {
-        UserDatabase userDatabase = UserDatabase.getInstance();
         authView = new AuthViewCli();
         collectionView = new CollectionViewCli();
         gameView = new GameViewCli();
@@ -82,29 +78,10 @@ public class CommandParser implements NavigationBinder {
         settingView = new SettingViewCli();
         leaderboardView = new LeaderboardViewCli();
         scoreGameView = new ScoreGameViewCli();
+        UserDatabase userDatabase = UserDatabase.getInstance();
         registrationController = new RegistrationController(userDatabase);
-        navigator = new ControllerNavigator(this);
-        User stayLoggedInUser = restoreStayLoggedInUser(userDatabase);
-        if (stayLoggedInUser != null) {
-            App.getInstance().setCurrentUser(stayLoggedInUser);
-            navigator.reset(new MainMenuController(stayLoggedInUser, userDatabase));
-        } else {
-            navigator.reset(registrationController);
-        }
-    }
-
-    private User restoreStayLoggedInUser(UserDatabase db) {
-        StayLoggedInStorage.Session session = StayLoggedInStorage.loadSession();
-        if (session == null) {
-            return null;
-        }
-
-        User user = db.getUser(session.username());
-        if (user == null || !session.passwordHash().equals(user.getPasswordHash())) {
-            StayLoggedInStorage.clear();
-            return null;
-        }
-        return user;
+        bootstrap = new AppBootstrap(userDatabase, this);
+        bootstrap.start();
     }
 
     public void run() {
@@ -116,7 +93,7 @@ public class CommandParser implements NavigationBinder {
     }
 
     public void parseAndExecute(String input) {
-        ViewController current = navigator.current();
+        ViewController current = bootstrap.navigator().current();
         if (input == null || current == null) {
             return;
         }
@@ -129,11 +106,11 @@ public class CommandParser implements NavigationBinder {
     }
 
     public ViewController getCurrentController() {
-        return navigator.current();
+        return bootstrap.navigator().current();
     }
 
     public Navigator getNavigator() {
-        return navigator;
+        return bootstrap.navigator();
     }
 
     public RegistrationController getRegistrationController() {

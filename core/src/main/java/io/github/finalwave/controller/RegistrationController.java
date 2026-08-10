@@ -43,10 +43,10 @@ public class RegistrationController extends ViewController {
                 case MENU_ENTER -> handleMenuEnter(matcher.group("menuName"));
                 case MENU_SHOW_CURRENT -> handleShowCurrent();
                 case MENU_EXIT -> handleMenuExit();
-                case REGISTER -> handleRegister(matcher.group("username"), matcher.group("password"),
+                case REGISTER -> register(matcher.group("username"), matcher.group("password"),
                         matcher.group("passwordConfirm"), matcher.group("nickname"),
                         matcher.group("email"), matcher.group("gender"));
-                case PICK_QUESTION -> handlePickQuestion(matcher.group("questionNumber"),
+                case PICK_QUESTION -> pickSecurityQuestion(matcher.group("questionNumber"),
                         matcher.group("answer").trim(), matcher.group("answerConfirm").trim());
             }
             return;
@@ -60,24 +60,8 @@ public class RegistrationController extends ViewController {
         getAuthView().errorInvalidRegisterCommand();
     }
 
-    private void handleMenuEnter(String menuName) {
-        if ("login".equals(normalizeMenuName(menuName))) {
-            navigator.push(new LoginController(db));
-            return;
-        }
-        getAuthView().errorInvalidMenuName();
-    }
-
-    private void handleShowCurrent() {
-        getAuthView().showCurrentRegistrationMenu();
-    }
-
-    private void handleMenuExit() {
-        System.exit(0);
-    }
-
-    private void handleRegister(String username, String password, String passwordConfirm,
-                                String nickname, String email, String genderText) {
+    public void register(String username, String password, String passwordConfirm,
+                         String nickname, String email, String genderText) {
         if (!validateRegisterInput(username, password, passwordConfirm, nickname, email, genderText)) {
             return;
         }
@@ -94,7 +78,7 @@ public class RegistrationController extends ViewController {
         getAuthView().showSecurityQuestions();
     }
 
-    private void handlePickQuestion(String questionNumber, String answer, String answerConfirm) {
+    public void pickSecurityQuestion(String questionNumber, String answer, String answerConfirm) {
         if (!awaitingSecurityQuestion) {
             getAuthView().errorMustRegisterFirst();
             return;
@@ -107,6 +91,26 @@ public class RegistrationController extends ViewController {
         }
 
         completeRegistration(question, answer, answerConfirm);
+    }
+
+    public void goToLogin() {
+        navigator.push(new LoginController(db));
+    }
+
+    private void handleMenuEnter(String menuName) {
+        if ("login".equals(normalizeMenuName(menuName))) {
+            goToLogin();
+            return;
+        }
+        getAuthView().errorInvalidMenuName();
+    }
+
+    private void handleShowCurrent() {
+        getAuthView().showCurrentRegistrationMenu();
+    }
+
+    private void handleMenuExit() {
+        System.exit(0);
     }
 
     private void handlePendingSecurityQuestionInput(String input) {
