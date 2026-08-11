@@ -13,26 +13,25 @@ public class GreenhouseViewCli extends CliView implements GreenhouseView {
         displayMessage(display);
     }
 
-    // plant pot command
+
     @Override
     public void showPlantPlantedInPot(int x, int y, String plantType) {
         displayMessage("Planted " + plantType + " in pot at (" + x + ", " + y + ")");
     }
 
-    // collect pot command
+
     @Override
     public void showPotCollected(int x, int y, String reward) {
         displayMessage("Collected from pot at (" + x + ", " + y + "). Reward: " + reward);
     }
 
-    // grow (accelerate) command
+
     @Override
     public void showPlantGrowthAccelerated(int x, int y, int diamondsSpent) {
         displayMessage("Growth accelerated for pot at (" + x + ", " + y + ") using " + diamondsSpent + " diamond(s).");
     }
 
 
-    // general greenhouse errors
     @Override
     public void errorPotLocked(int x, int y) {
         displayError("Pot at (" + x + ", " + y + ") is locked. Unlock it first.");

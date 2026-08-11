@@ -44,6 +44,22 @@ public class NewsController extends ViewController {
         view.displayError("Invalid news command.");
     }
 
+    public void showUnread() {
+        handleShowUnread();
+    }
+
+    public void showAll() {
+        handleShowAll();
+    }
+
+    public void back() {
+        handleMenuExit();
+    }
+
+    public User getUser() {
+        return user;
+    }
+
     private void handleShowCurrent() {
         getNewsView().showCurrentMenu();
     }

@@ -10,12 +10,25 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 
 public class MainMenuController extends ViewController {
+    public enum Destination {
+        GAME,
+        SETTINGS,
+        NEWS,
+        PROFILE,
+        LEADERBOARD,
+        SCORE_GAME
+    }
+
     private final User activeUser;
     private final UserDatabase userDatabase;
 
     public MainMenuController(User activeUser, UserDatabase userDatabase) {
         this.activeUser = activeUser;
         this.userDatabase = userDatabase;
+    }
+
+    public User getActiveUser() {
+        return activeUser;
     }
 
     @Override
@@ -33,34 +46,44 @@ public class MainMenuController extends ViewController {
             switch (cmd) {
                 case MENU_ENTER -> handleMenuEnter(matcher.group("menuName"));
                 case MENU_SHOW_CURRENT -> handleShowCurrent();
-                case LOGOUT -> handleLogout();
+                case LOGOUT -> logout();
             }
             return;
         }
         getMainMenuView().errorInvalidMainMenuCommand();
     }
 
+    public void open(Destination destination) {
+        switch (destination) {
+            case GAME -> navigator.push(new GameController(activeUser, userDatabase));
+            case SETTINGS -> navigator.push(new SettingController(activeUser, userDatabase));
+            case NEWS -> navigator.push(new NewsController(activeUser, userDatabase));
+            case PROFILE -> navigator.push(new ProfileController(userDatabase));
+            case LEADERBOARD -> navigator.push(new LeaderboardController(userDatabase));
+            case SCORE_GAME -> navigator.push(new ScoreGameController(activeUser, userDatabase));
+        }
+    }
+
+    public void logout() {
+        StayLoggedInStorage.clear();
+        getMainMenuView().showLoggedOut();
+        navigator.reset(new RegistrationController(userDatabase));
+    }
+
     private void handleMenuEnter(String menuName) {
         switch (normalizeMenuName(menuName)) {
-            case "game" -> navigator.push(new GameController(activeUser, userDatabase));
-            case "settings" -> navigator.push(new SettingController(activeUser, userDatabase));
-            case "news" -> navigator.push(new NewsController(activeUser, userDatabase));
-            case "profile" -> navigator.push(new ProfileController(userDatabase));
-            case "leaderboard" -> navigator.push(new LeaderboardController(userDatabase));
-            case "score-game", "scoregame" -> navigator.push(
-                    new ScoreGameController(activeUser, userDatabase));
+            case "game" -> open(Destination.GAME);
+            case "settings" -> open(Destination.SETTINGS);
+            case "news" -> open(Destination.NEWS);
+            case "profile" -> open(Destination.PROFILE);
+            case "leaderboard" -> open(Destination.LEADERBOARD);
+            case "score-game", "scoregame" -> open(Destination.SCORE_GAME);
             default -> getMainMenuView().errorInvalidMenuName();
         }
     }
 
     private void handleShowCurrent() {
         getMainMenuView().showCurrentMenu();
-    }
-
-    private void handleLogout() {
-        StayLoggedInStorage.clear();
-        getMainMenuView().showLoggedOut();
-        navigator.reset(new RegistrationController(userDatabase));
     }
 
     private String normalizeMenuName(String menuName) {
