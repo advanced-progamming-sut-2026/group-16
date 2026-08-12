@@ -5,6 +5,7 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -58,6 +59,9 @@ public abstract class MenuScreen extends ScreenAdapter {
         hudLayer = new Table();
         hudLayer.setFillParent(true);
         hudLayer.top().right().padTop(20).padRight(24);
+        hudLayer.setTouchable(Touchable.childrenOnly);
+        modalLayer.setTouchable(Touchable.childrenOnly);
+        toastLayer.setTouchable(Touchable.childrenOnly);
 
         Stack root = new Stack();
         root.setFillParent(true);

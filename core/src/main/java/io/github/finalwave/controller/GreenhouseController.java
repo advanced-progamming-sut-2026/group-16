@@ -2,10 +2,12 @@ package io.github.finalwave.controller;
 
 import io.github.finalwave.model.command.GreenhouseMenuCommands;
 import io.github.finalwave.model.greenhouse.GreenhouseService;
+import io.github.finalwave.model.greenhouse.GreenhouseSlotState;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.GreenhouseView;
 
+import java.util.List;
 import java.util.regex.Matcher;
 
 public class GreenhouseController extends ViewController {
@@ -19,6 +21,28 @@ public class GreenhouseController extends ViewController {
         this.greenhouseService = new GreenhouseService(io.github.finalwave.model.App.getInstance().getPlantRegistry());
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public List<GreenhouseSlotState> slotStates() {
+        return greenhouseService.slotStates(user);
+    }
+
+    public int plantableCount() {
+        return greenhouseService.plantableCount(user);
+    }
+
+    public boolean cheatUnlockNextPot() {
+        GreenhouseService.UnlockResult result = greenhouseService.unlockNextLockedFree(user);
+        if (!"success".equals(result.status())) {
+            return false;
+        }
+        userDatabase.saveUserWallet(user);
+        getGreenhouseView().showPotUnlocked(result.x(), result.y());
+        return true;
+    }
+
     @Override
     public void displayMenu() {
         getGreenhouseView().showCurrentMenu();
@@ -28,38 +52,37 @@ public class GreenhouseController extends ViewController {
     public void handleCommand(String input) {
         for (GreenhouseMenuCommands cmd : GreenhouseMenuCommands.values()) {
             Matcher matcher = cmd.getMatcher(input);
-            if (matcher == null)
+            if (matcher == null) {
                 continue;
+            }
 
             switch (cmd) {
-                case MENU_SHOW_CURRENT -> handleShowCurrent();
-                case MENU_EXIT -> handleMenuExit();
-                case SHOW_GREENHOUSE -> handleShowGreenhouse();
-                case PLANT_POT_AT -> handlePlantPotAt(matcher.group("x"), matcher.group("y"));
-                case COLLECT -> handleCollect(matcher.group("x"), matcher.group("y"));
-                case GROW -> handleGrow(matcher.group("x"), matcher.group("y"));
-                case ENTER_SHOP -> handleEnterShop();
+                case MENU_SHOW_CURRENT -> showCurrent();
+                case MENU_EXIT -> back();
+                case SHOW_GREENHOUSE -> showGreenhouse();
+                case PLANT_POT_AT -> plantPot(parseCoordinate(matcher.group("x")), parseCoordinate(matcher.group("y")));
+                case COLLECT -> collectPot(parseCoordinate(matcher.group("x")), parseCoordinate(matcher.group("y")));
+                case GROW -> growPot(parseCoordinate(matcher.group("x")), parseCoordinate(matcher.group("y")));
+                case ENTER_SHOP -> openShop();
             }
             return;
         }
         getGreenhouseView().errorInvalidCommand();
     }
 
-    private void handleShowCurrent() {
+    public void showCurrent() {
         getGreenhouseView().showCurrentMenu();
     }
 
-    private void handleMenuExit() {
-        navigator.pop();
-    }
-
-    private void handleShowGreenhouse() {
+    public void showGreenhouse() {
         getGreenhouseView().showGreenhouse(greenhouseService.formatDisplay(user));
     }
 
-    private void handlePlantPotAt(String x, String y) {
-        int potX = parseCoordinate(x);
-        int potY = parseCoordinate(y);
+    public void back() {
+        navigator.pop();
+    }
+
+    public void plantPot(int potX, int potY) {
         if (potX < 0 || potY < 0) {
             getGreenhouseView().errorInvalidPotLocation(potX, potY);
             return;
@@ -76,9 +99,7 @@ public class GreenhouseController extends ViewController {
         }
     }
 
-    private void handleCollect(String x, String y) {
-        int potX = parseCoordinate(x);
-        int potY = parseCoordinate(y);
+    public void collectPot(int potX, int potY) {
         if (potX < 0 || potY < 0) {
             getGreenhouseView().errorInvalidPotLocation(potX, potY);
             return;
@@ -95,9 +116,7 @@ public class GreenhouseController extends ViewController {
         }
     }
 
-    private void handleGrow(String x, String y) {
-        int potX = parseCoordinate(x);
-        int potY = parseCoordinate(y);
+    public void growPot(int potX, int potY) {
         if (potX < 0 || potY < 0) {
             getGreenhouseView().errorInvalidPotLocation(potX, potY);
             return;
@@ -115,7 +134,24 @@ public class GreenhouseController extends ViewController {
         }
     }
 
-    private void handleEnterShop() {
+    public void unlockPot(int potX, int potY) {
+        if (potX < 0 || potY < 0) {
+            getGreenhouseView().errorInvalidPotLocation(potX, potY);
+            return;
+        }
+        GreenhouseService.UnlockResult result = greenhouseService.unlock(user, potX, potY);
+        switch (result.status()) {
+            case "invalid_location" -> getGreenhouseView().errorInvalidPotLocation(potX, potY);
+            case "already_unlocked" -> getGreenhouseView().errorPotAlreadyUnlocked(potX, potY);
+            case "not_enough_coins" -> getGreenhouseView().errorNotEnoughCoinsToUnlock();
+            default -> {
+                userDatabase.saveUserWallet(user);
+                getGreenhouseView().showPotUnlocked(potX, potY);
+            }
+        }
+    }
+
+    public void openShop() {
         navigator.push(new ShopController(user, userDatabase));
     }
 

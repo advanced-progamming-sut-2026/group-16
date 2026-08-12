@@ -31,6 +31,10 @@ public class GreenhouseViewCli extends CliView implements GreenhouseView {
         displayMessage("Growth accelerated for pot at (" + x + ", " + y + ") using " + diamondsSpent + " diamond(s).");
     }
 
+    @Override
+    public void showPotUnlocked(int x, int y) {
+        displayMessage("Unlocked pot at (" + x + ", " + y + ").");
+    }
 
     @Override
     public void errorPotLocked(int x, int y) {
@@ -70,6 +74,16 @@ public class GreenhouseViewCli extends CliView implements GreenhouseView {
     @Override
     public void errorInvalidPotLocation(int x, int y) {
         displayError("Invalid pot location (" + x + ", " + y + ").");
+    }
+
+    @Override
+    public void errorNotEnoughCoinsToUnlock() {
+        displayError("You don't have enough coins to unlock this pot.");
+    }
+
+    @Override
+    public void errorPotAlreadyUnlocked(int x, int y) {
+        displayError("Pot at (" + x + ", " + y + ") is already unlocked.");
     }
 
     @Override

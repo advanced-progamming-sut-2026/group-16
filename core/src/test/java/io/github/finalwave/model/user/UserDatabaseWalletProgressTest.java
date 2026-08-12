@@ -53,8 +53,8 @@ class UserDatabaseWalletProgressTest {
         assertEquals(0, loaded.getCoins());
         assertEquals(0, loaded.getDiamonds());
         assertEquals(0, loaded.getPlantFood());
-        assertEquals(20, loaded.getGreenhousePots().size());
-        assertEquals(5, loaded.countUnlockedPots());
+        assertEquals(12, loaded.getGreenhousePots().size());
+        assertEquals(4, loaded.countUnlockedPots());
         assertNotNull(loaded.getPotAt(1, 1));
         assertFalse(loaded.getPotAt(1, 1).isLocked());
         assertTrue(loaded.getPotAt(1, 2).isLocked());
@@ -72,7 +72,7 @@ class UserDatabaseWalletProgressTest {
                 Gender.MALE);
         database.registerUser(user);
         assertTrue(user.getId() > 0);
-        assertEquals(20, user.getGreenhousePots().size());
+        assertEquals(12, user.getGreenhousePots().size());
 
         user.setCoins(2500);
         user.setDiamonds(8);

@@ -1,5 +1,6 @@
 package io.github.finalwave.model.user;
 
+import io.github.finalwave.model.greenhouse.GreenhouseLayout;
 import io.github.finalwave.model.minigame.MiniGameId;
 
 public final class UserProgressInitializer {
@@ -12,9 +13,9 @@ public final class UserProgressInitializer {
         user.setPlantFood(0);
         user.getStoredBoosts().clear();
         user.getGreenhousePots().clear();
-        for (int y = 1; y <= 4; y++) {
-            for (int x = 1; x <= 5; x++) {
-                user.getGreenhousePots().add(new GreenhousePot(x, y, y > 1));
+        for (int y = 1; y <= GreenhouseLayout.ROWS; y++) {
+            for (int x = 1; x <= GreenhouseLayout.COLUMNS; x++) {
+                user.getGreenhousePots().add(new GreenhousePot(x, y, GreenhouseLayout.startsLocked(y)));
             }
         }
         user.setDailyOfferPlant(null);

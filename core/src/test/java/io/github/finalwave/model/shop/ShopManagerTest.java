@@ -22,7 +22,7 @@ class ShopManagerTest {
         User rich = createUser();
         rich.setCoins(4000);
         assertEquals("success", shop.purchase(rich, "pot", 2, null).status());
-        assertEquals(7, rich.countUnlockedPots());
+        assertEquals(6, rich.countUnlockedPots());
     }
 
     @Test

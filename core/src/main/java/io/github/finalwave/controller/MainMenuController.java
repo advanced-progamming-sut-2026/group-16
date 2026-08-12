@@ -16,7 +16,8 @@ public class MainMenuController extends ViewController {
         NEWS,
         PROFILE,
         LEADERBOARD,
-        SCORE_GAME
+        SCORE_GAME,
+        GREENHOUSE
     }
 
     private final User activeUser;
@@ -61,6 +62,7 @@ public class MainMenuController extends ViewController {
             case PROFILE -> navigator.push(new ProfileController(userDatabase));
             case LEADERBOARD -> navigator.push(new LeaderboardController(userDatabase));
             case SCORE_GAME -> navigator.push(new ScoreGameController(activeUser, userDatabase));
+            case GREENHOUSE -> navigator.push(new GreenhouseController(activeUser, userDatabase));
         }
     }
 
