@@ -33,6 +33,7 @@ public final class PvzButtons {
     public static Actor iconButton(TextureRegion icon, float width, float height, Runnable onClick) {
         Image image = new Image(new TextureRegionDrawable(icon));
         image.setScaling(Scaling.fit);
+        image.setFillParent(true);
         Stack stack = new Stack();
         stack.setSize(width, height);
         stack.add(image);

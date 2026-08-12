@@ -107,6 +107,44 @@ class GreenhouseServiceTest {
         assertEquals("already_ready", service.grow(user, 1, 1).status());
     }
 
+    @Test
+    void unlockSpendsCoinsAndOpensLockedPot() {
+        User user = createUser();
+        user.setCoins(GreenhouseLayout.POT_UNLOCK_COST_COINS);
+        GreenhouseService service = new GreenhouseService(plantRegistry, new FixedRandom(true, 0));
+
+        assertEquals("not_enough_coins", service.unlock(createUser(), 1, 2).status());
+        assertEquals("success", service.unlock(user, 1, 2).status());
+        assertFalse(user.getPotAt(1, 2).isLocked());
+        assertEquals(0, user.getCoins());
+        assertEquals("already_unlocked", service.unlock(user, 1, 2).status());
+    }
+
+    @Test
+    void plantableCountCountsEmptyUnlockedPots() {
+        User user = createUser();
+        GreenhouseService service = new GreenhouseService(plantRegistry, new FixedRandom(true, 0));
+
+        assertEquals(4, service.plantableCount(user));
+        assertEquals("success", service.plant(user, 1, 1).status());
+        assertEquals(3, service.plantableCount(user));
+        assertEquals("success", service.unlockNextLockedFree(user).status());
+        assertEquals(4, service.plantableCount(user));
+        assertFalse(user.getPotAt(1, 2).isLocked());
+    }
+
+    @Test
+    void unlockNextLockedFreeOpensFirstLockedPot() {
+        User user = createUser();
+        GreenhouseService service = new GreenhouseService(plantRegistry, new FixedRandom(true, 0));
+        for (int y = 2; y <= GreenhouseLayout.ROWS; y++) {
+            for (int x = 1; x <= GreenhouseLayout.COLUMNS; x++) {
+                user.getPotAt(x, y).setLocked(false);
+            }
+        }
+        assertEquals("already_unlocked", service.unlockNextLockedFree(user).status());
+    }
+
     private User createUser() {
         User user = new User("greenhouse-user", "hash", "nick", "g@example.com", Gender.MALE);
         UserProgressInitializer.initializeUserProgress(user);

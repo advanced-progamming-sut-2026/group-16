@@ -28,8 +28,8 @@ public class GreenhouseService {
 
     public String formatDisplay(User user) {
         StringBuilder builder = new StringBuilder("Greenhouse:\n");
-        for (int y = 1; y <= 4; y++) {
-            for (int x = 1; x <= 5; x++) {
+        for (int y = 1; y <= GreenhouseLayout.ROWS; y++) {
+            for (int x = 1; x <= GreenhouseLayout.COLUMNS; x++) {
                 GreenhousePot pot = user.getPotAt(x, y);
                 if (pot == null) {
                     builder.append('[').append(x).append(',').append(y).append(": missing] ");
@@ -41,6 +41,54 @@ public class GreenhouseService {
             builder.append('\n');
         }
         return builder.toString().trim();
+    }
+
+    public List<GreenhouseSlotState> slotStates(User user) {
+        List<GreenhouseSlotState> slots = new ArrayList<>();
+        for (int y = 1; y <= GreenhouseLayout.ROWS; y++) {
+            for (int x = 1; x <= GreenhouseLayout.COLUMNS; x++) {
+                slots.add(describe(user.getPotAt(x, y), x, y));
+            }
+        }
+        return slots;
+    }
+
+    public int plantableCount(User user) {
+        int count = 0;
+        for (GreenhouseSlotState slot : slotStates(user)) {
+            if (!slot.locked() && slot.empty()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public UnlockResult unlockNextLockedFree(User user) {
+        for (int y = 1; y <= GreenhouseLayout.ROWS; y++) {
+            for (int x = 1; x <= GreenhouseLayout.COLUMNS; x++) {
+                GreenhousePot pot = user.getPotAt(x, y);
+                if (pot != null && pot.isLocked()) {
+                    pot.setLocked(false);
+                    return UnlockResult.success(x, y);
+                }
+            }
+        }
+        return UnlockResult.alreadyUnlocked();
+    }
+
+    public UnlockResult unlock(User user, int x, int y) {
+        GreenhousePot pot = validatePlantablePot(user, x, y);
+        if (pot == null) {
+            return UnlockResult.invalidLocation();
+        }
+        if (!pot.isLocked()) {
+            return UnlockResult.alreadyUnlocked();
+        }
+        if (!user.spendCoins(GreenhouseLayout.POT_UNLOCK_COST_COINS)) {
+            return UnlockResult.notEnoughCoins();
+        }
+        pot.setLocked(false);
+        return UnlockResult.success();
     }
 
     public PlantingResult plant(User user, int x, int y) {
@@ -127,10 +175,27 @@ public class GreenhouseService {
     }
 
     private GreenhousePot validatePlantablePot(User user, int x, int y) {
-        if (x < 1 || x > 5 || y < 1 || y > 4) {
+        if (!GreenhouseLayout.isValid(x, y)) {
             return null;
         }
         return user.getPotAt(x, y);
+    }
+
+    private GreenhouseSlotState describe(GreenhousePot pot, int x, int y) {
+        if (pot == null) {
+            return new GreenhouseSlotState(x, y, true, true, null, 0L, 0L);
+        }
+        if (pot.isLocked() || pot.isEmpty()) {
+            return new GreenhouseSlotState(x, y, pot.isLocked(), pot.isEmpty(), null, 0L, 0L);
+        }
+        return new GreenhouseSlotState(
+                x,
+                y,
+                false,
+                false,
+                pot.getPlantType(),
+                pot.getPlantedAtMillis(),
+                getGrowthDurationMillis(pot));
     }
 
     private String choosePlantType(User user) {
@@ -219,6 +284,28 @@ public class GreenhouseService {
 
         static GrowResult notEnoughDiamonds() {
             return new GrowResult("not_enough_diamonds", 0);
+        }
+    }
+
+    public record UnlockResult(String status, int x, int y) {
+        static UnlockResult success() {
+            return success(0, 0);
+        }
+
+        static UnlockResult success(int x, int y) {
+            return new UnlockResult("success", x, y);
+        }
+
+        static UnlockResult invalidLocation() {
+            return new UnlockResult("invalid_location", 0, 0);
+        }
+
+        static UnlockResult alreadyUnlocked() {
+            return new UnlockResult("already_unlocked", 0, 0);
+        }
+
+        static UnlockResult notEnoughCoins() {
+            return new UnlockResult("not_enough_coins", 0, 0);
         }
     }
 }

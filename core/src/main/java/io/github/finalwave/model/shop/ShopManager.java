@@ -1,6 +1,7 @@
 package io.github.finalwave.model.shop;
 
 import io.github.finalwave.model.collection.PlayerPlantProgress;
+import io.github.finalwave.model.greenhouse.GreenhouseLayout;
 import io.github.finalwave.model.user.GreenhousePot;
 import io.github.finalwave.model.user.User;
 
@@ -11,7 +12,7 @@ import java.util.Random;
 
 public class ShopManager {
     private final List<ShopItem> permanentItems = List.of(
-            new ShopItem("pot", "Pot", 2000, "coin(s)", 1, "unlock one greenhouse slot"),
+            new ShopItem("pot", "Pot", GreenhouseLayout.POT_UNLOCK_COST_COINS, "coin(s)", 1, "unlock one greenhouse slot"),
             new ShopItem("plant_food", "Plant Food", 3, "diamond(s)", 1, "max 3 stored"),
             new ShopItem("seed_random", "Random Seed Packets", 1000, "coin(s)", 5, "random unlocked plant"),
             new ShopItem("seed_selective", "Selective Seed Packets", 5, "diamond(s)", 10, "requires -t <plant_type>"),
@@ -76,14 +77,14 @@ public class ShopManager {
     }
 
     private PurchaseResult buyPot(User user, int count) {
-        int remainingLocked = 20 - user.countUnlockedPots();
+        int remainingLocked = GreenhouseLayout.SLOT_COUNT - user.countUnlockedPots();
         if (remainingLocked <= 0) {
             return PurchaseResult.maxCapacity("Pot");
         }
         if (count > remainingLocked) {
             return PurchaseResult.maxCapacity("Pot");
         }
-        if (!user.spendCoins(count * 2000)) {
+        if (!user.spendCoins(count * GreenhouseLayout.POT_UNLOCK_COST_COINS)) {
             return PurchaseResult.insufficientCoins();
         }
         for (int i = 0; i < count; i++) {

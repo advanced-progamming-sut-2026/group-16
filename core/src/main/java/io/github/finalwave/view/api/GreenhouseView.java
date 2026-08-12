@@ -11,6 +11,8 @@ public interface GreenhouseView extends View {
 
     void showPlantGrowthAccelerated(int x, int y, int diamondsSpent);
 
+    void showPotUnlocked(int x, int y);
+
     void errorPotLocked(int x, int y);
 
     void errorPotAlreadyOccupied(int x, int y);
@@ -26,6 +28,10 @@ public interface GreenhouseView extends View {
     void errorCannotAccelerateReadyPlant(int x, int y);
 
     void errorInvalidPotLocation(int x, int y);
+
+    void errorNotEnoughCoinsToUnlock();
+
+    void errorPotAlreadyUnlocked(int x, int y);
 
     void errorInvalidCommand();
 }

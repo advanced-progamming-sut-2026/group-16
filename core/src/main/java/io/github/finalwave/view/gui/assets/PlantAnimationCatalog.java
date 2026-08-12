@@ -1,0 +1,90 @@
+package io.github.finalwave.view.gui.assets;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.utils.JsonReader;
+import com.badlogic.gdx.utils.JsonValue;
+
+import java.util.HashMap;
+import java.util.Map;
+
+
+public final class PlantAnimationCatalog {
+    public record ClipSpec(String path, String clip) {
+    }
+
+    public static final ClipSpec SPROUT = new ClipSpec(
+            "768/INITIAL/ZEN_GARDEN/PLANT_ANIMATIONS/SPROUT/SPROUT.PAM",
+            "idle");
+    public static final ClipSpec GROWING_SLOT = new ClipSpec(
+            "768/INITIAL/ZEN_GARDEN/GROWING_PLANT_SLOT/GROWING_PLANT_SLOT.PAM",
+            "idle");
+    public static final ClipSpec PLANT_POOF = new ClipSpec(
+            "768/INITIAL/ZEN_GARDEN/PLANT_POOF/PLANT_POOF.PAM",
+            "animation");
+
+    private static final String TAG = "PlantAnimationCatalog";
+
+    private final Map<String, ClipSpec> idleByKey = new HashMap<>();
+
+    public PlantAnimationCatalog(FileHandle assetsRoot) {
+        FileHandle file = assetsRoot.child("animations.json");
+        if (!file.exists()) {
+            Gdx.app.error(TAG, "animations.json not found");
+            return;
+        }
+        JsonValue root = new JsonReader().parse(file);
+        JsonValue animations = root.get("animations");
+        if (animations == null) {
+            return;
+        }
+        for (JsonValue animation : animations) {
+            String name = animation.getString("name", "");
+            String path = animation.getString("path", "");
+            if (name.isBlank() || path.isBlank() || !path.contains("/PLANT/")) {
+                continue;
+            }
+            String clip = firstClip(animation.get("clips"), "idle");
+            ClipSpec spec = new ClipSpec(path, clip);
+            String key = normalize(name);
+            ClipSpec existing = idleByKey.get(key);
+            if (existing == null || isPreferred(path, existing.path())) {
+                idleByKey.put(key, spec);
+            }
+        }
+    }
+
+    public ClipSpec idleFor(String plantName) {
+        if (plantName == null || plantName.isBlank()) {
+            return SPROUT;
+        }
+        ClipSpec spec = idleByKey.get(normalize(plantName));
+        return spec == null ? SPROUT : spec;
+    }
+
+    private static boolean isPreferred(String candidate, String current) {
+        boolean candidateInitial = candidate.contains("/INITIAL/");
+        boolean currentInitial = current.contains("/INITIAL/");
+        if (candidateInitial != currentInitial) {
+            return candidateInitial;
+        }
+        return candidate.contains("/PLANT/") && !current.contains("/PLANT/");
+    }
+
+    private static String firstClip(JsonValue clips, String preferred) {
+        if (clips == null || !clips.isObject()) {
+            return preferred;
+        }
+        if (clips.has(preferred)) {
+            return preferred;
+        }
+        if (clips.child != null) {
+            return clips.child.name;
+        }
+        return preferred;
+    }
+
+    private static String normalize(String name) {
+        return name.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+    }
+}
