@@ -10,9 +10,14 @@ import java.util.regex.Matcher;
 public class SettingController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
+
     public SettingController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     @Override
@@ -30,7 +35,7 @@ public class SettingController extends ViewController {
 
             switch (cmd) {
                 case MENU_SHOW_CURRENT -> handleShowCurrent();
-                case MENU_EXIT -> handleMenuExit();
+                case MENU_EXIT -> back();
                 case CHANGE_DIFFICULTY -> handleChangeDifficulty(matcher.group("difficultyLevel"));
             }
             return;
@@ -38,12 +43,44 @@ public class SettingController extends ViewController {
         getSettingView().errorInvalidCommand();
     }
 
-    private void handleShowCurrent() {
-        getSettingView().showCurrentMenu(user.getDifficultyLevel());
+    public void back() {
+        navigator.pop();
     }
 
-    private void handleMenuExit() {
-        navigator.pop();
+    public void changeDifficulty(int level) {
+        applyDifficulty(level);
+    }
+
+    public void setGameSpeed(int speed) {
+        int clamped = Math.max(1, Math.min(3, speed));
+        if (user.getGameSpeed() == clamped) {
+            return;
+        }
+        user.setGameSpeed(clamped);
+        userDatabase.saveUserSettings(user);
+        getSettingView().showSettingsMenu(user.getDifficultyLevel());
+    }
+
+    public void setShowLawnGrid(boolean showLawnGrid) {
+        if (user.isShowLawnGrid() == showLawnGrid) {
+            return;
+        }
+        user.setShowLawnGrid(showLawnGrid);
+        userDatabase.saveUserSettings(user);
+        getSettingView().showSettingsMenu(user.getDifficultyLevel());
+    }
+
+    public void setDebugMode(boolean debugMode) {
+        if (user.isDebugMode() == debugMode) {
+            return;
+        }
+        user.setDebugMode(debugMode);
+        userDatabase.saveUserSettings(user);
+        getSettingView().showSettingsMenu(user.getDifficultyLevel());
+    }
+
+    private void handleShowCurrent() {
+        getSettingView().showCurrentMenu(user.getDifficultyLevel());
     }
 
     private void handleChangeDifficulty(String difficultyLevel) {
@@ -54,8 +91,15 @@ public class SettingController extends ViewController {
             getSettingView().errorInvalidDifficultyFormat();
             return;
         }
+        applyDifficulty(level);
+    }
+
+    private void applyDifficulty(int level) {
         if (level < 1 || level > 5) {
             getSettingView().errorDifficultyOutOfRange();
+            return;
+        }
+        if (user.getDifficultyLevel() == level) {
             return;
         }
         user.setDifficultyLevel(level);

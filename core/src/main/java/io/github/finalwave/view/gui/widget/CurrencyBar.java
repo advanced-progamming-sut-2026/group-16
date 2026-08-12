@@ -90,7 +90,7 @@ public final class CurrencyBar extends Table {
     }
 
     private void cheatCoins() {
-        if (user == null) {
+        if (user == null || !user.isDebugMode()) {
             return;
         }
         user.addCoins(COIN_CHEAT_AMOUNT);
@@ -99,7 +99,7 @@ public final class CurrencyBar extends Table {
     }
 
     private void cheatDiamonds() {
-        if (user == null) {
+        if (user == null || !user.isDebugMode()) {
             return;
         }
         user.addDiamonds(DIAMOND_CHEAT_AMOUNT);
