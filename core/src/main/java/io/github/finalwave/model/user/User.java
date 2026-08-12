@@ -24,6 +24,9 @@ public class User {
     private int diamonds;
     private int plantFood;
     private int difficultyLevel = 3;
+    private int gameSpeed = 1;
+    private boolean showLawnGrid;
+    private boolean debugMode;
     private int bestMeowPoint;
     private int gamesPlayed;
     private final ChapterProgress chapterProgress = new ChapterProgress();
@@ -193,6 +196,30 @@ public class User {
 
     public void setDifficultyLevel(int difficultyLevel) {
         this.difficultyLevel = Math.max(1, Math.min(5, difficultyLevel));
+    }
+
+    public int getGameSpeed() {
+        return gameSpeed;
+    }
+
+    public void setGameSpeed(int gameSpeed) {
+        this.gameSpeed = Math.max(1, Math.min(3, gameSpeed));
+    }
+
+    public boolean isShowLawnGrid() {
+        return showLawnGrid;
+    }
+
+    public void setShowLawnGrid(boolean showLawnGrid) {
+        this.showLawnGrid = showLawnGrid;
+    }
+
+    public boolean isDebugMode() {
+        return debugMode;
+    }
+
+    public void setDebugMode(boolean debugMode) {
+        this.debugMode = debugMode;
     }
 
     public int getBestMeowPoint() {
