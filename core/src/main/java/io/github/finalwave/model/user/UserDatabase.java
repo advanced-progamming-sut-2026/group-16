@@ -61,6 +61,7 @@ public class UserDatabase {
             AdventureProgressStore.createTables();
             MiniGameProgressStore.createTables();
             ScoreGameStore.createTables();
+            UserSettingsStore.createTables();
         } catch (SQLException e) {
             throw new RuntimeException("Could not create the database.", e);
         }
@@ -96,6 +97,7 @@ public class UserDatabase {
             replacePlantProgress(conn, user);
             UserProgressStore.initializeUserProgress(conn, user);
             AdventureProgressStore.save(conn, user);
+            UserSettingsStore.save(conn, user);
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not register user.", e);
@@ -226,6 +228,7 @@ public class UserDatabase {
         AdventureProgressStore.load(conn, user);
         MiniGameProgressStore.load(conn, user);
         ScoreGameStore.load(conn, user);
+        UserSettingsStore.load(conn, user);
         return user;
     }
 
@@ -239,6 +242,19 @@ public class UserDatabase {
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not save best meowpoint.", e);
+        }
+    }
+
+    public void saveUserSettings(User user) {
+        if (user == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            UserSettingsStore.save(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save user settings.", e);
         }
     }
 
