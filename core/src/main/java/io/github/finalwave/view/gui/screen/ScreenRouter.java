@@ -4,11 +4,14 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import io.github.finalwave.PvzGame;
+import io.github.finalwave.controller.LeaderboardController;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
 import io.github.finalwave.controller.NewsController;
 import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.ViewController;
+import io.github.finalwave.model.leaderboard.LeaderboardEntry;
+import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
 
 import java.util.List;
 
@@ -23,6 +26,7 @@ public final class ScreenRouter {
     private LoginScreen loginScreen;
     private MainMenuScreen mainMenuScreen;
     private NewsScreen newsScreen;
+    private LeaderboardScreen leaderboardScreen;
 
     public ScreenRouter(PvzGame game) {
         this.game = game;
@@ -32,11 +36,13 @@ public final class ScreenRouter {
         return controller instanceof RegistrationController
                 || controller instanceof LoginController
                 || controller instanceof MainMenuController
-                || controller instanceof NewsController;
+                || controller instanceof NewsController
+                || controller instanceof LeaderboardController;
     }
 
     public boolean supportsDestination(MainMenuController.Destination destination) {
-        return destination == MainMenuController.Destination.NEWS;
+        return destination == MainMenuController.Destination.NEWS
+                || destination == MainMenuController.Destination.LEADERBOARD;
     }
 
     public void showFor(ViewController controller) {
@@ -48,6 +54,8 @@ public final class ScreenRouter {
             showMainMenu(mainMenuController);
         } else if (controller instanceof NewsController newsController) {
             showNews(newsController);
+        } else if (controller instanceof LeaderboardController leaderboardController) {
+            showLeaderboard(leaderboardController);
         } else {
             Gdx.app.log(TAG, "No GUI screen registered for " + controller.getClass().getSimpleName());
         }
@@ -83,6 +91,14 @@ public final class ScreenRouter {
         }
         newsScreen.bind(controller);
         setScreen(newsScreen);
+    }
+
+    public void showLeaderboard(LeaderboardController controller) {
+        if (leaderboardScreen == null) {
+            leaderboardScreen = new LeaderboardScreen(game);
+        }
+        leaderboardScreen.bind(controller);
+        setScreen(leaderboardScreen);
     }
 
     public MenuScreen currentMenuScreen() {
@@ -133,6 +149,15 @@ public final class ScreenRouter {
         }
     }
 
+    public void showLeaderboardTable(
+            List<LeaderboardEntry> entries,
+            LeaderboardSortColumn column,
+            boolean ascending) {
+        if (leaderboardScreen != null) {
+            leaderboardScreen.showLeaderboard(entries, column, ascending);
+        }
+    }
+
     public void dispose() {
         if (signupScreen != null) {
             signupScreen.dispose();
@@ -145,6 +170,9 @@ public final class ScreenRouter {
         }
         if (newsScreen != null) {
             newsScreen.dispose();
+        }
+        if (leaderboardScreen != null) {
+            leaderboardScreen.dispose();
         }
     }
 
