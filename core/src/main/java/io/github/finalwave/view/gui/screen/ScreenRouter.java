@@ -9,11 +9,13 @@ import io.github.finalwave.controller.LeaderboardController;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
 import io.github.finalwave.controller.NewsController;
+import io.github.finalwave.controller.ProfileController;
 import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.SettingController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.model.leaderboard.LeaderboardEntry;
 import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
+import io.github.finalwave.model.user.User;
 
 import java.util.List;
 
@@ -31,6 +33,7 @@ public final class ScreenRouter {
     private LeaderboardScreen leaderboardScreen;
     private SettingScreen settingScreen;
     private GreenhouseScreen greenhouseScreen;
+    private ProfileScreen profileScreen;
 
     public ScreenRouter(PvzGame game) {
         this.game = game;
@@ -43,14 +46,16 @@ public final class ScreenRouter {
                 || controller instanceof NewsController
                 || controller instanceof LeaderboardController
                 || controller instanceof SettingController
-                || controller instanceof GreenhouseController;
+                || controller instanceof GreenhouseController
+                || controller instanceof ProfileController;
     }
 
     public boolean supportsDestination(MainMenuController.Destination destination) {
         return destination == MainMenuController.Destination.NEWS
                 || destination == MainMenuController.Destination.LEADERBOARD
                 || destination == MainMenuController.Destination.SETTINGS
-                || destination == MainMenuController.Destination.GREENHOUSE;
+                || destination == MainMenuController.Destination.GREENHOUSE
+                || destination == MainMenuController.Destination.PROFILE;
     }
 
     public void showFor(ViewController controller) {
@@ -68,6 +73,8 @@ public final class ScreenRouter {
             showSettings(settingController);
         } else if (controller instanceof GreenhouseController greenhouseController) {
             showGreenhouse(greenhouseController);
+        } else if (controller instanceof ProfileController profileController) {
+            showProfile(profileController);
         } else {
             Gdx.app.log(TAG, "No GUI screen registered for " + controller.getClass().getSimpleName());
         }
@@ -127,6 +134,14 @@ public final class ScreenRouter {
         }
         greenhouseScreen.bind(controller);
         setScreen(greenhouseScreen);
+    }
+
+    public void showProfile(ProfileController controller) {
+        if (profileScreen == null) {
+            profileScreen = new ProfileScreen(game);
+        }
+        profileScreen.bind(controller);
+        setScreen(profileScreen);
     }
 
     public MenuScreen currentMenuScreen() {
@@ -204,6 +219,18 @@ public final class ScreenRouter {
         }
     }
 
+    public void refreshProfile(User user) {
+        if (profileScreen != null) {
+            profileScreen.refreshFromUser(user);
+        }
+    }
+
+    public void closeProfilePasswordModal() {
+        if (profileScreen != null) {
+            profileScreen.closePasswordModal();
+        }
+    }
+
     public void dispose() {
         if (signupScreen != null) {
             signupScreen.dispose();
@@ -225,6 +252,9 @@ public final class ScreenRouter {
         }
         if (greenhouseScreen != null) {
             greenhouseScreen.dispose();
+        }
+        if (profileScreen != null) {
+            profileScreen.dispose();
         }
     }
 

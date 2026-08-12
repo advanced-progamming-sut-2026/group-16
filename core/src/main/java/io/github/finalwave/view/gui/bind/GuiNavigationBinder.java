@@ -6,6 +6,7 @@ import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
 import io.github.finalwave.controller.NavigationBinder;
 import io.github.finalwave.controller.NewsController;
+import io.github.finalwave.controller.ProfileController;
 import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.SettingController;
 import io.github.finalwave.controller.ViewController;
@@ -14,6 +15,7 @@ import io.github.finalwave.view.gui.GreenhouseViewGui;
 import io.github.finalwave.view.gui.LeaderboardViewGui;
 import io.github.finalwave.view.gui.MainMenuViewGui;
 import io.github.finalwave.view.gui.NewsViewGui;
+import io.github.finalwave.view.gui.ProfileViewGui;
 import io.github.finalwave.view.gui.SettingViewGui;
 import io.github.finalwave.view.gui.screen.ScreenRouter;
 
@@ -26,6 +28,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final LeaderboardViewGui leaderboardView;
     private final SettingViewGui settingView;
     private final GreenhouseViewGui greenhouseView;
+    private final ProfileViewGui profileView;
 
     public GuiNavigationBinder(ScreenRouter router) {
         this.router = router;
@@ -35,6 +38,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.leaderboardView = new LeaderboardViewGui(router);
         this.settingView = new SettingViewGui(router);
         this.greenhouseView = new GreenhouseViewGui(router);
+        this.profileView = new ProfileViewGui(router);
     }
 
     @Override
@@ -54,6 +58,9 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof GreenhouseController greenhouseController) {
             greenhouseView.bindController(greenhouseController);
             newController.setView(greenhouseView);
+        } else if (newController instanceof ProfileController profileController) {
+            profileView.bindController(profileController);
+            newController.setView(profileView);
         } else if (newController instanceof RegistrationController
                 || newController instanceof LoginController) {
             authView.bindController(newController);
