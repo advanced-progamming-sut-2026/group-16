@@ -38,13 +38,29 @@ public class LeaderboardController extends ViewController {
             }
             switch (cmd) {
                 case MENU_SHOW_CURRENT -> getLeaderboardView().showCurrentMenu();
-                case MENU_EXIT -> navigator.pop();
-                case SORT -> handleSort(matcher.group("column"), matcher.group("order"));
-                case REFRESH -> handleRefresh();
+                case MENU_EXIT -> back();
+                case SORT -> sort(matcher.group("column"), matcher.group("order"));
+                case REFRESH -> refresh();
             }
             return;
         }
         getLeaderboardView().errorInvalidCommand();
+    }
+
+    public void sort(String columnRaw) {
+        sort(columnRaw, null);
+    }
+
+    public void sort(String columnRaw, String orderRaw) {
+        handleSort(columnRaw, orderRaw);
+    }
+
+    public void refresh() {
+        handleRefresh();
+    }
+
+    public void back() {
+        navigator.pop();
     }
 
     private void handleSort(String columnRaw, String orderRaw) {
