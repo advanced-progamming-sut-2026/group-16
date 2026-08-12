@@ -25,6 +25,30 @@ public class ProfileController extends ViewController {
         this.userDatabase = userDatabase;
     }
 
+    public User getUser() {
+        return currentUser();
+    }
+
+    public void back() {
+        handleMenuExit();
+    }
+
+    public void changeUsername(String username) {
+        handleChangeUsername(username);
+    }
+
+    public void changeNickname(String nickname) {
+        handleChangeNickname(nickname);
+    }
+
+    public void changeEmail(String email) {
+        handleChangeEmail(email);
+    }
+
+    public void changePassword(String newPassword, String oldPassword) {
+        handleChangePassword(newPassword, oldPassword);
+    }
+
     @Override
     public void displayMenu() {
         getProfileView().showProfileMenu();
@@ -137,6 +161,7 @@ public class ProfileController extends ViewController {
         user.setUsername(username);
         persistProfile(user);
         refreshStayLoggedInSession(user);
+        getProfileView().showUserInfo(user);
     }
 
     private void handleChangeNickname(String nickname) {
@@ -167,6 +192,7 @@ public class ProfileController extends ViewController {
     private void applyNicknameChange(User user, String nickname) {
         user.setNickname(nickname);
         persistProfile(user);
+        getProfileView().showUserInfo(user);
     }
 
     private void handleChangeEmail(String email) {
@@ -223,6 +249,7 @@ public class ProfileController extends ViewController {
     private void applyEmailChange(User user, String email) {
         user.setEmail(email);
         persistProfile(user);
+        getProfileView().showUserInfo(user);
     }
 
     private void handleChangePassword(String newPassword, String oldPassword) {
@@ -273,6 +300,7 @@ public class ProfileController extends ViewController {
         user.setPasswordHash(hash);
         userDatabase.updatePassword(user.getUsername(), hash);
         refreshStayLoggedInSession(user);
+        getProfileView().showUserInfo(user);
     }
 
     private void persistProfile(User user) {
