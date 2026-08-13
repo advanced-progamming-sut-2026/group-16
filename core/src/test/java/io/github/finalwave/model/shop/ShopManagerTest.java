@@ -6,10 +6,12 @@ import io.github.finalwave.model.user.UserProgressInitializer;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ShopManagerTest {
@@ -77,6 +79,88 @@ class ShopManagerTest {
         assertEquals("success", shop.purchase(user, "daily", 1, null).status());
         assertTrue(user.isDailyOfferPurchased());
         assertEquals("daily_purchased", shop.purchase(user, "daily", 1, null).status());
+    }
+
+    @Test
+    void offersListDailyFirstThenPermanentItems() {
+        User user = createUser();
+        ShopManager shop = new ShopManager(new FixedRandom(1));
+        List<ShopOffer> offers = shop.offers(user);
+
+        assertEquals(6, offers.size());
+        ShopOffer daily = offers.get(0);
+        assertEquals("daily", daily.id());
+        assertEquals("Sunflower", daily.previewPlant());
+        assertFalse(daily.soldOut());
+        assertNotNull(daily.remainingLabel());
+        assertTrue(daily.remainingLabel().contains("remaining"));
+        assertEquals("1600 coins", daily.priceLabel());
+
+        assertEquals("pot", offers.get(1).id());
+        assertEquals("plant_food", offers.get(2).id());
+        assertEquals("seed_random", offers.get(3).id());
+        assertEquals("seed_selective", offers.get(4).id());
+        assertTrue(offers.get(4).requiresPlantType());
+        assertEquals("gem_to_coin", offers.get(5).id());
+        assertEquals("5 diamonds", offers.get(5).priceLabel());
+        assertEquals(ShopTab.SEEDS, daily.tab());
+        assertEquals(ShopTab.GARDEN, offers.get(1).tab());
+        assertEquals(ShopTab.SEEDS, offers.get(3).tab());
+        assertEquals(ShopTab.COINS, offers.get(5).tab());
+    }
+
+    @Test
+    void coinPacksUseExistingGemToCoinRate() {
+        User user = createUser();
+        ShopManager shop = new ShopManager(new FixedRandom(0));
+        List<ShopOffer> packs = shop.offers(user, ShopTab.COINS);
+        assertEquals(8, packs.size());
+        assertEquals("gem_to_coin", packs.get(0).id());
+        assertEquals(1, packs.get(0).purchaseCount());
+        assertEquals(5, packs.get(0).price());
+        assertEquals("x500", packs.get(0).quantityLabel());
+        assertEquals(10, packs.get(3).purchaseCount());
+        assertEquals(50, packs.get(3).price());
+        assertEquals("x5,000", packs.get(3).quantityLabel());
+    }
+
+    @Test
+    void seedTabContainsDailyAndSeedPackets() {
+        User user = createUser();
+        ShopManager shop = new ShopManager(new FixedRandom(1));
+        List<ShopOffer> seeds = shop.offers(user, ShopTab.SEEDS);
+        assertEquals(3, seeds.size());
+        assertEquals("daily", seeds.get(0).id());
+        assertEquals("seed_random", seeds.get(1).id());
+        assertEquals("seed_selective", seeds.get(2).id());
+        assertTrue(seeds.get(2).requiresPlantType());
+    }
+
+    @Test
+    void dailyOfferSoldOutAfterPurchase() {
+        User user = createUser();
+        user.setCoins(2000);
+        ShopManager shop = new ShopManager(new FixedRandom(1));
+        shop.offers(user);
+        assertEquals("success", shop.purchase(user, "daily", 1, null).status());
+
+        ShopOffer daily = shop.offers(user).get(0);
+        assertEquals("daily", daily.id());
+        assertTrue(daily.soldOut());
+    }
+
+    @Test
+    void potAndPlantFoodSoldOutAtCapacity() {
+        User user = createUser();
+        user.getGreenhousePots().forEach(pot -> pot.setLocked(false));
+        user.setPlantFood(3);
+        ShopManager shop = new ShopManager(new FixedRandom(0));
+        List<ShopOffer> offers = shop.offers(user);
+
+        ShopOffer pot = offers.stream().filter(offer -> "pot".equals(offer.id())).findFirst().orElseThrow();
+        ShopOffer plantFood = offers.stream().filter(offer -> "plant_food".equals(offer.id())).findFirst().orElseThrow();
+        assertTrue(pot.soldOut());
+        assertTrue(plantFood.soldOut());
     }
 
     private User createUser() {

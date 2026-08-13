@@ -2,10 +2,13 @@ package io.github.finalwave.controller;
 
 import io.github.finalwave.model.command.ShopMenuCommands;
 import io.github.finalwave.model.shop.ShopManager;
+import io.github.finalwave.model.shop.ShopOffer;
+import io.github.finalwave.model.shop.ShopTab;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.ShopView;
 
+import java.util.List;
 import java.util.regex.Matcher;
 
 public class ShopController extends ViewController {
@@ -17,6 +20,34 @@ public class ShopController extends ViewController {
         this.user = user;
         this.userDatabase = userDatabase;
         this.shopManager = new ShopManager();
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void back() {
+        navigator.pop();
+    }
+
+    public List<ShopOffer> offers() {
+        List<ShopOffer> offers = shopManager.offers(user);
+        userDatabase.saveUserWallet(user);
+        return offers;
+    }
+
+    public List<ShopOffer> offers(ShopTab tab) {
+        List<ShopOffer> offers = shopManager.offers(user, tab);
+        userDatabase.saveUserWallet(user);
+        return offers;
+    }
+
+    public List<String> unlockedPlantNames() {
+        return user.getPlantProgress().getUnlockedPlantNames();
+    }
+
+    public void buy(String itemId, int count, String plantType) {
+        applyPurchase(shopManager.purchase(user, itemId, count, plantType));
     }
 
     @Override
@@ -71,7 +102,10 @@ public class ShopController extends ViewController {
             return;
         }
 
-        ShopManager.PurchaseResult result = shopManager.purchase(user, itemId, itemCount, plantType);
+        buy(itemId, itemCount, plantType);
+    }
+
+    private void applyPurchase(ShopManager.PurchaseResult result) {
         switch (result.status()) {
             case "invalid_count" -> getShopView().errorInvalidBuyCount();
             case "item_not_found" -> getShopView().errorItemNotFound(result.errorArg());

@@ -160,6 +160,8 @@ public final class GreenhouseScreen extends MenuScreen {
     }
 
     private void openShop() {
-        toastMessage("Coming soon");
+        if (controller != null) {
+            controller.openShop();
+        }
     }
 }
