@@ -22,6 +22,7 @@ public final class PlantAnimationCatalog {
     public static final ClipSpec PLANT_POOF = new ClipSpec(
             "768/INITIAL/ZEN_GARDEN/PLANT_POOF/PLANT_POOF.PAM",
             "animation");
+    public static final String UPGRADE_BADGE_PAM = "768/INITIAL/UI/LEVELING/UPGRADE_BADGE/UPGRADE_BADGE.PAM";
 
     private static final String TAG = "PlantAnimationCatalog";
 

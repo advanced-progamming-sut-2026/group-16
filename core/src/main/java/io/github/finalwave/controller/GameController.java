@@ -32,6 +32,22 @@ public class GameController extends ViewController {
         handleMenuExit();
     }
 
+    public void openGreenhouse() {
+        handleGreenhouse();
+    }
+
+    public void openSettings() {
+        navigator.push(new SettingController(user, userDatabase));
+    }
+
+    public void openCollection() {
+        navigator.push(new CollectionController(user, userDatabase));
+    }
+
+    public void openShop() {
+        navigator.push(new ShopController(user, userDatabase));
+    }
+
     public void enterChapter(ChapterId chapterId) {
         if (chapterId == null) {
             getGameView().errorUnknownChapter("");

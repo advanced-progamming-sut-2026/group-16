@@ -13,6 +13,8 @@ import java.util.List;
 
 public final class ChapterSelectScreen extends MenuScreen {
     private static final float BACK_SIZE = 96f;
+    private static final float HUD_ICON = 88f;
+    private static final float STORE_SIZE = 92f;
 
     private GameController controller;
     private int focusIndex;
@@ -80,9 +82,33 @@ public final class ChapterSelectScreen extends MenuScreen {
                     }
                 });
         topBar.add(back).size(BACK_SIZE).padLeft(16f).padTop(12f);
+        topBar.add(hudShortcut(MenuAssetIds.HUD_SETTINGS_ICON, () -> {
+            if (controller != null) {
+                controller.openSettings();
+            }
+        })).size(HUD_ICON).padLeft(8f).padTop(14f);
+        topBar.add(hudShortcut(MenuAssetIds.ALMANAC_ICON, () -> {
+            if (controller != null) {
+                controller.openCollection();
+            }
+        })).size(HUD_ICON).padLeft(8f).padTop(14f);
+        topBar.add(hudShortcut(MenuAssetIds.GREENHOUSE_ICON, () -> {
+            if (controller != null) {
+                controller.openGreenhouse();
+            }
+        })).size(HUD_ICON).padLeft(8f).padTop(14f);
         topBar.add().expandX();
-        topBar.add(currencyBar).padTop(14f).padRight(24f);
+        topBar.add(currencyBar).padTop(14f);
+        topBar.add(hudShortcut(MenuAssetIds.STORE_ICON, () -> {
+            if (controller != null) {
+                controller.openShop();
+            }
+        })).size(STORE_SIZE).padLeft(8f).padRight(16f).padTop(10f);
         hudLayer.add(topBar).growX();
+    }
+
+    private Actor hudShortcut(String iconId, Runnable onClick) {
+        return PvzButtons.iconButton(assets.region(iconId), HUD_ICON, HUD_ICON, onClick);
     }
 
     private void playFocused() {

@@ -9,6 +9,7 @@ public final class MenuAssetIds {
     public static final String CLOUD_ICON = "IMAGE_UI_MAINMENU_MM_ICLOUDICON";
     public static final String NEWS_ICON = "IMAGE_UI_MAINMENU_MM_NEWSICON";
     public static final String SETTINGS_ICON = "IMAGE_UI_MAINMENU_MM_SETTINGS";
+    public static final String HUD_SETTINGS_ICON = "IMAGE_UI_HUD_SETTINGSBUTTON_BUTTONS_HUD_SETTINGS_NORMAL";
     public static final String LEADERBOARD_ICON = "IMAGE_UI_GAMECENTER_ICON";
     public static final String QUESTS_ICON = "IMAGE_UI_QUESTS_QUEST_ICON_BROWN";
     public static final String COIN_ICON = "IMAGE_UI_GENERIC_BUTTONS_COIN_BUY_NORMAL";
@@ -47,12 +48,50 @@ public final class MenuAssetIds {
     public static final String STORE_TAB_ICON_SEEDS = "IMAGE_UI_STORE_TABICONS_PLANTS";
     public static final String STORE_TAB_ICON_COINS = "IMAGE_UI_THYMED_EVENTS_ECS_CONVRT_COIN";
     public static final String STORE_TAB_ICON_GARDEN = "IMAGE_UI_SPROUTS_STACK_1";
+    public static final String STORE_TAB_ICON_ZOMBIES = "IMAGE_UI_STORE_TABICONS_ZOMBIES";
     public static final String SEED_PACKET_MULTI = "IMAGE_UI_STOREMULTI_SEEDPACKETICON";
     public static final String SEED_PACKET_PREFIX = "IMAGE_UI_PACKETS_";
     public static final String COIN_ICON_SMALL = "IMAGE_UI_GENERIC_COIN_ICON_SMALL";
     public static final String GEM_ICON_SMALL = "IMAGE_UI_GENERIC_GEM_ICON_SMALL";
     public static final String STORE_PRICE_COIN = "IMAGE_UI_HUD_INGAME_COIN";
     public static final String STORE_PRICE_GEM = "IMAGE_UI_HUD_INGAME_GEM";
+    public static final String ALMANAC_ICON = "IMAGE_UI_HUD_ALMANACBUTTON_BUTTONS_HUD_ALMANAC_NORMAL";
+    public static final String ALMANAC_TAB_PLANTS_ACTIVE = "IMAGE_UI_ALMANAC_TABS_PLANTS_ACTIVE";
+    public static final String ALMANAC_TAB_PLANTS_IDLE = "IMAGE_UI_ALMANAC_TABS_PLANTS_DOWN";
+    public static final String ALMANAC_TAB_ZOMBIES_ACTIVE = "IMAGE_UI_ALMANAC_TABS_ZOMBIES_ACTIVE";
+    public static final String ALMANAC_TAB_ZOMBIES_IDLE = "IMAGE_UI_ALMANAC_TABS_ZOMBIES_DOWN";
+    public static final String ALMANAC_PLANT_CARD = "IMAGE_UI_CARDS_ALMANAC_PLANT_CARD";
+    public static final String ALMANAC_ZOMBIE_CARD = "IMAGE_UI_CARDS_ALMANAC_ZOMBIE_CARD";
+    public static final String ALMANAC_ZOMBIE_EMPTY = "IMAGE_UI_ALMANAC_ZOMBIE_SEED_PKT";
+    public static final String ALMANAC_ZOMBIE_READY = "IMAGE_UI_ALMANAC_PACKETS_ZOMBIES_READY";
+    public static final String ALMANAC_ZOMBIE_TUTORIAL = "IMAGE_UI_ALMANAC_PACKETS_ZOMBIES_TUTORIAL";
+    public static final String ALMANAC_FILTER_UP = "IMAGE_UI_ALMANAC_FILTER_BUTTON_UP";
+    public static final String ALMANAC_FILTER_DOWN = "IMAGE_UI_ALMANAC_FILTER_BUTTON_DOWN";
+    public static final String ALMANAC_FUELBAR = "IMAGE_UI_ALMANAC_PLANTS_PLANT_FUELBAR";
+    public static final String ALMANAC_FUELBAR_FILL = "IMAGE_UI_ALMANAC_GENERAL_FUELBAR_FILL";
+    public static final String ALMANAC_STAT_FRAME = "IMAGE_UI_ALMANAC_ALMANAC_STAT_BACKGROUND";
+    public static final String ALMANAC_STAT_SUN = "IMAGE_UI_ALMANAC_ALMANAC_STAT_ICON_SUNCOST";
+    public static final String ALMANAC_STAT_RECHARGE = "IMAGE_UI_ALMANAC_PLANTS_RECHARGE_ICON";
+    public static final String ALMANAC_STAT_TOUGHNESS = "IMAGE_UI_ALMANAC_PLANTS_TOUGHNESS_ICON";
+    public static final String ALMANAC_STAT_FAMILY = "IMAGE_UI_ALMANAC_ALMANAC_STAT_ICON_FAMILY";
+    public static final String ALMANAC_STAT_PLANTFOOD = "IMAGE_UI_ALMANAC_ALMANAC_STAT_ICON_PLANTFOOD";
+    public static final String ALMANAC_STAT_DAMAGE = "IMAGE_UI_ALMANAC_PLANTS_DAMAGE_ICON";
+    public static final String ALMANAC_STAT_SUN_PRODUCTION = "IMAGE_UI_ALMANAC_ALMANAC_STAT_ICON_SUNPRODUCTION";
+    public static final String ALMANAC_STAT_RANGE = "IMAGE_UI_ALMANAC_PLANTS_RANGE_ICON";
+    public static final String ALMANAC_STAT_CATEGORY = "IMAGE_UI_ALMANAC_ALMANAC_PIERCE";
+    public static final String ALMANAC_LAWN = "IMAGE_BACKGROUNDS_FRONTLAWN_ROW_05";
+    public static final String PACKET_HOMELESS = "IMAGE_UI_PACKETS_HOMELESS";
+    public static final String PACKET_BOOST = "IMAGE_UI_PACKETS_BOOST";
+    public static final String MINTFAM_SUN = "IMAGE_UI_PACKETS_MINTFAM_SUN";
+    public static final String MINTFAM_PEA = "IMAGE_UI_PACKETS_MINTFAM_PEASHOOTER";
+    public static final String ALMANAC_STAT_ZOMBIE_TOUGHNESS = "IMAGE_UI_ALMANAC_ZOMBIES_ZOMBIETOUGHNESS_ICON";
+    public static final String ALMANAC_STAT_ZOMBIE_SPEED = "IMAGE_UI_ALMANAC_ZOMBIES_ZOMBIESPEED_ICON";
+    public static final String ALMANAC_NAV_NEXT = "IMAGE_UI_ALMANAC_STATS_SCREEN_NAV_ARROW_NEXT";
+    public static final String ALMANAC_NAV_PREV = "IMAGE_UI_ALMANAC_STATS_SCREEN_NAV_ARROW_PREVIOUS";
+    public static final String ALMANAC_DETAIL_BACK = "IMAGE_UI_ALMANAC_BUTTONS_HUD_BACK_NORMAL";
+    public static final String ALMANAC_PREVIEW = "IMAGE_UI_CARDS_STORE_STORE_CARD_SINGLE_BACKGROUND";
+    public static final String ZOMBIE_PACKET_PREFIX = "IMAGE_UI_ALMANAC_PACKETS_ZOMBIES_";
+    public static final String LOCK_ICON = "IMAGE_UI_CARDS_LOCK_MEDIUM";
 
     public static final String[] ALL = {
             BACKGROUND,
@@ -62,6 +101,7 @@ public final class MenuAssetIds {
             CLOUD_ICON,
             NEWS_ICON,
             SETTINGS_ICON,
+            HUD_SETTINGS_ICON,
             LEADERBOARD_ICON,
             QUESTS_ICON,
             COIN_ICON,
@@ -100,11 +140,48 @@ public final class MenuAssetIds {
             STORE_TAB_ICON_SEEDS,
             STORE_TAB_ICON_COINS,
             STORE_TAB_ICON_GARDEN,
+            STORE_TAB_ICON_ZOMBIES,
             SEED_PACKET_MULTI,
             COIN_ICON_SMALL,
             GEM_ICON_SMALL,
             STORE_PRICE_COIN,
-            STORE_PRICE_GEM
+            STORE_PRICE_GEM,
+            ALMANAC_ICON,
+            ALMANAC_TAB_PLANTS_ACTIVE,
+            ALMANAC_TAB_PLANTS_IDLE,
+            ALMANAC_TAB_ZOMBIES_ACTIVE,
+            ALMANAC_TAB_ZOMBIES_IDLE,
+            ALMANAC_PLANT_CARD,
+            ALMANAC_ZOMBIE_CARD,
+            ALMANAC_ZOMBIE_EMPTY,
+            ALMANAC_ZOMBIE_READY,
+            ALMANAC_ZOMBIE_TUTORIAL,
+            ALMANAC_FILTER_UP,
+            ALMANAC_FILTER_DOWN,
+            ALMANAC_FUELBAR,
+            ALMANAC_FUELBAR_FILL,
+            ALMANAC_STAT_FRAME,
+            ALMANAC_STAT_SUN,
+            ALMANAC_STAT_RECHARGE,
+            ALMANAC_STAT_TOUGHNESS,
+            ALMANAC_STAT_FAMILY,
+            ALMANAC_STAT_PLANTFOOD,
+            ALMANAC_STAT_DAMAGE,
+            ALMANAC_STAT_SUN_PRODUCTION,
+            ALMANAC_STAT_RANGE,
+            ALMANAC_STAT_CATEGORY,
+            ALMANAC_STAT_ZOMBIE_TOUGHNESS,
+            ALMANAC_STAT_ZOMBIE_SPEED,
+            ALMANAC_NAV_NEXT,
+            ALMANAC_NAV_PREV,
+            ALMANAC_DETAIL_BACK,
+            ALMANAC_PREVIEW,
+            ALMANAC_LAWN,
+            PACKET_HOMELESS,
+            PACKET_BOOST,
+            MINTFAM_SUN,
+            MINTFAM_PEA,
+            LOCK_ICON
     };
 
     private MenuAssetIds() {

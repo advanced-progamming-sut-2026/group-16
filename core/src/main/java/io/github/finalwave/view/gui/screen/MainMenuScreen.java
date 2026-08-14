@@ -84,8 +84,6 @@ public final class MainMenuScreen extends MenuScreen {
                 () -> toastMessage("Coming soon"));
         Actor news = PvzButtons.framedIconButton(skin, assets.region(MenuAssetIds.NEWS_ICON), SIDE_ICON,
                 () -> openDestination(MainMenuController.Destination.NEWS));
-        Actor greenhouse = PvzButtons.framedIconButton(skin, assets.region(MenuAssetIds.GREENHOUSE_ICON), SIDE_ICON,
-                () -> openDestination(MainMenuController.Destination.GREENHOUSE));
         Actor settings = PvzButtons.framedIconButton(skin, assets.region(MenuAssetIds.SETTINGS_ICON), SIDE_ICON,
                 () -> openDestination(MainMenuController.Destination.SETTINGS));
         Actor leaderboard = PvzButtons.framedIconButton(skin, assets.region(MenuAssetIds.LEADERBOARD_ICON), SIDE_ICON,
@@ -111,22 +109,26 @@ public final class MainMenuScreen extends MenuScreen {
 
         Table leftCluster = new Table();
         leftCluster.add(cloud).size(SIDE_ICON).padRight(18);
-        leftCluster.add(newsStack).size(SIDE_ICON).padRight(18);
-        leftCluster.add(greenhouse).size(SIDE_ICON);
+        leftCluster.add(newsStack).size(SIDE_ICON);
 
         Table rightCluster = new Table();
         rightCluster.add(settings).size(SIDE_ICON).padRight(18);
         rightCluster.add(leaderboard).size(SIDE_ICON);
 
-
         Table centerCluster = new Table();
         centerCluster.add(profileBar).size(PROFILE_WIDTH, PROFILE_HEIGHT).padBottom(14).row();
         centerCluster.add(play).width(PLAY_WIDTH).height(PLAY_HEIGHT);
 
-        Table bottom = new Table();
-        bottom.add(leftCluster).expandX().left().padLeft(48).bottom();
-        bottom.add(centerCluster).bottom().padBottom(8);
-        bottom.add(rightCluster).expandX().right().padRight(48).bottom();
+        Table sides = new Table();
+        sides.add(leftCluster).expandX().left().padLeft(48).bottom();
+        sides.add(rightCluster).expandX().right().padRight(48).bottom();
+
+        Table centerHost = new Table();
+        centerHost.add(centerCluster).center().bottom().padBottom(8);
+
+        Stack bottom = new Stack();
+        bottom.add(sides);
+        bottom.add(centerHost);
 
         contentLayer.add(top).growX().row();
         contentLayer.add(logo).size(LOGO_WIDTH, logoHeight).padTop(28).row();

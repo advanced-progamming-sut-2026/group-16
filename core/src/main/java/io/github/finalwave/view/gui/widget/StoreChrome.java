@@ -40,6 +40,20 @@ public final class StoreChrome {
 
     private static Texture panelTexture;
     private static NinePatchDrawable panelDrawable;
+    private static Texture purpleUpTexture;
+    private static Texture purpleDownTexture;
+    private static NinePatchDrawable purpleUpDrawable;
+    private static NinePatchDrawable purpleDownDrawable;
+
+    private static final int BUTTON_PATCH = 64;
+    private static final int BUTTON_SPLIT = 22;
+    private static final float BUTTON_RADIUS = 18f;
+    private static final float BUTTON_RIM = 5f;
+    private static final Color PURPLE_FILL = rgb(162, 74, 220);
+    private static final Color PURPLE_FILL_DOWN = rgb(126, 48, 178);
+    private static final Color PURPLE_RIM = rgb(242, 226, 255);
+    private static final Color PURPLE_OUTER = rgb(58, 22, 92);
+    private static final Color PURPLE_SHINE = rgb(214, 168, 255);
 
     private StoreChrome() {
     }
@@ -56,6 +70,16 @@ public final class StoreChrome {
             panelTexture.dispose();
             panelTexture = null;
             panelDrawable = null;
+        }
+        if (purpleUpTexture != null) {
+            purpleUpTexture.dispose();
+            purpleUpTexture = null;
+            purpleUpDrawable = null;
+        }
+        if (purpleDownTexture != null) {
+            purpleDownTexture.dispose();
+            purpleDownTexture = null;
+            purpleDownDrawable = null;
         }
     }
 
@@ -77,6 +101,24 @@ public final class StoreChrome {
 
     public static Drawable coinButton(TextureRegion region) {
         return patch(region, COIN_EDGE, COIN_EDGE, COIN_VERT, COIN_VERT);
+    }
+
+    public static Drawable purpleButton() {
+        if (purpleUpDrawable == null) {
+            purpleUpTexture = buttonTexture(PURPLE_FILL, PURPLE_SHINE);
+            purpleUpDrawable = new NinePatchDrawable(new NinePatch(
+                    purpleUpTexture, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT));
+        }
+        return purpleUpDrawable;
+    }
+
+    public static Drawable purpleButtonDown() {
+        if (purpleDownDrawable == null) {
+            purpleDownTexture = buttonTexture(PURPLE_FILL_DOWN, PURPLE_FILL);
+            purpleDownDrawable = new NinePatchDrawable(new NinePatch(
+                    purpleDownTexture, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT));
+        }
+        return purpleDownDrawable;
     }
 
     public static Drawable tabBody(TextureRegion region) {
@@ -126,6 +168,44 @@ public final class StoreChrome {
         panelTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         pixmap.dispose();
         return new NinePatch(panelTexture, PANEL_SPLIT, PANEL_SPLIT, PANEL_SPLIT, PANEL_SPLIT);
+    }
+
+    private static Texture buttonTexture(Color fill, Color shine) {
+        Pixmap pixmap = new Pixmap(BUTTON_PATCH, BUTTON_PATCH, Pixmap.Format.RGBA8888);
+        pixmap.setBlending(Pixmap.Blending.None);
+        float cx = (BUTTON_PATCH - 1) * 0.5f;
+        float cy = (BUTTON_PATCH - 1) * 0.5f;
+        float half = BUTTON_PATCH * 0.5f - 1f;
+        Color mix = new Color();
+        for (int y = 0; y < BUTTON_PATCH; y++) {
+            for (int x = 0; x < BUTTON_PATCH; x++) {
+                float sdf = roundedBox(x + 0.5f, y + 0.5f, cx, cy, half, half, BUTTON_RADIUS);
+                float cover = smooth(0.75f, -0.75f, sdf);
+                if (cover <= 0.004f) {
+                    pixmap.drawPixel(x, y, 0);
+                    continue;
+                }
+                float depth = -sdf;
+                Color tone;
+                if (depth < 1.2f) {
+                    tone = PURPLE_OUTER;
+                } else if (depth < BUTTON_RIM) {
+                    mix.set(PURPLE_OUTER).lerp(PURPLE_RIM, (depth - 1.2f) / (BUTTON_RIM - 1.2f));
+                    tone = mix;
+                } else {
+                    float topGlow = MathUtils.clamp((0.38f - y / (float) BUTTON_PATCH) / 0.38f, 0f, 1f);
+                    mix.set(fill).lerp(shine, topGlow * 0.42f);
+                    tone = mix;
+                }
+                mix.set(tone);
+                mix.a = cover;
+                pixmap.drawPixel(x, y, Color.rgba8888(mix));
+            }
+        }
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        pixmap.dispose();
+        return texture;
     }
 
     private static float roundedBox(float x, float y, float cx, float cy, float halfW, float halfH, float radius) {

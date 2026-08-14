@@ -157,6 +157,71 @@ class CollectionServiceTest {
     }
 
     @Test
+    void listPlantsIncludesOwnedAndLockedEntries() {
+        var plants = service.listPlants(user, CollectionPlantQuery.all());
+        assertTrue(plants.stream().anyMatch(entry -> entry.name().equals("Peashooter") && entry.owned()));
+        assertTrue(plants.stream().anyMatch(entry -> entry.name().equals("Cherry Bomb") && !entry.owned()));
+    }
+
+    @Test
+    void listPlantsFiltersLockedAndUpgradeable() {
+        var locked = service.listPlants(user, CollectionPlantQuery.all().withFilter(CollectionPlantFilter.LOCKED));
+        assertTrue(locked.stream().allMatch(entry -> !entry.owned()));
+        assertTrue(locked.stream().anyMatch(entry -> entry.name().equals("Cherry Bomb")));
+
+        var upgradeable = service.listPlants(user, CollectionPlantQuery.all().withFilter(CollectionPlantFilter.UPGRADEABLE));
+        assertTrue(upgradeable.isEmpty());
+        user.getPlantProgress().addSeedPackets("Peashooter", 20);
+        var afterSeeds = service.listPlants(user, CollectionPlantQuery.all().withFilter(CollectionPlantFilter.UPGRADEABLE));
+        assertTrue(afterSeeds.stream().anyMatch(entry -> entry.name().equals("Peashooter") && entry.canUpgrade()));
+    }
+
+    @Test
+    void listPlantsFiltersByFamily() {
+        var shooters = service.listPlants(user, CollectionPlantQuery.all().withFamily("SHOOTER"));
+        assertFalse(shooters.isEmpty());
+        assertTrue(shooters.stream().allMatch(entry -> "SHOOTER".equalsIgnoreCase(entry.category())));
+    }
+
+    @Test
+    void plantDetailAndCountsUseRegistry() {
+        CollectionPlantDetail peashooter = service.plantDetail(user, "Peashooter");
+        assertNotNull(peashooter);
+        assertTrue(peashooter.owned());
+        assertEquals("Peashooter", peashooter.name());
+        CollectionCounts counts = service.plantCounts(user);
+        assertTrue(counts.owned() >= 3);
+        assertTrue(counts.total() > counts.owned());
+        assertTrue(peashooter.hasNextLevel());
+        assertNotNull(peashooter.nextDamage());
+        assertTrue(peashooter.nextDamage() >= peashooter.damage());
+    }
+
+    @Test
+    void listZombiesMarksUnseenUntilUnlocked() {
+        var zombies = service.listZombies(user);
+        assertFalse(zombies.isEmpty());
+        assertTrue(zombies.stream().anyMatch(entry -> entry.alias().equals("ZombieDefault") && !entry.seen()));
+        user.getUnlockedZombies().add("ZombieDefault");
+        var updated = service.listZombies(user);
+        assertTrue(updated.stream().anyMatch(entry -> entry.alias().equals("ZombieDefault") && entry.seen()));
+        assertNotNull(service.zombieDetail(user, "ZombieDefault"));
+    }
+
+    @Test
+    void debugModeTreatsAllZombiesAsSeen() {
+        assertNull(service.zombieDetail(user, "ZombieDefault"));
+        user.setDebugMode(true);
+        var zombies = service.listZombies(user);
+        assertFalse(zombies.isEmpty());
+        assertTrue(zombies.stream().allMatch(CollectionZombieEntry::seen));
+        assertNotNull(service.zombieDetail(user, "ZombieDefault"));
+        assertTrue(service.formatAllZombies(user).stream().noneMatch(line -> line.contains("[ empty ]")));
+        user.setDebugMode(false);
+        assertTrue(service.listZombies(user).stream().anyMatch(entry -> !entry.seen()));
+    }
+
+    @Test
     void isKnownPlantAndZombieLookup() {
         assertTrue(service.isKnownPlant("Peashooter"));
         assertFalse(service.isKnownPlant("Fake Plant"));
