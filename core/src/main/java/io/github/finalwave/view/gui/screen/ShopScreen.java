@@ -26,22 +26,13 @@ import io.github.finalwave.view.gui.widget.PriceButton;
 import io.github.finalwave.view.gui.widget.PvzButtons;
 import io.github.finalwave.view.gui.widget.ShopItemCard;
 import io.github.finalwave.view.gui.widget.StoreChrome;
+import io.github.finalwave.view.gui.widget.StoreTopTabs;
 
 import java.util.List;
 
 
 public final class ShopScreen extends MenuScreen {
     private static final float CLOSE_HEIGHT = 56f;
-    private static final float TAB_WIDTH = 124f;
-    private static final float TAB_IDLE_HEIGHT = 100f;
-    private static final float TAB_CHEVRON_HEIGHT = 24f;
-    private static final float TAB_ACTIVE_HEIGHT = TAB_IDLE_HEIGHT + TAB_CHEVRON_HEIGHT;
-    private static final float TAB_OVERLAP = TAB_CHEVRON_HEIGHT;
-    private static final float TAB_ICON_ACTIVE = 62f;
-    private static final float TAB_ICON_IDLE = 52f;
-    private static final int TAB_BODY_SRC = 35;
-    private static final int TAB_CHEVRON_INSET = 26;
-    private static final int TAB_CHEVRON_SRC = 18;
     private static final float CARD_PAD = 14f;
     private static final float PICKER_CARD_WIDTH = 176f;
     private static final float PICKER_CARD_HEIGHT = 200f;
@@ -49,12 +40,9 @@ public final class ShopScreen extends MenuScreen {
     private static final Color TITLE_GOLD_RICH = Color.valueOf("FFC53A");
     private static final Color PICKER_NAME_HOVER = Color.valueOf("FFD24A");
     private static final Color BODY_WHITE = Color.valueOf("FFF8E7");
-    private static final Color IDLE_TAB_ICON = new Color(1f, 1f, 1f, 0.78f);
 
     private ShopController controller;
     private PlantAnimationCatalog catalog;
-    private Table idleTabHost;
-    private Table activeTabHost;
     private Table cardGrid;
     private ShopTab activeTab = ShopTab.SEEDS;
 
@@ -91,30 +79,20 @@ public final class ShopScreen extends MenuScreen {
 
         Stack shopRoot = new Stack();
         shopRoot.setTouchable(Touchable.childrenOnly);
-        Table idleLayer = new Table();
-        idleLayer.setTouchable(Touchable.childrenOnly);
-        idleLayer.top().left().padLeft(18f);
-        idleTabHost = new Table();
-        idleLayer.add(idleTabHost).left().top();
-
         Table panelLayer = new Table();
         panelLayer.setTouchable(Touchable.childrenOnly);
-        panelLayer.top().padTop(TAB_IDLE_HEIGHT - TAB_OVERLAP);
+        panelLayer.top().padTop(StoreTopTabs.TAB_IDLE_HEIGHT - StoreTopTabs.TAB_OVERLAP);
         panelLayer.add(storeWindow()).grow();
 
-        Table frontLayer = new Table();
-        frontLayer.setTouchable(Touchable.childrenOnly);
-        frontLayer.top().padLeft(18f);
-        activeTabHost = new Table();
-        frontLayer.add(activeTabHost).left().top();
-        frontLayer.add().expandX();
+        Table tabsLayer = new Table();
+        tabsLayer.setTouchable(Touchable.childrenOnly);
+        tabsLayer.top().left().padLeft(18f);
+        tabsLayer.add(shopTabs()).left().top();
 
-        shopRoot.add(idleLayer);
         shopRoot.add(panelLayer);
-        shopRoot.add(frontLayer);
+        shopRoot.add(tabsLayer);
         shopRoot.add(closeOverlay());
         contentLayer.add(shopRoot).grow();
-        rebuildTabs();
         refreshOffers();
     }
 
@@ -152,7 +130,7 @@ public final class ShopScreen extends MenuScreen {
         Table overlay = new Table();
         overlay.setTouchable(Touchable.childrenOnly);
         overlay.top().right();
-        overlay.padTop(TAB_IDLE_HEIGHT - TAB_OVERLAP);
+        overlay.padTop(StoreTopTabs.TAB_IDLE_HEIGHT - StoreTopTabs.TAB_OVERLAP);
         overlay.add(close)
                 .size(closeWidth, CLOSE_HEIGHT)
                 .padTop(-CLOSE_HEIGHT + 12f)
@@ -182,87 +160,31 @@ public final class ShopScreen extends MenuScreen {
         bindCurrency(controller.getUser());
     }
 
-    private void rebuildTabs() {
-        if (idleTabHost == null || activeTabHost == null) {
-            return;
-        }
-        idleTabHost.clearChildren();
-        activeTabHost.clearChildren();
-        idleTabHost.defaults().size(TAB_WIDTH, TAB_IDLE_HEIGHT).padRight(8f).top();
-        activeTabHost.defaults().size(TAB_WIDTH, TAB_ACTIVE_HEIGHT).padRight(8f).top();
-        addTab(ShopTab.SEEDS, MenuAssetIds.STORE_TAB_SEEDS_ACTIVE, MenuAssetIds.STORE_TAB_SEEDS_IDLE,
-                MenuAssetIds.STORE_TAB_ICON_SEEDS);
-        addTab(ShopTab.COINS, MenuAssetIds.STORE_TAB_COINS_ACTIVE, MenuAssetIds.STORE_TAB_COINS_IDLE,
-                MenuAssetIds.STORE_TAB_ICON_COINS);
-        addTab(ShopTab.GARDEN, MenuAssetIds.STORE_TAB_GARDEN_ACTIVE, MenuAssetIds.STORE_TAB_GARDEN_IDLE,
-                MenuAssetIds.STORE_TAB_ICON_GARDEN);
-    }
-
-    private void addTab(ShopTab tab, String activeId, String idleId, String iconId) {
-        boolean active = activeTab == tab;
-        if (active) {
-            idleTabHost.add().size(TAB_WIDTH, TAB_IDLE_HEIGHT).padRight(8f);
-            activeTabHost.add(tabButton(tab, activeId, iconId, true));
-        } else {
-            idleTabHost.add(tabButton(tab, idleId, iconId, false));
-            activeTabHost.add().size(TAB_WIDTH, TAB_ACTIVE_HEIGHT).padRight(8f);
-        }
-    }
-
-    private Actor tabButton(ShopTab tab, String plateId, String iconId, boolean active) {
-        float height = active ? TAB_ACTIVE_HEIGHT : TAB_IDLE_HEIGHT;
-        Actor plate = tabPlate(assets.region(plateId), active);
-
-        Image icon = new Image(new TextureRegionDrawable(assets.region(iconId)));
-        icon.setScaling(Scaling.fit);
-        if (!active) {
-            icon.setColor(IDLE_TAB_ICON);
-        }
-        Table iconHost = new Table();
-        iconHost.setTouchable(Touchable.disabled);
-        iconHost.top();
-        iconHost.add(icon)
-                .size(active ? TAB_ICON_ACTIVE : TAB_ICON_IDLE)
-                .padTop(8f)
-                .padBottom(active ? TAB_CHEVRON_HEIGHT : 14f);
-
-        Stack stack = new Stack();
-        stack.setSize(TAB_WIDTH, height);
-        stack.setTouchable(Touchable.enabled);
-        stack.add(plate);
-        stack.add(iconHost);
-        PvzButtons.animate(stack, active ? 1.02f : 1.08f, 0.94f, () -> selectTab(tab));
-        return stack;
-    }
-
-    private static Actor tabPlate(TextureRegion region, boolean active) {
-        int srcW = region.getRegionWidth();
-        int srcH = region.getRegionHeight();
-        int bodySrcH = Math.min(srcH, TAB_BODY_SRC);
-        TextureRegion bodyRegion = new TextureRegion(region, 0, 0, srcW, bodySrcH);
-        Image body = new Image(StoreChrome.tabBody(bodyRegion));
-        body.setTouchable(Touchable.disabled);
-
-        if (!active || srcW <= TAB_CHEVRON_INSET * 2 || srcH <= bodySrcH) {
-            Table plate = new Table();
-            plate.setFillParent(true);
-            plate.setTouchable(Touchable.disabled);
-            plate.add(body).grow();
-            return plate;
-        }
-        int chevronH = Math.min(TAB_CHEVRON_SRC, srcH - bodySrcH);
-        int chevronW = srcW - TAB_CHEVRON_INSET * 2;
-        Image chevron = new Image(new TextureRegionDrawable(
-                new TextureRegion(region, TAB_CHEVRON_INSET, bodySrcH, chevronW, chevronH)));
-        chevron.setScaling(Scaling.stretch);
-        chevron.setTouchable(Touchable.disabled);
-        Table plate = new Table();
-        plate.setFillParent(true);
-        plate.setTouchable(Touchable.disabled);
-        plate.add(body).grow();
-        plate.row();
-        plate.add(chevron).growX().height(TAB_CHEVRON_HEIGHT).padTop(-3f);
-        return plate;
+    private StoreTopTabs<ShopTab> shopTabs() {
+        return new StoreTopTabs<>(
+                assets,
+                assets.skin(),
+                List.of(
+                        new StoreTopTabs.Tab<>(
+                                ShopTab.SEEDS,
+                                "Seeds",
+                                MenuAssetIds.STORE_TAB_SEEDS_ACTIVE,
+                                MenuAssetIds.STORE_TAB_SEEDS_IDLE,
+                                MenuAssetIds.STORE_TAB_ICON_SEEDS),
+                        new StoreTopTabs.Tab<>(
+                                ShopTab.COINS,
+                                "Coins",
+                                MenuAssetIds.STORE_TAB_COINS_ACTIVE,
+                                MenuAssetIds.STORE_TAB_COINS_IDLE,
+                                MenuAssetIds.STORE_TAB_ICON_COINS),
+                        new StoreTopTabs.Tab<>(
+                                ShopTab.GARDEN,
+                                "Garden",
+                                MenuAssetIds.STORE_TAB_GARDEN_ACTIVE,
+                                MenuAssetIds.STORE_TAB_GARDEN_IDLE,
+                                MenuAssetIds.STORE_TAB_ICON_GARDEN)),
+                activeTab,
+                this::selectTab);
     }
 
     private void selectTab(ShopTab tab) {
@@ -270,7 +192,6 @@ public final class ShopScreen extends MenuScreen {
             return;
         }
         activeTab = tab;
-        rebuildTabs();
         refreshOffers();
     }
 

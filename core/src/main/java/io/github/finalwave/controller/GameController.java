@@ -56,6 +56,10 @@ public class GameController extends ViewController {
         handleEnterChapter(chapterId.getDisplayName());
     }
 
+    public void openTravelLog() {
+        handleTravelLog();
+    }
+
     @Override
     public void displayMenu() {
         getGameView().showGameMenu();

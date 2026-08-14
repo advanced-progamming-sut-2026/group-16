@@ -4,13 +4,13 @@ import io.github.finalwave.model.App;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.definition.PlantRegistry;
 import io.github.finalwave.model.definition.plant.PlantDefinition;
-import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.entity.plant.PlantCategory;
 import io.github.finalwave.model.quest.condition.QuestConditions;
 import io.github.finalwave.model.quest.reward.QuestReward;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 public final class QuestFactory {
@@ -19,52 +19,55 @@ public final class QuestFactory {
     }
 
     public static List<Quest> createAllQuests() {
-        List<Quest> all = new ArrayList<>();
-        for (int sun : List.of(3000, 4000, 5000)) all.add(createDailySunCollector(sun));
+        return createAllQuests(0L);
+    }
+
+    public static List<Quest> createAllQuests(long seed) {
+        Random random = new Random(seed);
+        int sunAmount = randomChoice(random, List.of(3000, 4000, 5000));
         PlantRegistry registry = App.getInstance().getPlantRegistry();
-        if (registry != null) {
-            for (PlantDefinition def : registry.getAllDefinitions()) {
-                if (def.getDamage() > 0) {
-                    all.add(createPlantProKiller(def.getName()));
-                }
-            }
+        List<String> damagingPlants = damagingPlantNames(registry);
+        if (damagingPlants.isEmpty()) {
+            damagingPlants = List.of("Peashooter");
         }
-        all.add(createOnlyCactusKiller());
-        all.add(createExplosiveExpert(3));
-        all.add(createSymmetryWin());
-        for (PlantCategory category : PlantCategory.values()) {
-            all.add(createFamilyExclusiveKills(category.name()));
-            all.add(createFamilyBanned(category.name()));
-        }
-        all.add(createWinStreak(5));
-        all.add(createNearVictory(10, Set.of()));
-        all.add(createAsymmetryWin());
-        all.add(createLimitedSunProducers(3));
-        for (int col = 0; col < GameBoard.DEFAULT_COLS; col++) all.add(createEmptyColumn(col));
-        for (int row = 0; row < GameBoard.DEFAULT_ROWS; row++) all.add(createEmptyRow(row));
-        int crossLimit = Math.min(GameBoard.DEFAULT_ROWS, GameBoard.DEFAULT_COLS);
-        for (int n = 0; n < crossLimit; n++) {
-            all.add(createEmptyCross(n, n));
-        }
-        for (ChapterId chapterId : ChapterId.values()) {
-            all.add(createChapterHunter(chapterId.getKey(), 50));
-        }
-        for (int n = 0; n <= 5; n++) {
-            all.add(createLowPlantLoss(n));
-        }
-        all.add(createFinishWithZeroSun());
-        all.add(createSpeedKill(10, 30.0));
-        all.add(createNightPlantsInDayLevel());
-        for (int n = 10; n <= 50; n += 10) {
-            all.add(createLawnMowerKills(n));
-        }
-        return all;
+        String plantType = randomChoice(random, damagingPlants);
+        ChapterId chapter = randomChoice(random, List.of(ChapterId.values()));
+        int maxLost = random.nextInt(6);
+        PlantCategory familyOnly = randomChoice(random, List.of(PlantCategory.values()));
+        PlantCategory familyBanned = randomChoice(random, List.of(PlantCategory.values()));
+        int column = random.nextInt(9);
+        int row = random.nextInt(5);
+        int cross = random.nextInt(5);
+        int mowerKills = randomChoice(random, List.of(10, 20, 30, 40, 50));
+
+        return List.of(
+                createDailySunCollector(sunAmount),
+                createChapterHunter(chapter.getKey(), chapter.getDisplayName(), 50),
+                createPlantProKiller(plantType),
+                createOnlyCactusKiller(),
+                createLowPlantLoss(maxLost),
+                createFinishWithZeroSun(),
+                createSpeedKill(10, 30.0),
+                createExplosiveExpert(3),
+                createSymmetryWin(),
+                createFamilyExclusiveKills(familyOnly.name()),
+                createFamilyBanned(familyBanned.name()),
+                createNightPlantsInDayLevel(),
+                createWinStreak(5),
+                createNearVictory(10, Set.of()),
+                createAsymmetryWin(),
+                createLimitedSunProducers(3),
+                createEmptyColumn(column),
+                createEmptyRow(row),
+                createEmptyCross(cross, cross),
+                createLawnMowerKills(mowerKills));
     }
 
     public static Quest createDailySunCollector(int sunAmount) {
         return new Quest(
-                "daily_sun_" + sunAmount,
-                "آفتاب گیر روزانه (" + sunAmount + ")",
+                "daily_sunblock",
+                "Daily Sunblock",
+                "Collect " + sunAmount + " of sun during one day",
                 Quest.Category.DAILY,
                 Quest.Priority.MEDIUM,
                 new QuestConditions.CollectSunCondition(sunAmount),
@@ -73,9 +76,16 @@ public final class QuestFactory {
     }
 
     public static Quest createChapterHunter(String chapterId, int targetCount) {
+        ChapterId chapter = ChapterId.fromName(chapterId);
+        String chapterName = chapter == null ? chapterId : chapter.getDisplayName();
+        return createChapterHunter(chapterId, chapterName, targetCount);
+    }
+
+    private static Quest createChapterHunter(String chapterId, String chapterName, int targetCount) {
         return new Quest(
-                "chapter_hunter_" + chapterId,
-                "شکارچی " + chapterId,
+                "chapter_hunter",
+                "Chapter Hunter",
+                "Defeat " + targetCount + " zombies from " + chapterName,
                 Quest.Category.MAIN,
                 Quest.Priority.HIGH,
                 new QuestConditions.KillZombiesInChapterCondition(chapterId, targetCount),
@@ -84,10 +94,10 @@ public final class QuestFactory {
     }
 
     public static Quest createPlantProKiller(String plantType) {
-        String idSuffix = plantType == null ? "unknown" : plantType.replace(' ', '_').toLowerCase();
         return new Quest(
-                "plant_pro_" + idSuffix,
-                "حرفه‌ای " + plantType,
+                "pro_plant_player",
+                "Pro Plant Player",
+                "Kill 10 zombies using only a specific plant",
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
                 new QuestConditions.KillOnlyWithPlantCondition(plantType, 10),
@@ -98,7 +108,8 @@ public final class QuestFactory {
     public static Quest createOnlyCactusKiller() {
         return new Quest(
                 "only_cactus",
-                "only cactus",
+                "Only Cactus",
+                "Kill 10 zombies using only Cactus",
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
                 new QuestConditions.KillOnlyWithPlantCondition("Cactus", 10),
@@ -109,8 +120,9 @@ public final class QuestFactory {
     public static Quest createLowPlantLoss(int maxLost) {
         int reward = 20 - maxLost;
         return new Quest(
-                "low_plant_loss_" + maxLost,
-                "گیاه خوار اقتصادی (max " + maxLost + " lost)",
+                "economical_herbivore",
+                "Economical Herbivore",
+                "Win a level losing no more than " + maxLost + " plants",
                 Quest.Category.MAIN,
                 Quest.Priority.HIGH,
                 new QuestConditions.LowPlantLossCondition(maxLost),
@@ -120,8 +132,9 @@ public final class QuestFactory {
 
     public static Quest createFinishWithZeroSun() {
         return new Quest(
-                "finish_zero_sun",
-                "استاد دفاع",
+                "defense_master",
+                "Defense Master",
+                "Finish a level with exactly 0 suns",
                 Quest.Category.EPIC_CHALLENGE,
                 Quest.Priority.CRITICAL,
                 new QuestConditions.FinishWithZeroSunCondition(),
@@ -131,8 +144,10 @@ public final class QuestFactory {
 
     public static Quest createSpeedKill(int kills, double timeLimitSeconds) {
         return new Quest(
-                "speed_kill",
-                "سرعت عمل",
+                "quick_reaction",
+                "Quick Reaction",
+                "Kill " + kills + " zombies in less than "
+                        + formatSeconds(timeLimitSeconds) + " seconds from the first wave",
                 Quest.Category.MAIN,
                 Quest.Priority.MEDIUM,
                 new QuestConditions.SpeedKillCondition(kills, timeLimitSeconds),
@@ -142,8 +157,9 @@ public final class QuestFactory {
 
     public static Quest createExplosiveExpert(int count) {
         return new Quest(
-                "explosive_expert",
-                "تخریب گر حرفه ای",
+                "pro_demolition",
+                "Pro Demolition",
+                "Use " + count + " explosive plants in one level",
                 Quest.Category.DAILY,
                 Quest.Priority.LOW,
                 new QuestConditions.PlantExplosivesCondition(count),
@@ -153,8 +169,9 @@ public final class QuestFactory {
 
     public static Quest createSymmetryWin() {
         return new Quest(
-                "symmetry_win",
-                "تقارن",
+                "symmetry",
+                "Symmetry",
+                "Garden must be symmetrical at the end",
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
                 new QuestConditions.SymmetricBoardCondition(),
@@ -164,8 +181,9 @@ public final class QuestFactory {
 
     public static Quest createFamilyExclusiveKills(String family) {
         return new Quest(
-                "family_kills_" + family,
-                "کشتار خانوادگی (" + family + ")",
+                "family_massacre",
+                "Family Massacre",
+                "Use only " + displayFamily(family) + " plants to kill zombies",
                 Quest.Category.DAILY,
                 Quest.Priority.MEDIUM,
                 new QuestConditions.FamilyOnlyKillsCondition(family),
@@ -175,8 +193,9 @@ public final class QuestFactory {
 
     public static Quest createFamilyBanned(String family) {
         return new Quest(
-                "family_banned_" + family,
-                "شکوفایی در محدودیت‌ها (" + family + ")",
+                "flourish_in_limits",
+                "Flourish in Limits",
+                "Win without using any plant from " + displayFamily(family),
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
                 new QuestConditions.NoFamilyPlantedCondition(family),
@@ -186,8 +205,9 @@ public final class QuestFactory {
 
     public static Quest createNightPlantsInDayLevel() {
         return new Quest(
-                "night_plants_day",
-                "شب یا صبح",
+                "night_or_morning",
+                "Night or Morning",
+                "Finish a day level with night plants (mushrooms)",
                 Quest.Category.EPIC_CHALLENGE,
                 Quest.Priority.HIGH,
                 new QuestConditions.NightPlantsInDayLevelCondition(),
@@ -197,8 +217,9 @@ public final class QuestFactory {
 
     public static Quest createWinStreak(int n) {
         return new Quest(
-                "win_streak_" + n,
-                "برد پشت برد (" + n + ")",
+                "win_streak",
+                "Win Streak",
+                "Win " + n + " levels in a row on highest difficulty",
                 Quest.Category.DAILY,
                 Quest.Priority.MEDIUM,
                 new QuestConditions.WinStreakCondition(n),
@@ -208,8 +229,9 @@ public final class QuestFactory {
 
     public static Quest createNearVictory(int kills, Set<Integer> rowsWithMowers) {
         return new Quest(
-                "near_victory",
-                "تقریبا پیروز",
+                "almost_won",
+                "Almost Won",
+                "Kill " + kills + " zombies in the first column of a row without a lawnmower",
                 Quest.Category.DAILY,
                 Quest.Priority.MEDIUM,
                 new QuestConditions.KillInFirstColumnNoMowerCondition(kills, rowsWithMowers),
@@ -219,8 +241,9 @@ public final class QuestFactory {
 
     public static Quest createAsymmetryWin() {
         return new Quest(
-                "ocd_asymmetry",
-                "OCD نَمَنَ",
+                "what_ocd",
+                "What OCD?",
+                "Win a level with completely asymmetrical garden (except middle row)",
                 Quest.Category.DAILY,
                 Quest.Priority.MEDIUM,
                 new QuestConditions.AsymmetricBoardCondition(),
@@ -230,8 +253,9 @@ public final class QuestFactory {
 
     public static Quest createLimitedSunProducers(int max) {
         return new Quest(
-                "limited_sun_producers",
-                "روز ابری",
+                "cloudy_day",
+                "Cloudy Day",
+                "Beat a level using only " + max + " sun-producing plants",
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
                 new QuestConditions.LimitedSunProducersCondition(max),
@@ -241,8 +265,9 @@ public final class QuestFactory {
 
     public static Quest createEmptyColumn(int column) {
         return new Quest(
-                "empty_col_" + column,
-                "یه ستون کمتر (col " + column + ")",
+                "one_column_less",
+                "One Column Less",
+                "Win a level without planting in the " + (column + 1) + " column",
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
                 new QuestConditions.EmptyColumnCondition(column),
@@ -252,8 +277,9 @@ public final class QuestFactory {
 
     public static Quest createEmptyRow(int row) {
         return new Quest(
-                "empty_row_" + row,
-                "سطر بی دفاع (row " + row + ")",
+                "defenseless_row",
+                "Defenseless Row",
+                "Win a level without planting in the " + (row + 1) + " row",
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
                 new QuestConditions.EmptyRowCondition(row),
@@ -263,8 +289,9 @@ public final class QuestFactory {
 
     public static Quest createEmptyCross(int row, int col) {
         return new Quest(
-                "empty_cross_" + row + "_" + col,
-                "صلیب بی دفاع (row " + row + ", col " + col + ")",
+                "defenseless_cross",
+                "Defenseless Cross",
+                "Win a level with the " + (row + 1) + " row and column empty",
                 Quest.Category.DAILY,
                 Quest.Priority.HIGH,
                 new QuestConditions.EmptyCrossCondition(row, col),
@@ -274,12 +301,40 @@ public final class QuestFactory {
 
     public static Quest createLawnMowerKills(int n) {
         return new Quest(
-                "lawnmower_kills_" + n,
-                "وقت چمن‌زنی (" + n + ")",
+                "lawnmower_time",
+                "Lawnmower Time",
+                "Kill at least " + n + " zombies with lawnmowers",
                 Quest.Category.EPIC_CHALLENGE,
                 Quest.Priority.MEDIUM,
                 new QuestConditions.LawnMowerKillsCondition(n),
                 QuestReward.diamonds(n)
         );
     }
+
+    private static List<String> damagingPlantNames(PlantRegistry registry) {
+        if (registry == null) {
+            return List.of();
+        }
+        return registry.getAllDefinitions().stream()
+                .filter(definition -> definition.getDamage() > 0)
+                .map(PlantDefinition::getName)
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    }
+
+    private static <T> T randomChoice(Random random, List<T> choices) {
+        return choices.get(random.nextInt(choices.size()));
+    }
+
+    private static String displayFamily(String family) {
+        return family.toLowerCase().replace('_', ' ');
+    }
+
+    private static String formatSeconds(double seconds) {
+        if (seconds == Math.rint(seconds)) {
+            return Integer.toString((int) seconds);
+        }
+        return Double.toString(seconds);
+    }
+
 }

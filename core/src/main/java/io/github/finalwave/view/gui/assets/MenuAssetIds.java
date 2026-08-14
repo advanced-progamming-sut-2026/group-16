@@ -92,6 +92,23 @@ public final class MenuAssetIds {
     public static final String ALMANAC_PREVIEW = "IMAGE_UI_CARDS_STORE_STORE_CARD_SINGLE_BACKGROUND";
     public static final String ZOMBIE_PACKET_PREFIX = "IMAGE_UI_ALMANAC_PACKETS_ZOMBIES_";
     public static final String LOCK_ICON = "IMAGE_UI_CARDS_LOCK_MEDIUM";
+    public static final String QUEST_CARD_BACKGROUND = "IMAGE_UI_JOUST_MATCHLOADING_PLAYERPANEL_BG";
+    public static final String QUEST_COMPLETE_FRAME = "IMAGE_UI_QUESTS_TRAVEL_LOG_PANEL_EPIC_COMPLETE";
+    public static final String QUEST_ICON_DAILY = "IMAGE_UI_QUESTS_QUESTICONS_ZOMBIE";
+    public static final String QUEST_ICON_MAIN = "IMAGE_UI_QUESTS_QUESTICONS_PLANT";
+    public static final String QUEST_ICON_EPIC = "IMAGE_UI_QUESTS_QUESTICONS_LOTD";
+    public static final String QUEST_REWARD_COINS = "IMAGE_UI_QUESTS_EPIC_REWARD_COINS";
+    public static final String QUEST_REWARD_GEMS = "IMAGE_UI_QUESTS_EPIC_REWARD_GEMS";
+    public static final String MINIGAME_VASEBREAKER_ART =
+            "IMAGE_UI_FEATURE_UNLOCK_FEATURE_KEY_ART_VASEBREAKER";
+    public static final String MINIGAME_BOWLING_ART =
+            "IMAGE_UI_FEATURE_UNLOCK_FEATURE_KEY_ART_ZEN_GARDEN";
+    public static final String MINIGAME_I_ZOMBIE_ART =
+            "IMAGE_UI_FEATURE_UNLOCK_FEATURE_KEY_ART_PENNYS_PURSUIT";
+    public static final String MINIGAME_BEGHOULED_ART =
+            "IMAGE_UI_FEATURE_UNLOCK_FEATURE_KEY_ART_EVENTS";
+    public static final String MINIGAME_ZOMBOTANY_ART =
+            "IMAGE_UI_FEATURE_UNLOCK_FEATURE_KEY_ART_ARENA";
 
     public static final String[] ALL = {
             BACKGROUND,
@@ -181,7 +198,19 @@ public final class MenuAssetIds {
             PACKET_BOOST,
             MINTFAM_SUN,
             MINTFAM_PEA,
-            LOCK_ICON
+            LOCK_ICON,
+            QUEST_CARD_BACKGROUND,
+            QUEST_COMPLETE_FRAME,
+            QUEST_ICON_DAILY,
+            QUEST_ICON_MAIN,
+            QUEST_ICON_EPIC,
+            QUEST_REWARD_COINS,
+            QUEST_REWARD_GEMS,
+            MINIGAME_VASEBREAKER_ART,
+            MINIGAME_BOWLING_ART,
+            MINIGAME_I_ZOMBIE_ART,
+            MINIGAME_BEGHOULED_ART,
+            MINIGAME_ZOMBOTANY_ART
     };
 
     private MenuAssetIds() {
