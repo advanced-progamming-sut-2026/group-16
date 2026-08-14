@@ -5,6 +5,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.AdventureController;
+import io.github.finalwave.controller.CollectionController;
 import io.github.finalwave.controller.GameController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.GreenhouseController;
@@ -39,6 +40,7 @@ public final class ScreenRouter {
     private GreenhouseScreen greenhouseScreen;
     private ProfileScreen profileScreen;
     private ShopScreen shopScreen;
+    private CollectionScreen collectionScreen;
     private ChapterSelectScreen chapterSelectScreen;
     private AdventureScreen adventureScreen;
     private ComingSoonScreen comingSoonScreen;
@@ -57,6 +59,7 @@ public final class ScreenRouter {
                 || controller instanceof GreenhouseController
                 || controller instanceof ProfileController
                 || controller instanceof ShopController
+                || controller instanceof CollectionController
                 || controller instanceof GameController
                 || controller instanceof AdventureController
                 || controller instanceof PlantSelectionController
@@ -91,6 +94,8 @@ public final class ScreenRouter {
             showProfile(profileController);
         } else if (controller instanceof ShopController shopController) {
             showShop(shopController);
+        } else if (controller instanceof CollectionController collectionController) {
+            showCollection(collectionController);
         } else if (controller instanceof GameController gameController) {
             showChapterSelect(gameController);
         } else if (controller instanceof AdventureController adventureController) {
@@ -174,6 +179,14 @@ public final class ScreenRouter {
         }
         shopScreen.bind(controller);
         setScreen(shopScreen);
+    }
+
+    public void showCollection(CollectionController controller) {
+        if (collectionScreen == null) {
+            collectionScreen = new CollectionScreen(game);
+        }
+        collectionScreen.bind(controller);
+        setScreen(collectionScreen);
     }
 
     public void showChapterSelect(GameController controller) {
@@ -292,6 +305,12 @@ public final class ScreenRouter {
         }
     }
 
+    public void refreshCollection() {
+        if (collectionScreen != null) {
+            collectionScreen.refresh();
+        }
+    }
+
     public void refreshChapterSelect() {
         if (chapterSelectScreen != null) {
             chapterSelectScreen.refreshCarousel();
@@ -331,6 +350,9 @@ public final class ScreenRouter {
         }
         if (shopScreen != null) {
             shopScreen.dispose();
+        }
+        if (collectionScreen != null) {
+            collectionScreen.dispose();
         }
         if (chapterSelectScreen != null) {
             chapterSelectScreen.dispose();

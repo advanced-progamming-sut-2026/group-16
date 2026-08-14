@@ -1,7 +1,13 @@
 package io.github.finalwave.controller;
 
 import io.github.finalwave.model.App;
+import io.github.finalwave.model.collection.CollectionCounts;
+import io.github.finalwave.model.collection.CollectionPlantDetail;
+import io.github.finalwave.model.collection.CollectionPlantEntry;
+import io.github.finalwave.model.collection.CollectionPlantQuery;
 import io.github.finalwave.model.collection.CollectionService;
+import io.github.finalwave.model.collection.CollectionZombieDetail;
+import io.github.finalwave.model.collection.CollectionZombieEntry;
 import io.github.finalwave.model.collection.PlantCollection;
 import io.github.finalwave.model.command.CollectionMenuCommands;
 import io.github.finalwave.model.user.UnlockService;
@@ -9,6 +15,7 @@ import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.CollectionView;
 
+import java.util.List;
 import java.util.regex.Matcher;
 
 public class CollectionController extends ViewController {
@@ -21,6 +28,58 @@ public class CollectionController extends ViewController {
         this.user = user;
         this.userDatabase = userDatabase;
         this.collectionService = CollectionService.createDefault(App.getInstance().getPlantRegistry());
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void back() {
+        navigator.pop();
+    }
+
+    public List<CollectionPlantEntry> plants(CollectionPlantQuery query) {
+        return collectionService.listPlants(user, query);
+    }
+
+    public List<String> plantFamilies() {
+        return collectionService.plantFamilies();
+    }
+
+    public CollectionCounts plantCounts() {
+        return collectionService.plantCounts(user);
+    }
+
+    public List<CollectionZombieEntry> zombies() {
+        return collectionService.listZombies(user);
+    }
+
+    public CollectionPlantDetail plantDetail(String plantName) {
+        if (!collectionService.isKnownPlant(plantName)) {
+            getCollectionView().errorPlantNotFound(plantName);
+            return null;
+        }
+        return collectionService.plantDetail(user, plantName);
+    }
+
+    public CollectionZombieDetail zombieDetail(String zombieName) {
+        if (!collectionService.isKnownZombie(zombieName)) {
+            getCollectionView().errorZombieNotFound(zombieName);
+            return null;
+        }
+        if (!collectionService.hasSeenZombie(user, zombieName)) {
+            getCollectionView().errorZombieNotSeen(zombieName);
+            return null;
+        }
+        return collectionService.zombieDetail(user, zombieName);
+    }
+
+    public void upgradePlant(String plantName) {
+        handleUpgradePlant(plantName);
+    }
+
+    public void purchasePlant(String plantName) {
+        handlePurchasePlant(plantName);
     }
 
     @Override
@@ -89,7 +148,7 @@ public class CollectionController extends ViewController {
             getCollectionView().errorZombieNotFound(zombieName);
             return;
         }
-        if (!user.getUnlockedZombies().contains(zombieName)) {
+        if (!collectionService.hasSeenZombie(user, zombieName)) {
             getCollectionView().errorZombieNotSeen(zombieName);
             return;
         }

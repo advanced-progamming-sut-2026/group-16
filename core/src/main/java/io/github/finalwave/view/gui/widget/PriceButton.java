@@ -114,6 +114,68 @@ public final class PriceButton extends Stack {
                 onBuy);
     }
 
+    public static Actor coins(
+            GameAssets assets,
+            Skin skin,
+            int price,
+            float width,
+            float height,
+            Runnable onBuy) {
+        return priced(
+                assets,
+                skin,
+                MenuAssetIds.STORE_PRICE_COIN,
+                StoreChrome.coinButton(assets.region(MenuAssetIds.STORE_COIN_PLATE)),
+                StoreChrome.coinButton(assets.region(MenuAssetIds.STORE_COIN_PLATE_DOWN)),
+                price,
+                width,
+                height,
+                onBuy);
+    }
+
+    public static Actor coinsLabeled(
+            GameAssets assets,
+            Skin skin,
+            String caption,
+            int price,
+            float width,
+            float height,
+            Runnable onBuy) {
+        return coinsLabeled(
+                assets,
+                skin,
+                caption,
+                price,
+                width,
+                height,
+                StoreChrome.coinButton(assets.region(MenuAssetIds.STORE_COIN_PLATE)),
+                StoreChrome.coinButton(assets.region(MenuAssetIds.STORE_COIN_PLATE_DOWN)),
+                onBuy);
+    }
+
+    public static Actor coinsLabeled(
+            GameAssets assets,
+            Skin skin,
+            String caption,
+            int price,
+            float width,
+            float height,
+            Drawable up,
+            Drawable down,
+            Runnable onBuy) {
+        TextureRegion region = assets.region(MenuAssetIds.STORE_PRICE_COIN);
+        float iconHeight = height * 0.62f;
+        float iconWidth = iconHeight * region.getRegionWidth() / (float) Math.max(1, region.getRegionHeight());
+        Image icon = new Image(new TextureRegionDrawable(region));
+        icon.setScaling(Scaling.fit);
+        Table content = new Table();
+        content.add(priceLabel(skin, caption, PRICE_TEXT, 0.62f)).padLeft(18f).padRight(8f);
+        content.add().expandX();
+        content.add(icon).size(iconWidth, iconHeight).padRight(6f);
+        content.add(priceLabel(skin, amount(price), PRICE_TEXT, 0.78f)).padRight(16f);
+        return new PriceButton(up, down, content, width, height, onBuy, true);
+    }
+
     private static PriceButton priced(
             GameAssets assets,
             Skin skin,

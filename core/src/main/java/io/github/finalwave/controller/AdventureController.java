@@ -48,6 +48,18 @@ public class AdventureController extends ViewController {
         navigator.pop();
     }
 
+    public void openGreenhouse() {
+        navigator.push(new GreenhouseController(user, userDatabase));
+    }
+
+    public void openSettings() {
+        navigator.push(new SettingController(user, userDatabase));
+    }
+
+    public void openCollection() {
+        navigator.push(new CollectionController(user, userDatabase));
+    }
+
     public void startLevel(int levelIndex) {
         handleStartLevel(String.valueOf(levelIndex));
     }

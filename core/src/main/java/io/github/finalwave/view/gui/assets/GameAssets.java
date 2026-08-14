@@ -52,6 +52,10 @@ public final class GameAssets implements Disposable {
         return textures.getResourceIndex();
     }
 
+    public boolean hasImage(String imageId) {
+        return imageId != null && !imageId.isBlank() && resourceIndex().image(imageId) != null;
+    }
+
 
     public TextureRegion region(String imageId) {
         try {

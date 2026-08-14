@@ -2,6 +2,7 @@ package io.github.finalwave.model.collection;
 
 import io.github.finalwave.model.definition.PlantLevelStats;
 import io.github.finalwave.model.definition.PlantRegistry;
+import io.github.finalwave.model.definition.UpgradeCost;
 import io.github.finalwave.model.definition.ZombieRegistry;
 import io.github.finalwave.model.definition.plant.PlantDefinition;
 import io.github.finalwave.model.definition.zombie.ZombieDefinition;
@@ -11,8 +12,8 @@ import io.github.finalwave.model.user.User;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 public final class CollectionService {
 
@@ -34,6 +35,118 @@ public final class CollectionService {
 
     public void syncCoinsToUser(User user, PlantCollection collection) {
         user.setCoins(collection.getCoins());
+    }
+
+    public List<CollectionPlantEntry> listPlants(User user, CollectionPlantQuery query) {
+        CollectionPlantQuery resolved = query == null ? CollectionPlantQuery.all() : query;
+        PlantCollection collection = createCollection(user);
+        List<CollectionPlantEntry> entries = new ArrayList<>();
+        for (PlantDefinition definition : plantRegistry.getAllDefinitions()) {
+            CollectionPlantEntry entry = plantEntry(user, collection, definition);
+            if (matches(entry, resolved)) {
+                entries.add(entry);
+            }
+        }
+        return entries;
+    }
+
+    public CollectionPlantDetail plantDetail(User user, String plantName) {
+        PlantDefinition definition = plantRegistry.getDefinition(plantName);
+        if (definition == null) {
+            return null;
+        }
+        PlantCollection collection = createCollection(user);
+        CollectionPlantEntry entry = plantEntry(user, collection, definition);
+        PlantLevelStats stats = collection.showPlantDetails(plantName);
+        PlantLevelStats next = null;
+        if (entry.owned() && !entry.maxLevel()) {
+            next = PlantLevelStats.atLevel(definition, entry.level() + 1);
+        }
+        return new CollectionPlantDetail(
+                entry.name(),
+                entry.category(),
+                entry.tags(),
+                entry.level(),
+                entry.owned(),
+                entry.maxLevel(),
+                entry.seedPackets(),
+                entry.seedPacketsNeeded(),
+                entry.upgradeCoins(),
+                entry.canUpgrade(),
+                entry.canPurchase(),
+                stats.getCost(),
+                stats.getMaxHealth(),
+                stats.getDamage(),
+                stats.getRecharge(),
+                stats.getActionInterval(),
+                definition.getPlantFoodType(),
+                definition.getAbilityType(),
+                definition.getAbilityValue(),
+                definition.getPlantFoodValue(),
+                stats.getNextUpgradeSummary(),
+                next == null ? null : next.getCost(),
+                next == null ? null : next.getMaxHealth(),
+                next == null ? null : next.getDamage(),
+                next == null ? null : next.getRecharge());
+    }
+
+    public List<String> plantFamilies() {
+        LinkedHashSet<String> families = new LinkedHashSet<>();
+        for (PlantDefinition definition : plantRegistry.getAllDefinitions()) {
+            if (definition.getCategory() != null && !definition.getCategory().isBlank()) {
+                families.add(definition.getCategory());
+            }
+        }
+        List<String> sorted = new ArrayList<>(families);
+        sorted.sort(String.CASE_INSENSITIVE_ORDER);
+        return sorted;
+    }
+
+    public CollectionCounts plantCounts(User user) {
+        int owned = 0;
+        int total = 0;
+        for (PlantDefinition definition : plantRegistry.getAllDefinitions()) {
+            total++;
+            if (user.getPlantProgress().isOwned(definition.getName())) {
+                owned++;
+            }
+        }
+        return new CollectionCounts(owned, total);
+    }
+
+    public List<CollectionZombieEntry> listZombies(User user) {
+        List<CollectionZombieEntry> entries = new ArrayList<>();
+        for (ZombieDefinition definition : zombieRegistry.getAllDefinitions()) {
+            String alias = definition.getAlias();
+            entries.add(new CollectionZombieEntry(
+                    alias,
+                    hasSeenZombie(user, alias),
+                    definition.getHitpoints(),
+                    definition.getSpeed(),
+                    definition.getToughnessLabel(),
+                    definition.getSpeedLabel()));
+        }
+        return entries;
+    }
+
+    public CollectionZombieDetail zombieDetail(User user, String zombieName) {
+        if (!hasSeenZombie(user, zombieName)) {
+            return null;
+        }
+        ZombieDefinition definition = zombieRegistry.getDefinition(zombieName);
+        if (definition == null) {
+            return null;
+        }
+        return new CollectionZombieDetail(
+                definition.getAlias(),
+                definition.getObjClass(),
+                definition.getHitpoints(),
+                definition.getSpeed(),
+                definition.getToughnessLabel(),
+                definition.getSpeedLabel(),
+                definition.getEatDps(),
+                definition.hasArmor(),
+                definition.getArmorAliases());
     }
 
     public List<String> formatOwnedPlants(User user) {
@@ -93,10 +206,13 @@ public final class CollectionService {
     }
 
     public List<String> formatSeenZombies(User user) {
-        Set<String> seen = user.getUnlockedZombies();
         List<String> lines = new ArrayList<>();
-        for (String name : seen) {
-            lines.add(name);
+        if (user.isDebugMode()) {
+            for (ZombieDefinition definition : zombieRegistry.getAllDefinitions()) {
+                lines.add(definition.getAlias());
+            }
+        } else {
+            lines.addAll(user.getUnlockedZombies());
         }
         if (lines.isEmpty()) {
             lines.add("No zombies seen yet.");
@@ -105,11 +221,10 @@ public final class CollectionService {
     }
 
     public List<String> formatAllZombies(User user) {
-        Set<String> seen = user.getUnlockedZombies();
         List<String> lines = new ArrayList<>();
         for (ZombieDefinition definition : zombieRegistry.getAllDefinitions()) {
             String alias = definition.getAlias();
-            if (seen.contains(alias)) {
+            if (hasSeenZombie(user, alias)) {
                 lines.add(alias + " | SEEN");
             } else {
                 lines.add("[ empty ]");
@@ -119,7 +234,7 @@ public final class CollectionService {
     }
 
     public String formatZombieDetails(User user, String zombieName) {
-        if (!user.getUnlockedZombies().contains(zombieName)) {
+        if (!hasSeenZombie(user, zombieName)) {
             return null;
         }
         ZombieDefinition definition = zombieRegistry.getDefinition(zombieName);
@@ -171,6 +286,64 @@ public final class CollectionService {
 
     public boolean isKnownZombie(String zombieName) {
         return zombieRegistry.getDefinition(zombieName) != null;
+    }
+
+    public boolean hasSeenZombie(User user, String zombieName) {
+        if (zombieName == null || !isKnownZombie(zombieName)) {
+            return false;
+        }
+        return user.isDebugMode() || user.getUnlockedZombies().contains(zombieName);
+    }
+
+    private CollectionPlantEntry plantEntry(User user, PlantCollection collection, PlantDefinition definition) {
+        String name = definition.getName();
+        boolean owned = user.getPlantProgress().isOwned(name);
+        OwnedPlant ownedPlant = user.getPlantProgress().getOwnedPlant(name).orElse(null);
+        int level = owned && ownedPlant != null ? ownedPlant.getLevel() : 1;
+        int seeds = ownedPlant == null ? 0 : ownedPlant.getSeedPackets();
+        int maxLevel = Math.min(definition.getMaxLevel(), user.getPlantProgress().getMaxLevel());
+        boolean atMax = owned && level >= maxLevel;
+        return new CollectionPlantEntry(
+                name,
+                definition.getCategory(),
+                definition.getTags(),
+                level,
+                owned,
+                atMax,
+                seeds,
+                packetsNeeded(definition, level, maxLevel, seeds),
+                upgradeCoinsNeeded(definition, level, maxLevel),
+                collection.canUpgrade(name),
+                collection.canPurchase(name));
+    }
+
+    private static boolean matches(CollectionPlantEntry entry, CollectionPlantQuery query) {
+        CollectionPlantFilter filter = query.filter() == null ? CollectionPlantFilter.ALL : query.filter();
+        String family = query.family();
+        if (family != null && !family.isBlank()
+                && (entry.category() == null || !entry.category().equalsIgnoreCase(family))) {
+            return false;
+        }
+        return switch (filter) {
+            case ALL -> true;
+            case OWNED -> entry.owned();
+            case LOCKED -> !entry.owned();
+            case UPGRADEABLE -> entry.canUpgrade();
+        };
+    }
+
+    private static int packetsNeeded(PlantDefinition definition, int level, int maxLevel, int seeds) {
+        if (level >= maxLevel || level + 1 > definition.getMaxLevel()) {
+            return Math.max(seeds, 1);
+        }
+        return UpgradeCost.forLevel(definition, level + 1).getSeedPackets();
+    }
+
+    private static int upgradeCoinsNeeded(PlantDefinition definition, int level, int maxLevel) {
+        if (level >= maxLevel || level + 1 > definition.getMaxLevel()) {
+            return 0;
+        }
+        return UpgradeCost.forLevel(definition, level + 1).getCoins();
     }
 
     private static String formatOwnedPlantLine(OwnedPlant owned) {

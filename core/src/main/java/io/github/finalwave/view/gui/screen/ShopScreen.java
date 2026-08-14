@@ -31,7 +31,6 @@ import java.util.List;
 
 
 public final class ShopScreen extends MenuScreen {
-    private static final float BACK_SIZE = 96f;
     private static final float CLOSE_HEIGHT = 56f;
     private static final float TAB_WIDTH = 124f;
     private static final float TAB_IDLE_HEIGHT = 100f;
@@ -84,16 +83,9 @@ public final class ShopScreen extends MenuScreen {
             bindCurrency(controller.getUser());
         }
 
-        Actor back = PvzButtons.iconButton(
-                assets.region(MenuAssetIds.HUD_BACK),
-                BACK_SIZE,
-                BACK_SIZE,
-                this::goBack);
-
         hudLayer.clearChildren();
         hudLayer.top().left();
         hudLayer.padTop(10f).padLeft(16f).padRight(24f).padBottom(0f);
-        hudLayer.add(back).size(BACK_SIZE).left();
         hudLayer.add().expandX();
         hudLayer.add(currencyBar).right().padTop(14f);
 

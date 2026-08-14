@@ -1,6 +1,7 @@
 package io.github.finalwave.view.gui.bind;
 
 import io.github.finalwave.controller.AdventureController;
+import io.github.finalwave.controller.CollectionController;
 import io.github.finalwave.controller.GameController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.GreenhouseController;
@@ -17,6 +18,7 @@ import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.view.gui.AdventureViewGui;
 import io.github.finalwave.view.gui.AuthViewGui;
+import io.github.finalwave.view.gui.CollectionViewGui;
 import io.github.finalwave.view.gui.ComingSoonViewGui;
 import io.github.finalwave.view.gui.GameViewGui;
 import io.github.finalwave.view.gui.GreenhouseViewGui;
@@ -38,6 +40,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final GreenhouseViewGui greenhouseView;
     private final ProfileViewGui profileView;
     private final ShopViewGui shopView;
+    private final CollectionViewGui collectionView;
     private final GameViewGui gameView;
     private final AdventureViewGui adventureView;
     private final ComingSoonViewGui comingSoonView;
@@ -52,6 +55,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.greenhouseView = new GreenhouseViewGui(router);
         this.profileView = new ProfileViewGui(router);
         this.shopView = new ShopViewGui(router);
+        this.collectionView = new CollectionViewGui(router);
         this.gameView = new GameViewGui(router);
         this.adventureView = new AdventureViewGui(router);
         this.comingSoonView = new ComingSoonViewGui(router);
@@ -80,6 +84,9 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof ShopController shopController) {
             shopView.bindController(shopController);
             newController.setView(shopView);
+        } else if (newController instanceof CollectionController collectionController) {
+            collectionView.bindController(collectionController);
+            newController.setView(collectionView);
         } else if (newController instanceof GameController gameController) {
             gameView.bindController(gameController);
             newController.setView(gameView);
