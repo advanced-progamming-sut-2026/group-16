@@ -21,11 +21,13 @@ import io.github.finalwave.view.gui.AdventureViewGui;
 import io.github.finalwave.view.gui.AuthViewGui;
 import io.github.finalwave.view.gui.CollectionViewGui;
 import io.github.finalwave.view.gui.ComingSoonViewGui;
+import io.github.finalwave.view.gui.GamePlayViewGui;
 import io.github.finalwave.view.gui.GameViewGui;
 import io.github.finalwave.view.gui.GreenhouseViewGui;
 import io.github.finalwave.view.gui.LeaderboardViewGui;
 import io.github.finalwave.view.gui.MainMenuViewGui;
 import io.github.finalwave.view.gui.NewsViewGui;
+import io.github.finalwave.view.gui.PlantSelectionViewGui;
 import io.github.finalwave.view.gui.ProfileViewGui;
 import io.github.finalwave.view.gui.SettingViewGui;
 import io.github.finalwave.view.gui.ShopViewGui;
@@ -46,6 +48,8 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final GameViewGui gameView;
     private final AdventureViewGui adventureView;
     private final TravelLogViewGui travelLogView;
+    private final PlantSelectionViewGui plantSelectionView;
+    private final GamePlayViewGui gamePlayView;
     private final ComingSoonViewGui comingSoonView;
 
     public GuiNavigationBinder(ScreenRouter router) {
@@ -62,6 +66,8 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.gameView = new GameViewGui(router);
         this.adventureView = new AdventureViewGui(router);
         this.travelLogView = new TravelLogViewGui(router);
+        this.plantSelectionView = new PlantSelectionViewGui(router);
+        this.gamePlayView = new GamePlayViewGui(router);
         this.comingSoonView = new ComingSoonViewGui(router);
     }
 
@@ -100,10 +106,12 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof TravelLogController travelLogController) {
             travelLogView.bindController(travelLogController);
             newController.setView(travelLogView);
-        } else if (newController instanceof PlantSelectionController
-                || newController instanceof GamePlayController) {
-            comingSoonView.bindController(newController);
-            newController.setView(comingSoonView);
+        } else if (newController instanceof PlantSelectionController plantSelectionController) {
+            plantSelectionView.bindController(plantSelectionController);
+            newController.setView(plantSelectionView);
+        } else if (newController instanceof GamePlayController gamePlayController) {
+            gamePlayView.bindController(gamePlayController);
+            newController.setView(gamePlayView);
         } else if (newController instanceof RegistrationController
                 || newController instanceof LoginController) {
             authView.bindController(newController);

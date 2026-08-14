@@ -80,6 +80,7 @@ public final class MenuAssetIds {
     public static final String ALMANAC_STAT_RANGE = "IMAGE_UI_ALMANAC_PLANTS_RANGE_ICON";
     public static final String ALMANAC_STAT_CATEGORY = "IMAGE_UI_ALMANAC_ALMANAC_PIERCE";
     public static final String ALMANAC_LAWN = "IMAGE_BACKGROUNDS_FRONTLAWN_ROW_05";
+    public static final String PLANT_PREVIEW_CARD = "IMAGE_UI_CARDS_BACKGROUNDS_CARD_PLANT_BG_CARNIVAL";
     public static final String PACKET_HOMELESS = "IMAGE_UI_PACKETS_HOMELESS";
     public static final String PACKET_BOOST = "IMAGE_UI_PACKETS_BOOST";
     public static final String MINTFAM_SUN = "IMAGE_UI_PACKETS_MINTFAM_SUN";
@@ -194,6 +195,7 @@ public final class MenuAssetIds {
             ALMANAC_DETAIL_BACK,
             ALMANAC_PREVIEW,
             ALMANAC_LAWN,
+            PLANT_PREVIEW_CARD,
             PACKET_HOMELESS,
             PACKET_BOOST,
             MINTFAM_SUN,

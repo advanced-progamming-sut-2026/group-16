@@ -36,6 +36,7 @@ public class GamePlayController extends ViewController implements MatchListener 
     private final UnlockService unlockService = new UnlockService();
     private final boolean awardAdventureProgress;
     private boolean finishedHandled;
+    private boolean deferMatchExit;
 
     public GamePlayController(User user,
                               UserDatabase userDatabase,
@@ -70,8 +71,155 @@ public class GamePlayController extends ViewController implements MatchListener 
         return user;
     }
 
+    public GameSession session() {
+        return session;
+    }
+
+    public Set<String> boostedPlants() {
+        return boostedPlants;
+    }
+
+    public ChapterConfig chapter() {
+        return chapter;
+    }
+
+    public LevelConfig level() {
+        return level;
+    }
+
+    public void setDeferMatchExit(boolean deferMatchExit) {
+        this.deferMatchExit = deferMatchExit;
+    }
+
     public void back() {
         navigator.pop();
+    }
+
+    public void confirmMatchExit() {
+        navigator.pop();
+    }
+
+    public void restartMatch() {
+        navigator.pop();
+    }
+
+    public void requestPause() {
+    }
+
+    public void advance(int ticks) {
+        if (ticks < 0) {
+            getGamePlayView().errorNegativeTickCount();
+            return;
+        }
+        session.advanceTicks(ticks);
+        getGamePlayView().showAdvanceTime(ticks);
+        maybeReturnAfterMatch();
+    }
+
+    public boolean collectSunAt(int col, int row) {
+        if (col < 0 || row < 0) {
+            getGamePlayView().errorInvalidLocation(col, row);
+            return false;
+        }
+        if (!session.collectSunAt(col, row)) {
+            getGamePlayView().errorNoSunAt(col, row);
+            return false;
+        }
+        maybeReturnAfterMatch();
+        return true;
+    }
+
+    public PlantPlacementResult plantAt(String plantName, int col, int row) {
+        if (plantName == null || plantName.isBlank()) {
+            getGamePlayView().errorPlantNotFound(plantName);
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        if (col < 0 || row < 0) {
+            getGamePlayView().errorInvalidLocation(col, row);
+            return PlantPlacementResult.OUT_OF_BOUNDS;
+        }
+        int plantLevel = user.getPlantProgress().getOwnedPlant(plantName)
+                .map(owned -> owned.getLevel())
+                .orElse(1);
+        PlantPlacementResult result = session.tryPlant(plantName, col, row, plantLevel);
+        switch (result) {
+            case SUCCESS -> {
+                getGamePlayView().showPlantPlanted(plantName, col, row);
+                if (boostedPlants.contains(plantName)) {
+                    Plant planted = session.getBoard().getPlantAt(col, row);
+                    if (planted != null) {
+                        planted.activatePlantFoodEffect(session.getContext());
+                    }
+                }
+            }
+            case UNKNOWN_PLANT -> getGamePlayView().errorPlantNotFound(plantName);
+            case NOT_IN_LOADOUT -> getGamePlayView().errorPlantNotSelected(plantName);
+            case NOT_ON_CONVEYOR_BELT -> getGamePlayView().errorPlantNotOnConveyorBelt(plantName);
+            case LEVEL_PLANT_LOCKED -> getGamePlayView().errorLevelPlantLocked(plantName);
+            case ON_COOLDOWN -> getGamePlayView().errorPlantOnCooldown(plantName);
+            case INSUFFICIENT_SUN -> getGamePlayView().errorNotEnoughSun();
+            case OUT_OF_BOUNDS -> getGamePlayView().errorInvalidLocation(col, row);
+            default -> getGamePlayView().errorCannotPlantHere(col, row);
+        }
+        maybeReturnAfterMatch();
+        return result;
+    }
+
+    public boolean shovelAt(int col, int row) {
+        Plant plant = session.getBoard().getPlantAt(col, row);
+        if (plant != null && session.isProtectedSeed(plant)) {
+            getGamePlayView().errorCannotPluckProtectedSeed(col, row);
+            return false;
+        }
+        if (!session.pluckPlant(col, row)) {
+            getGamePlayView().errorNoPlantToPluck(col, row);
+            return false;
+        }
+        getGamePlayView().showPlantPlucked(col, row);
+        maybeReturnAfterMatch();
+        return true;
+    }
+
+    public boolean feedAt(int col, int row) {
+        if (session.getPlantFoodCount() <= 0) {
+            getGamePlayView().errorNoPlantFood();
+            return false;
+        }
+        if (!session.usePlantFood(col, row)) {
+            getGamePlayView().errorCannotFeedHere(col, row);
+            return false;
+        }
+        getGamePlayView().showPlantFed(col, row);
+        maybeReturnAfterMatch();
+        return true;
+    }
+
+    public void startWaves() {
+        session.startZombieWaves();
+        maybeReturnAfterMatch();
+    }
+
+    public void cheatAddSun(int amount) {
+        session.addSunBalance(amount);
+        getGamePlayView().showCheatAddedSuns(amount);
+        maybeReturnAfterMatch();
+    }
+
+    public void cheatAddPlantFood() {
+        session.addPlantFood(1);
+        getGamePlayView().showCheatAddedPlantFood();
+        maybeReturnAfterMatch();
+    }
+
+    public void cheatRemoveCooldown() {
+        session.removeAllCooldowns();
+        getGamePlayView().showCheatCooldownRemoved();
+    }
+
+    public void cheatNuke() {
+        session.nukeAllZombies();
+        getGamePlayView().showNukeActivated();
+        maybeReturnAfterMatch();
     }
 
     @Override
@@ -81,7 +229,9 @@ public class GamePlayController extends ViewController implements MatchListener 
 
     @Override
     public void displayMenu() {
-        getGamePlayView().showSunAmount(session.getSunBalance());
+        if (view instanceof GamePlayView gamePlayView) {
+            gamePlayView.showSunAmount(session.getSunBalance());
+        }
     }
 
     @Override
@@ -129,24 +279,11 @@ public class GamePlayController extends ViewController implements MatchListener 
             getGamePlayView().errorInvalidTickCount();
             return;
         }
-        if (ticks < 0) {
-            getGamePlayView().errorNegativeTickCount();
-            return;
-        }
-        session.advanceTicks(ticks);
-        getGamePlayView().showAdvanceTime(ticks);
+        advance(ticks);
     }
 
     private void handleCollectSun(String x, String y) {
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        if (col < 0 || row < 0) {
-            getGamePlayView().errorInvalidLocation(col, row);
-            return;
-        }
-        if (!session.collectSunAt(col, row)) {
-            getGamePlayView().errorNoSunAt(col, row);
-        }
+        collectSunAt(parseCoord(x), parseCoord(y));
     }
 
     private void handleShowSunAmount() {
@@ -154,65 +291,15 @@ public class GamePlayController extends ViewController implements MatchListener 
     }
 
     private void handlePlantPlant(String type, String x, String y) {
-        String plantType = type.trim();
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        if (col < 0 || row < 0) {
-            getGamePlayView().errorInvalidLocation(col, row);
-            return;
-        }
-        int plantLevel = user.getPlantProgress().getOwnedPlant(plantType)
-                .map(owned -> owned.getLevel())
-                .orElse(1);
-        PlantPlacementResult result = session.tryPlant(plantType, col, row, plantLevel);
-        switch (result) {
-            case SUCCESS -> {
-                getGamePlayView().showPlantPlanted(plantType, col, row);
-                if (boostedPlants.contains(plantType)) {
-                    Plant planted = session.getBoard().getPlantAt(col, row);
-                    if (planted != null) {
-                        planted.activatePlantFoodEffect(session.getContext());
-                    }
-                }
-            }
-            case UNKNOWN_PLANT -> getGamePlayView().errorPlantNotFound(plantType);
-            case NOT_IN_LOADOUT -> getGamePlayView().errorPlantNotSelected(plantType);
-            case NOT_ON_CONVEYOR_BELT -> getGamePlayView().errorPlantNotOnConveyorBelt(plantType);
-            case LEVEL_PLANT_LOCKED -> getGamePlayView().errorLevelPlantLocked(plantType);
-            case ON_COOLDOWN -> getGamePlayView().errorPlantOnCooldown(plantType);
-            case INSUFFICIENT_SUN -> getGamePlayView().errorNotEnoughSun();
-            case OUT_OF_BOUNDS -> getGamePlayView().errorInvalidLocation(col, row);
-            default -> getGamePlayView().errorCannotPlantHere(col, row);
-        }
+        plantAt(type.trim(), parseCoord(x), parseCoord(y));
     }
 
     private void handlePluckPlant(String x, String y) {
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        Plant plant = session.getBoard().getPlantAt(col, row);
-        if (plant != null && session.isProtectedSeed(plant)) {
-            getGamePlayView().errorCannotPluckProtectedSeed(col, row);
-            return;
-        }
-        if (!session.pluckPlant(col, row)) {
-            getGamePlayView().errorNoPlantToPluck(col, row);
-            return;
-        }
-        getGamePlayView().showPlantPlucked(col, row);
+        shovelAt(parseCoord(x), parseCoord(y));
     }
 
     private void handleFeedPlant(String x, String y) {
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        if (session.getPlantFoodCount() <= 0) {
-            getGamePlayView().errorNoPlantFood();
-            return;
-        }
-        if (!session.usePlantFood(col, row)) {
-            getGamePlayView().errorCannotFeedHere(col, row);
-            return;
-        }
-        getGamePlayView().showPlantFed(col, row);
+        feedAt(parseCoord(x), parseCoord(y));
     }
 
     private void handleShowMap() {
@@ -234,7 +321,7 @@ public class GamePlayController extends ViewController implements MatchListener 
     }
 
     private void handleStartZombieWaves() {
-        session.startZombieWaves();
+        startWaves();
     }
 
     private void handleCheatAddSuns(String count) {
@@ -245,23 +332,19 @@ public class GamePlayController extends ViewController implements MatchListener 
             getGamePlayView().errorInvalidSunCount();
             return;
         }
-        session.addSunBalance(amount);
-        getGamePlayView().showCheatAddedSuns(amount);
+        cheatAddSun(amount);
     }
 
     private void handleReleaseTheNuke() {
-        session.nukeAllZombies();
-        getGamePlayView().showNukeActivated();
+        cheatNuke();
     }
 
     private void handleCheatRemoveCooldown() {
-        session.removeAllCooldowns();
-        getGamePlayView().showCheatCooldownRemoved();
+        cheatRemoveCooldown();
     }
 
     private void handleCheatAddPlantFood() {
-        session.addPlantFood(1);
-        getGamePlayView().showCheatAddedPlantFood();
+        cheatAddPlantFood();
     }
 
     private void handleCheatAddZombie(String zombieType, String x, String y) {
@@ -300,6 +383,14 @@ public class GamePlayController extends ViewController implements MatchListener 
                     user.getChapterProgress().markLevelCompleted(chapter.getId(), level.getIndex());
             userDatabase.saveAdventureProgress(user);
             publishUnlockNews(completion);
+        }
+        if (deferMatchExit) {
+            if (result == MatchResult.WON) {
+                getGamePlayView().showWinMessage();
+            } else {
+                getGamePlayView().showLoseMessage();
+            }
+            return;
         }
         navigator.pop();
     }
@@ -472,6 +563,6 @@ public class GamePlayController extends ViewController implements MatchListener 
 
     @Override
     public void onLose() {
-
+        getGamePlayView().showLoseMessage();
     }
 }

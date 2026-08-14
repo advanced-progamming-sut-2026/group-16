@@ -16,6 +16,8 @@ public interface PlantSelectionView extends View {
 
     void showPlantBoosted(String type);
 
+    void showPlantUpgraded(String type, int newLevel);
+
     void showCurrentMenu();
 
     void showGameStarted();
@@ -37,6 +39,8 @@ public interface PlantSelectionView extends View {
     void errorNotEnoughDiamonds();
 
     void errorLoadoutEmpty();
+
+    void errorUpgradeFailed(String message);
 
     void errorInvalidCommand();
 }

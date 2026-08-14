@@ -40,10 +40,13 @@ public abstract class MenuScreen extends ScreenAdapter {
     private final Image backgroundImage;
 
     protected MenuScreen(PvzGame game) {
+        this(game, new ExtendViewport(WORLD_WIDTH, WORLD_HEIGHT));
+    }
+
+    protected MenuScreen(PvzGame game, Viewport viewport) {
         this.game = game;
         this.assets = game.assets();
-        this.viewport = new ExtendViewport(WORLD_WIDTH, WORLD_HEIGHT);
-
+        this.viewport = viewport;
         this.stage = new Stage(viewport);
 
         backgroundImage = new Image();

@@ -1,0 +1,183 @@
+package io.github.finalwave.view.gui.render;
+
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
+import io.github.finalwave.model.game.GameSession;
+import io.github.finalwave.model.item.Sun;
+import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
+import io.github.finalwave.view.gui.assets.GameAssets;
+import io.github.finalwave.view.gui.render.clip.PlantClips;
+import io.github.finalwave.view.gui.render.clip.ZombieClips;
+import io.github.finalwave.view.gui.render.sync.MowerSync;
+import io.github.finalwave.view.gui.render.sync.PlantSync;
+import io.github.finalwave.view.gui.render.sync.SunSync;
+import io.github.finalwave.view.gui.render.sync.ZombieSync;
+import io.github.finalwave.view.gui.widget.PamActor;
+
+import java.util.Comparator;
+import java.util.function.Consumer;
+import java.util.function.ToIntFunction;
+
+
+public final class BattlefieldGroup extends WidgetGroup {
+    private final Group environmentLayer = new Group();
+    private final Group highlightLayer = new Group();
+    private final Group mowerLayer = new Group();
+    private final Group plantLayer = new Group();
+    private final Group zombieLayer = new Group();
+    private final Group projectileLayer = new Group();
+    private final Group sunLayer = new Group();
+    private final Group fxLayer = new Group();
+
+    private PlantSync plantSync;
+    private ZombieSync zombieSync;
+    private SunSync sunSync;
+    private MowerSync mowerSync;
+    private Consumer<Sun> sunCollector;
+
+    public BattlefieldGroup() {
+        setFillParent(true);
+        setTouchable(Touchable.enabled);
+        addActor(environmentLayer);
+        addActor(highlightLayer);
+        addActor(mowerLayer);
+        addActor(plantLayer);
+        addActor(zombieLayer);
+        addActor(projectileLayer);
+        addActor(sunLayer);
+        addActor(fxLayer);
+    }
+
+    public void bind(GameAssets assets, LawnLayout layout, EntityAnimationCatalog catalog) {
+        clearBattlefield();
+        if (assets == null || layout == null || catalog == null) {
+            plantSync = null;
+            zombieSync = null;
+            sunSync = null;
+            mowerSync = null;
+            return;
+        }
+        plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
+        zombieSync = new ZombieSync(assets, layout, new ZombieClips(catalog), zombieLayer);
+        sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
+        mowerSync = new MowerSync(assets, layout, mowerLayer);
+    }
+
+    public void setSunCollector(Consumer<Sun> sunCollector) {
+        this.sunCollector = sunCollector;
+    }
+
+    public void sync(GameSession session) {
+        sync(session, 0f);
+    }
+
+    public void sync(GameSession session, float tickFraction) {
+        if (session == null) {
+            return;
+        }
+        if (plantSync != null) {
+            plantSync.sync(session);
+            sortByRow(plantLayer, BattlefieldGroup::sortKey);
+        }
+        if (zombieSync != null) {
+            zombieSync.sync(session, tickFraction);
+            sortByRow(zombieLayer, BattlefieldGroup::sortKey);
+        }
+        if (mowerSync != null) {
+            mowerSync.sync(session);
+        }
+        if (sunSync != null) {
+            sunSync.sync(session, tickFraction);
+        }
+    }
+
+    public void setPlaying(boolean playing) {
+        setPlaying(environmentLayer, playing);
+        setPlaying(mowerLayer, playing);
+        setPlaying(plantLayer, playing);
+        setPlaying(zombieLayer, playing);
+        setPlaying(projectileLayer, playing);
+        setPlaying(sunLayer, playing);
+        setPlaying(fxLayer, playing);
+    }
+
+    public void sortByRow(Group layer, ToIntFunction<Actor> rowOf) {
+        layer.getChildren().sort(Comparator.comparingInt(rowOf));
+    }
+
+    public void clearBattlefield() {
+        if (plantSync != null) {
+            plantSync.clear();
+        }
+        if (zombieSync != null) {
+            zombieSync.clear();
+        }
+        if (sunSync != null) {
+            sunSync.clear();
+        }
+        if (mowerSync != null) {
+            mowerSync.clear();
+        }
+        environmentLayer.clearChildren();
+        highlightLayer.clearChildren();
+        mowerLayer.clearChildren();
+        plantLayer.clearChildren();
+        zombieLayer.clearChildren();
+        projectileLayer.clearChildren();
+        sunLayer.clearChildren();
+        fxLayer.clearChildren();
+    }
+
+    public Group environmentLayer() {
+        return environmentLayer;
+    }
+
+    public Group highlightLayer() {
+        return highlightLayer;
+    }
+
+    public Group mowerLayer() {
+        return mowerLayer;
+    }
+
+    public Group plantLayer() {
+        return plantLayer;
+    }
+
+    public Group zombieLayer() {
+        return zombieLayer;
+    }
+
+    public Group projectileLayer() {
+        return projectileLayer;
+    }
+
+    public Group sunLayer() {
+        return sunLayer;
+    }
+
+    public Group fxLayer() {
+        return fxLayer;
+    }
+
+    private void collectSun(Sun sun) {
+        if (sunCollector != null) {
+            sunCollector.accept(sun);
+        }
+    }
+
+    private static int sortKey(Actor actor) {
+        Object key = actor.getUserObject();
+        return key instanceof Integer value ? value : 0;
+    }
+
+    private static void setPlaying(Group layer, boolean playing) {
+        for (Actor actor : layer.getChildren()) {
+            if (actor instanceof PamActor pamActor) {
+                pamActor.setPlaying(playing);
+            }
+        }
+    }
+}

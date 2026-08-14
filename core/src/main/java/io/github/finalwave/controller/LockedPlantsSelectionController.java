@@ -33,6 +33,11 @@ public final class LockedPlantsSelectionController extends PlantSelectionControl
     }
 
     @Override
+    public boolean isRestricted(String name) {
+        return rules.isLocked(name) || super.isRestricted(name);
+    }
+
+    @Override
     public void displayMenu() {
         LockedPlantsSelectionView lockedView = getLockedPlantsView();
         lockedView.showLockedPlantsRules(rules.getMode());

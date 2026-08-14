@@ -13,6 +13,7 @@ import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.view.gui.assets.AdventureAssetIds;
 import io.github.finalwave.view.gui.assets.GameAssets;
+import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
 import pvz.libpvz.textures.ResourceIndex;
 
@@ -85,6 +86,9 @@ public final class BootScreen extends ScreenAdapter {
             addAtlasId(index, imageId);
         }
         for (String imageId : AdventureAssetIds.ALL) {
+            addAtlasId(index, imageId);
+        }
+        for (String imageId : LawnAssetIds.BOOT_PRELOAD) {
             addAtlasId(index, imageId);
         }
     }
