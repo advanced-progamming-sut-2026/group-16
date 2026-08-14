@@ -4,11 +4,15 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import io.github.finalwave.PvzGame;
+import io.github.finalwave.controller.AdventureController;
+import io.github.finalwave.controller.GameController;
+import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.GreenhouseController;
 import io.github.finalwave.controller.LeaderboardController;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
 import io.github.finalwave.controller.NewsController;
+import io.github.finalwave.controller.PlantSelectionController;
 import io.github.finalwave.controller.ProfileController;
 import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.SettingController;
@@ -19,7 +23,6 @@ import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
 import io.github.finalwave.model.user.User;
 
 import java.util.List;
-
 
 public final class ScreenRouter {
     private static final String TAG = "ScreenRouter";
@@ -36,6 +39,9 @@ public final class ScreenRouter {
     private GreenhouseScreen greenhouseScreen;
     private ProfileScreen profileScreen;
     private ShopScreen shopScreen;
+    private ChapterSelectScreen chapterSelectScreen;
+    private AdventureScreen adventureScreen;
+    private ComingSoonScreen comingSoonScreen;
 
     public ScreenRouter(PvzGame game) {
         this.game = game;
@@ -50,7 +56,11 @@ public final class ScreenRouter {
                 || controller instanceof SettingController
                 || controller instanceof GreenhouseController
                 || controller instanceof ProfileController
-                || controller instanceof ShopController;
+                || controller instanceof ShopController
+                || controller instanceof GameController
+                || controller instanceof AdventureController
+                || controller instanceof PlantSelectionController
+                || controller instanceof GamePlayController;
     }
 
     public boolean supportsDestination(MainMenuController.Destination destination) {
@@ -58,7 +68,8 @@ public final class ScreenRouter {
                 || destination == MainMenuController.Destination.LEADERBOARD
                 || destination == MainMenuController.Destination.SETTINGS
                 || destination == MainMenuController.Destination.GREENHOUSE
-                || destination == MainMenuController.Destination.PROFILE;
+                || destination == MainMenuController.Destination.PROFILE
+                || destination == MainMenuController.Destination.GAME;
     }
 
     public void showFor(ViewController controller) {
@@ -80,6 +91,14 @@ public final class ScreenRouter {
             showProfile(profileController);
         } else if (controller instanceof ShopController shopController) {
             showShop(shopController);
+        } else if (controller instanceof GameController gameController) {
+            showChapterSelect(gameController);
+        } else if (controller instanceof AdventureController adventureController) {
+            showAdventure(adventureController);
+        } else if (controller instanceof PlantSelectionController plantSelectionController) {
+            showComingSoon(plantSelectionController::back, "Plant selection");
+        } else if (controller instanceof GamePlayController gamePlayController) {
+            showComingSoon(gamePlayController::back, "Gameplay");
         } else {
             Gdx.app.log(TAG, "No GUI screen registered for " + controller.getClass().getSimpleName());
         }
@@ -157,6 +176,30 @@ public final class ScreenRouter {
         setScreen(shopScreen);
     }
 
+    public void showChapterSelect(GameController controller) {
+        if (chapterSelectScreen == null) {
+            chapterSelectScreen = new ChapterSelectScreen(game);
+        }
+        chapterSelectScreen.bind(controller);
+        setScreen(chapterSelectScreen);
+    }
+
+    public void showAdventure(AdventureController controller) {
+        if (adventureScreen == null) {
+            adventureScreen = new AdventureScreen(game);
+        }
+        adventureScreen.bind(controller);
+        setScreen(adventureScreen);
+    }
+
+    public void showComingSoon(Runnable onBack, String title) {
+        if (comingSoonScreen == null) {
+            comingSoonScreen = new ComingSoonScreen(game);
+        }
+        comingSoonScreen.bind(onBack, title);
+        setScreen(comingSoonScreen);
+    }
+
     public MenuScreen currentMenuScreen() {
         Screen active = game.getScreen();
         if (active instanceof MenuScreen menuScreen) {
@@ -167,7 +210,6 @@ public final class ScreenRouter {
         }
         return null;
     }
-
 
     public void openSignupSecurityModal() {
         if (signupScreen != null) {
@@ -250,6 +292,18 @@ public final class ScreenRouter {
         }
     }
 
+    public void refreshChapterSelect() {
+        if (chapterSelectScreen != null) {
+            chapterSelectScreen.refreshCarousel();
+        }
+    }
+
+    public void refreshAdventureMap() {
+        if (adventureScreen != null) {
+            adventureScreen.refreshPath();
+        }
+    }
+
     public void dispose() {
         if (signupScreen != null) {
             signupScreen.dispose();
@@ -277,6 +331,15 @@ public final class ScreenRouter {
         }
         if (shopScreen != null) {
             shopScreen.dispose();
+        }
+        if (chapterSelectScreen != null) {
+            chapterSelectScreen.dispose();
+        }
+        if (adventureScreen != null) {
+            adventureScreen.dispose();
+        }
+        if (comingSoonScreen != null) {
+            comingSoonScreen.dispose();
         }
     }
 

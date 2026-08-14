@@ -1,17 +1,24 @@
 package io.github.finalwave.view.gui.bind;
 
+import io.github.finalwave.controller.AdventureController;
+import io.github.finalwave.controller.GameController;
+import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.GreenhouseController;
 import io.github.finalwave.controller.LeaderboardController;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
 import io.github.finalwave.controller.NavigationBinder;
 import io.github.finalwave.controller.NewsController;
+import io.github.finalwave.controller.PlantSelectionController;
 import io.github.finalwave.controller.ProfileController;
 import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.SettingController;
 import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.ViewController;
+import io.github.finalwave.view.gui.AdventureViewGui;
 import io.github.finalwave.view.gui.AuthViewGui;
+import io.github.finalwave.view.gui.ComingSoonViewGui;
+import io.github.finalwave.view.gui.GameViewGui;
 import io.github.finalwave.view.gui.GreenhouseViewGui;
 import io.github.finalwave.view.gui.LeaderboardViewGui;
 import io.github.finalwave.view.gui.MainMenuViewGui;
@@ -20,7 +27,6 @@ import io.github.finalwave.view.gui.ProfileViewGui;
 import io.github.finalwave.view.gui.SettingViewGui;
 import io.github.finalwave.view.gui.ShopViewGui;
 import io.github.finalwave.view.gui.screen.ScreenRouter;
-
 
 public final class GuiNavigationBinder implements NavigationBinder {
     private final ScreenRouter router;
@@ -32,6 +38,9 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final GreenhouseViewGui greenhouseView;
     private final ProfileViewGui profileView;
     private final ShopViewGui shopView;
+    private final GameViewGui gameView;
+    private final AdventureViewGui adventureView;
+    private final ComingSoonViewGui comingSoonView;
 
     public GuiNavigationBinder(ScreenRouter router) {
         this.router = router;
@@ -43,6 +52,9 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.greenhouseView = new GreenhouseViewGui(router);
         this.profileView = new ProfileViewGui(router);
         this.shopView = new ShopViewGui(router);
+        this.gameView = new GameViewGui(router);
+        this.adventureView = new AdventureViewGui(router);
+        this.comingSoonView = new ComingSoonViewGui(router);
     }
 
     @Override
@@ -68,6 +80,16 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof ShopController shopController) {
             shopView.bindController(shopController);
             newController.setView(shopView);
+        } else if (newController instanceof GameController gameController) {
+            gameView.bindController(gameController);
+            newController.setView(gameView);
+        } else if (newController instanceof AdventureController adventureController) {
+            adventureView.bindController(adventureController);
+            newController.setView(adventureView);
+        } else if (newController instanceof PlantSelectionController
+                || newController instanceof GamePlayController) {
+            comingSoonView.bindController(newController);
+            newController.setView(comingSoonView);
         } else if (newController instanceof RegistrationController
                 || newController instanceof LoginController) {
             authView.bindController(newController);

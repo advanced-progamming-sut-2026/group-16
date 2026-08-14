@@ -66,6 +66,14 @@ public class GamePlayController extends ViewController implements MatchListener 
         this.session.setMatchListener(this);
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public void back() {
+        navigator.pop();
+    }
+
     @Override
     public void onExit() {
         detachQuestTracker();
@@ -328,10 +336,6 @@ public class GamePlayController extends ViewController implements MatchListener 
     protected void recordFinishedGame() {
         user.recordGamePlayed();
         userDatabase.saveGamesPlayed(user);
-    }
-
-    protected User getUser() {
-        return user;
     }
 
     protected UserDatabase getUserDatabase() {

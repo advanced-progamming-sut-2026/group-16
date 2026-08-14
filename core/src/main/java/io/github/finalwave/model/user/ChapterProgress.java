@@ -25,6 +25,12 @@ public final class ChapterProgress {
         return chapter.ordinal() <= unlockedChapter.ordinal();
     }
 
+    public void unlockThrough(ChapterId chapter) {
+        if (chapter != null && chapter.ordinal() > unlockedChapter.ordinal()) {
+            unlockedChapter = chapter;
+        }
+    }
+
     public boolean isLevelCompleted(ChapterId chapter, int levelIndex) {
         return completedLevels.getOrDefault(chapter, Set.of()).contains(levelIndex);
     }
