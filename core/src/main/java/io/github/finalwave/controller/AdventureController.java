@@ -40,6 +40,32 @@ public class AdventureController extends ViewController {
         return chapter;
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public void back() {
+        navigator.pop();
+    }
+
+    public void startLevel(int levelIndex) {
+        handleStartLevel(String.valueOf(levelIndex));
+    }
+
+    public boolean isLevelUnlocked(int levelIndex) {
+        if (user.isDebugMode()) {
+            return true;
+        }
+        ChapterProgress progress = user.getChapterProgress();
+        if (!progress.isChapterUnlocked(chapter.getId())) {
+            return false;
+        }
+        if (levelIndex <= 1) {
+            return true;
+        }
+        return progress.isLevelCompleted(chapter.getId(), levelIndex - 1);
+    }
+
     @Override
     public void displayMenu() {
         getAdventureView().showAdventureMenu(chapter);
@@ -79,8 +105,12 @@ public class AdventureController extends ViewController {
             return;
         }
         ChapterProgress progress = user.getChapterProgress();
-        if (!progress.isChapterUnlocked(chapter.getId())) {
+        if (!progress.isChapterUnlocked(chapter.getId()) && !user.isDebugMode()) {
             getAdventureView().errorChapterLocked(chapter.getDisplayName());
+            return;
+        }
+        if (!isLevelUnlocked(levelIndex)) {
+            getAdventureView().errorLevelLocked(levelIndex);
             return;
         }
         if (level.getType() == LevelType.BOSS) {

@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import io.github.finalwave.PvzGame;
+import io.github.finalwave.view.gui.assets.AdventureAssetIds;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
 import pvz.libpvz.textures.ResourceIndex;
@@ -81,13 +82,20 @@ public final class BootScreen extends ScreenAdapter {
     private void collectAtlasIds() {
         ResourceIndex index = assets.resourceIndex();
         for (String imageId : MenuAssetIds.ALL) {
-            ResourceIndex.ImageEntry entry = index.image(imageId);
-            if (entry == null) {
-                Gdx.app.error(TAG, "Missing menu image id in RESOURCES.json: " + imageId);
-                continue;
-            }
-            atlasIds.add(entry.atlasId);
+            addAtlasId(index, imageId);
         }
+        for (String imageId : AdventureAssetIds.ALL) {
+            addAtlasId(index, imageId);
+        }
+    }
+
+    private void addAtlasId(ResourceIndex index, String imageId) {
+        ResourceIndex.ImageEntry entry = index.image(imageId);
+        if (entry == null) {
+            Gdx.app.error(TAG, "Missing menu image id in RESOURCES.json: " + imageId);
+            return;
+        }
+        atlasIds.add(entry.atlasId);
     }
 
     private void updateProgress() {

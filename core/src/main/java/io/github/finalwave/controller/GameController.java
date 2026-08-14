@@ -1,11 +1,14 @@
 package io.github.finalwave.controller;
 
 import io.github.finalwave.model.adventure.AdventureRegistry;
+import io.github.finalwave.model.adventure.ChapterConfig;
+import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.command.GameMenuCommands;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.GameView;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 
@@ -15,6 +18,26 @@ public class GameController extends ViewController {
     public GameController(User user, UserDatabase userDatabase) {
         this.user = user;
         this.userDatabase = userDatabase;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public List<ChapterConfig> chapters() {
+        return AdventureRegistry.getInstance().getAllChapters();
+    }
+
+    public void back() {
+        handleMenuExit();
+    }
+
+    public void enterChapter(ChapterId chapterId) {
+        if (chapterId == null) {
+            getGameView().errorUnknownChapter("");
+            return;
+        }
+        handleEnterChapter(chapterId.getDisplayName());
     }
 
     @Override
@@ -71,8 +94,12 @@ public class GameController extends ViewController {
             return;
         }
         if (!user.getChapterProgress().isChapterUnlocked(chapter.getId())) {
-            getGameView().errorChapterLocked(chapter.getDisplayName());
-            return;
+            if (!user.isDebugMode()) {
+                getGameView().errorChapterLocked(chapter.getDisplayName());
+                return;
+            }
+            user.getChapterProgress().unlockThrough(chapter.getId());
+            userDatabase.saveAdventureProgress(user);
         }
         navigator.push(new AdventureController(user, userDatabase, chapter));
     }

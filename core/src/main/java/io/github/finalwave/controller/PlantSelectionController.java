@@ -43,6 +43,14 @@ public class PlantSelectionController extends ViewController {
         this.zombieRegistry = loadZombieRegistry();
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public void back() {
+        handleMenuExit();
+    }
+
     @Override
     public void displayMenu() {
         getViewApi().showCurrentMenu();
