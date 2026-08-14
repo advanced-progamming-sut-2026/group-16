@@ -9,6 +9,7 @@ import io.github.finalwave.controller.NewsController;
 import io.github.finalwave.controller.ProfileController;
 import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.SettingController;
+import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.view.gui.AuthViewGui;
 import io.github.finalwave.view.gui.GreenhouseViewGui;
@@ -17,6 +18,7 @@ import io.github.finalwave.view.gui.MainMenuViewGui;
 import io.github.finalwave.view.gui.NewsViewGui;
 import io.github.finalwave.view.gui.ProfileViewGui;
 import io.github.finalwave.view.gui.SettingViewGui;
+import io.github.finalwave.view.gui.ShopViewGui;
 import io.github.finalwave.view.gui.screen.ScreenRouter;
 
 
@@ -29,6 +31,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final SettingViewGui settingView;
     private final GreenhouseViewGui greenhouseView;
     private final ProfileViewGui profileView;
+    private final ShopViewGui shopView;
 
     public GuiNavigationBinder(ScreenRouter router) {
         this.router = router;
@@ -39,6 +42,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.settingView = new SettingViewGui(router);
         this.greenhouseView = new GreenhouseViewGui(router);
         this.profileView = new ProfileViewGui(router);
+        this.shopView = new ShopViewGui(router);
     }
 
     @Override
@@ -61,6 +65,9 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof ProfileController profileController) {
             profileView.bindController(profileController);
             newController.setView(profileView);
+        } else if (newController instanceof ShopController shopController) {
+            shopView.bindController(shopController);
+            newController.setView(shopView);
         } else if (newController instanceof RegistrationController
                 || newController instanceof LoginController) {
             authView.bindController(newController);

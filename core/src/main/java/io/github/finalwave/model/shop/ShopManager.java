@@ -5,9 +5,12 @@ import io.github.finalwave.model.greenhouse.GreenhouseLayout;
 import io.github.finalwave.model.user.GreenhousePot;
 import io.github.finalwave.model.user.User;
 
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
 public class ShopManager {
@@ -27,6 +30,38 @@ public class ShopManager {
 
     public ShopManager(Random random) {
         this.random = random;
+    }
+
+    private static final int[] COIN_PACK_COUNTS = {1, 2, 5, 10, 20, 40, 80, 100};
+    private static final String[] COIN_PACK_TITLES = {
+            "A handful of coins!",
+            "Coins, coins, coins!",
+            "More coins, more fun!",
+            "So many coins!",
+            "A bag of coins!",
+            "A bucket of coins!",
+            "A barrel of coins!",
+            "So very many coins!"
+    };
+
+    public List<ShopOffer> offers(User user) {
+        refreshDailyOfferIfNeeded(user);
+        List<ShopOffer> list = new ArrayList<>();
+        ShopOffer daily = dailyOffer(user);
+        if (daily != null) {
+            list.add(daily);
+        }
+        for (ShopItem item : permanentItems) {
+            list.add(toOffer(user, item));
+        }
+        return list;
+    }
+
+    public List<ShopOffer> offers(User user, ShopTab tab) {
+        if (tab == ShopTab.COINS) {
+            return coinPackOffers();
+        }
+        return offers(user).stream().filter(offer -> offer.tab() == tab).toList();
     }
 
     public String formatPermanentItems() {
@@ -163,6 +198,111 @@ public class ShopManager {
         user.getPlantProgress().addSeedPackets(user.getDailyOfferPlant(), 10);
         user.setDailyOfferPurchased(true);
         return PurchaseResult.success("Daily Offer", 1, user.getDailyOfferPlant() + " +10");
+    }
+
+    private ShopOffer dailyOffer(User user) {
+        if (user.getDailyOfferPlant() == null) {
+            return null;
+        }
+        return new ShopOffer(
+                "daily",
+                "Daily Offer",
+                "10 seed packets for " + user.getDailyOfferPlant(),
+                1600,
+                "coin(s)",
+                true,
+                user.isDailyOfferPurchased(),
+                remainingUntilMidnight(),
+                user.getDailyOfferPlant(),
+                packetImageId(user.getDailyOfferPlant()),
+                false,
+                1,
+                quantityLabel(10),
+                ShopTab.SEEDS);
+    }
+
+    private ShopOffer toOffer(User user, ShopItem item) {
+        boolean soldOut = switch (item.getId()) {
+            case "pot" -> GreenhouseLayout.SLOT_COUNT - user.countUnlockedPots() <= 0;
+            case "plant_food" -> user.getPlantFood() >= 3;
+            default -> false;
+        };
+        String previewImage = switch (item.getId()) {
+            case "pot" -> "IMAGE_UI_SPROUTS_STACK_1";
+            case "plant_food" -> "IMAGE_UI_HUD_INGAME_PLANTFOOD_BUTTON";
+            case "gem_to_coin" -> "IMAGE_UI_COINS_STACK_2";
+            case "seed_random" -> "IMAGE_UI_STOREMULTI_SEEDPACKETICON";
+            case "seed_selective" -> packetImageId("Sunflower");
+            default -> "IMAGE_UI_SPROUTS_STACK_1";
+        };
+        ShopTab tab = switch (item.getId()) {
+            case "seed_random", "seed_selective" -> ShopTab.SEEDS;
+            case "gem_to_coin" -> ShopTab.COINS;
+            default -> ShopTab.GARDEN;
+        };
+        String quantity = quantityLabel(item.getPacketAmount());
+        return new ShopOffer(
+                item.getId(),
+                item.getName(),
+                item.getDescription(),
+                item.getPrice(),
+                item.getCurrency(),
+                false,
+                soldOut,
+                null,
+                null,
+                previewImage,
+                "seed_selective".equals(item.getId()),
+                1,
+                quantity,
+                tab);
+    }
+
+    private List<ShopOffer> coinPackOffers() {
+        ShopItem item = permanentItems.stream()
+                .filter(candidate -> "gem_to_coin".equals(candidate.getId()))
+                .findFirst()
+                .orElseThrow();
+        List<ShopOffer> packs = new ArrayList<>();
+        for (int index = 0; index < COIN_PACK_COUNTS.length; index++) {
+            int count = COIN_PACK_COUNTS[index];
+            int coins = item.getPacketAmount() * count;
+            packs.add(new ShopOffer(
+                    item.getId(),
+                    COIN_PACK_TITLES[index],
+                    "+" + coins + " coins",
+                    item.getPrice() * count,
+                    item.getCurrency(),
+                    false,
+                    false,
+                    null,
+                    null,
+                    "IMAGE_UI_COINS_STACK_" + index,
+                    false,
+                    count,
+                    quantityLabel(coins),
+                    ShopTab.COINS));
+        }
+        return packs;
+    }
+
+    private static String quantityLabel(int amount) {
+        return "x" + String.format(Locale.US, "%,d", amount);
+    }
+
+    private static String packetImageId(String plantName) {
+        if (plantName == null || plantName.isBlank()) {
+            return "IMAGE_UI_STOREMULTI_SEEDPACKETICON";
+        }
+        return "IMAGE_UI_PACKETS_" + plantName.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+    }
+
+    private static String remainingUntilMidnight() {
+        LocalDateTime now = LocalDateTime.now();
+        Duration remaining = Duration.between(now, now.toLocalDate().plusDays(1).atStartOfDay());
+        long hours = Math.max(0L, remaining.toHours());
+        long minutes = Math.max(0L, remaining.toMinutes() % 60);
+        return hours + "h " + minutes + "m remaining";
     }
 
     public record PurchaseResult(String status, String itemName, int count, String extraInfo, String errorArg) {

@@ -12,6 +12,7 @@ import io.github.finalwave.controller.NewsController;
 import io.github.finalwave.controller.ProfileController;
 import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.SettingController;
+import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.model.leaderboard.LeaderboardEntry;
 import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
@@ -34,6 +35,7 @@ public final class ScreenRouter {
     private SettingScreen settingScreen;
     private GreenhouseScreen greenhouseScreen;
     private ProfileScreen profileScreen;
+    private ShopScreen shopScreen;
 
     public ScreenRouter(PvzGame game) {
         this.game = game;
@@ -47,7 +49,8 @@ public final class ScreenRouter {
                 || controller instanceof LeaderboardController
                 || controller instanceof SettingController
                 || controller instanceof GreenhouseController
-                || controller instanceof ProfileController;
+                || controller instanceof ProfileController
+                || controller instanceof ShopController;
     }
 
     public boolean supportsDestination(MainMenuController.Destination destination) {
@@ -75,6 +78,8 @@ public final class ScreenRouter {
             showGreenhouse(greenhouseController);
         } else if (controller instanceof ProfileController profileController) {
             showProfile(profileController);
+        } else if (controller instanceof ShopController shopController) {
+            showShop(shopController);
         } else {
             Gdx.app.log(TAG, "No GUI screen registered for " + controller.getClass().getSimpleName());
         }
@@ -142,6 +147,14 @@ public final class ScreenRouter {
         }
         profileScreen.bind(controller);
         setScreen(profileScreen);
+    }
+
+    public void showShop(ShopController controller) {
+        if (shopScreen == null) {
+            shopScreen = new ShopScreen(game);
+        }
+        shopScreen.bind(controller);
+        setScreen(shopScreen);
     }
 
     public MenuScreen currentMenuScreen() {
@@ -231,6 +244,12 @@ public final class ScreenRouter {
         }
     }
 
+    public void refreshShop() {
+        if (shopScreen != null) {
+            shopScreen.refreshOffers();
+        }
+    }
+
     public void dispose() {
         if (signupScreen != null) {
             signupScreen.dispose();
@@ -255,6 +274,9 @@ public final class ScreenRouter {
         }
         if (profileScreen != null) {
             profileScreen.dispose();
+        }
+        if (shopScreen != null) {
+            shopScreen.dispose();
         }
     }
 
