@@ -39,6 +39,7 @@ import io.github.finalwave.view.gui.widget.PriceButton;
 import io.github.finalwave.view.gui.widget.PvzButtons;
 import io.github.finalwave.view.gui.widget.StoreChrome;
 import io.github.finalwave.view.gui.widget.ThemedSelectBox;
+import io.github.finalwave.view.gui.widget.UpgradeBadges;
 import io.github.finalwave.view.gui.widget.UpgradeSeedBar;
 
 import java.util.List;
@@ -55,7 +56,6 @@ public final class CollectionScreen extends MenuScreen {
     private static final float CARD_PAD = 8f;
     private static final float GRID_PAD_TOP = 48f;
     private static final float CONTENT_PAD_X = 36f;
-    private static final int PLANT_COLUMNS = 8;
     private static final float PREVIEW_WIDTH = 450f;
     private static final float PREVIEW_HEIGHT = 550f;
     private static final float INFO_WIDTH = 850f;
@@ -282,7 +282,7 @@ public final class CollectionScreen extends MenuScreen {
                         .pad(CARD_PAD)
                         .padBottom(18f);
                 column++;
-                if (column % PLANT_COLUMNS == 0) {
+                if (column % plantColumns() == 0) {
                     cardGrid.row();
                 }
             }
@@ -313,13 +313,21 @@ public final class CollectionScreen extends MenuScreen {
         bindCurrency(controller.getUser());
     }
 
+    private int plantColumns() {
+        return columnsFor(CollectionPlantCard.CARD_WIDTH);
+    }
+
     private int zombieColumns() {
+        return columnsFor(CollectionZombieCard.CARD_WIDTH);
+    }
+
+    private int columnsFor(float cardWidth) {
         float inner = viewport.getWorldWidth()
                 - CONTENT_PAD_X * 2f
                 - StoreChrome.PANEL_PAD_LEFT
                 - StoreChrome.PANEL_PAD_RIGHT
                 - 16f;
-        float cell = CollectionZombieCard.CARD_WIDTH + CARD_PAD * 2f;
+        float cell = cardWidth + CARD_PAD * 2f;
         return Math.max(1, (int) (inner / cell));
     }
 
@@ -481,24 +489,11 @@ public final class CollectionScreen extends MenuScreen {
         String text = plant.maxLevel() ? "MAX" : plant.seedPackets() + "/" + Math.max(1, plant.seedPacketsNeeded());
         UpgradeSeedBar bar = new UpgradeSeedBar(skin);
         bar.bind(value, text);
-        PamActor badge = new PamActor(assets.pamPlayer());
-        badge.setAnchor(0.5f, 0.5f);
-        badge.setTouchable(Touchable.disabled);
-        badge.setClip(PlantAnimationCatalog.UPGRADE_BADGE_PAM, upgradeBadgeClip(plant), 0.42f, true);
+        PamActor badge = UpgradeBadges.forPlant(assets, plant);
         Table row = new Table();
         row.add(badge).size(BADGE_SIZE).padRight(6f);
         row.add(bar).width(SEED_BAR_WIDTH - 8f).height(SEED_BAR_HEIGHT);
         return row;
-    }
-
-    private static String upgradeBadgeClip(CollectionPlantDetail plant) {
-        if (!plant.owned()) {
-            return "locked";
-        }
-        if (plant.maxLevel() || plant.canUpgrade()) {
-            return "idle";
-        }
-        return "no_charge";
     }
 
     private Actor plantAction(CollectionPlantDetail plant) {

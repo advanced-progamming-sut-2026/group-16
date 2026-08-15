@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -16,7 +15,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.PlantSelectionController;
@@ -24,20 +22,21 @@ import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.collection.CollectionPlantDetail;
 import io.github.finalwave.model.collection.CollectionPlantEntry;
 import io.github.finalwave.model.collection.CollectionPlantQuery;
-import io.github.finalwave.model.collection.CollectionZombieEntry;
 import io.github.finalwave.model.definition.plant.PlantDefinition;
 import io.github.finalwave.view.gui.assets.CollectionCardLooks;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
 import io.github.finalwave.view.gui.assets.PlantAnimationCatalog;
-import io.github.finalwave.view.gui.hud.SeedLoadoutBar;
+import io.github.finalwave.view.gui.assets.ZombieAnimationCatalog;
+import io.github.finalwave.view.gui.hud.SeedLoadoutColumn;
 import io.github.finalwave.view.gui.render.ChapterBackground;
-import io.github.finalwave.view.gui.widget.CollectionZombieCard;
 import io.github.finalwave.view.gui.widget.PamActor;
 import io.github.finalwave.view.gui.widget.PanelLabels;
 import io.github.finalwave.view.gui.widget.PlantCardActor;
+import io.github.finalwave.view.gui.widget.PriceButton;
 import io.github.finalwave.view.gui.widget.PvzButtons;
 import io.github.finalwave.view.gui.widget.StoreChrome;
-import pvz.skin.BorderedTable;
+import io.github.finalwave.view.gui.widget.UpgradeBadges;
+import io.github.finalwave.view.gui.widget.UpgradeSeedBar;
 
 import java.util.List;
 
@@ -48,14 +47,45 @@ public final class PlantSelectionScreen extends MenuScreen {
     private static final float CARD_WIDTH = 140f;
     private static final float CARD_HEIGHT = 105f;
     private static final int GRID_COLUMNS = 5;
-    private static final Color TITLE_WHITE = Color.valueOf("FFFFFF");
+    private static final float BACK_SIZE = 88f;
+    private static final float LOADOUT_WIDTH = 128f;
+    private static final float ZOMBIE_LANE_WIDTH = 260f;
+    private static final float ZOMBIE_SLOT_WIDTH = 170f;
+    private static final float ZOMBIE_SLOT_HEIGHT = 190f;
+    private static final float ZOMBIE_SCALE = 0.62f;
+    private static final float ZOMBIE_STAGGER = 56f;
+    private static final float ZOMBIE_FLOOR_PAD = 110f;
+    private static final int ZOMBIE_PREVIEW_LIMIT = 4;
+    private static final float FRAME_PAD_SIDE = 24f;
+    private static final float FRAME_PAD_TOP = 22f;
+    private static final float FRAME_PAD_BOTTOM = 20f;
+    private static final float DETAIL_HEIGHT = 296f;
+    private static final float HEADER_HEIGHT = 58f;
+    private static final float PREVIEW_SIZE = 190f;
+    private static final float PREVIEW_PAM_SIZE = 110f;
+    private static final float SEED_BAR_HEIGHT = 24f;
+    private static final float BADGE_SIZE = 40f;
+    private static final float UPGRADE_BUTTON_WIDTH = 240f;
+    private static final float BOOST_BUTTON_WIDTH = 200f;
+    private static final float ACTION_HEIGHT = 60f;
+    private static final float START_WIDTH = 280f;
+    private static final float START_HEIGHT = 76f;
+    private static final float START_PAD = 32f;
+    private static final int BOOST_COST_DIAMONDS = 2;
+    private static final float DESCRIPTION_FONT_SCALE = 1.12f;
     private static final Color BODY_BROWN = Color.valueOf("4A3018");
-    private static final String BUNDLE_BG = "image_ui_if_bundle_reward1_bg_10";
+    private static final Color DESCRIPTION_OLIVE = Color.valueOf("4C4520");
+    private static final Color HEADER_CREAM = Color.valueOf("FFFBE6");
+    private static final String DARK_PANEL = "image_ui_if_bundle_reward1_bg_10";
+    private static final String GREEN_PLATE = "image_ui_generic_greenbutton_10";
+    private static final String GREEN_PLATE_DOWN = "image_ui_generic_greenbutton_down_10";
+    private static final String ROUNDED_CREAM_PANEL = "image_ui_dialog_asset_inner_bkgd_10";
 
     private PlantSelectionController controller;
     private ChapterBackground chapterBackground;
     private PlantAnimationCatalog plantCatalog;
-    private SeedLoadoutBar loadoutBar;
+    private ZombieAnimationCatalog zombieCatalog;
+    private SeedLoadoutColumn loadoutColumn;
     private String focusedPlant;
 
     public PlantSelectionScreen(PvzGame game) {
@@ -72,6 +102,9 @@ public final class PlantSelectionScreen extends MenuScreen {
         this.chapterBackground.layoutFor(WORLD_WIDTH, WORLD_HEIGHT, 9);
         if (plantCatalog == null) {
             plantCatalog = new PlantAnimationCatalog(assets.root());
+        }
+        if (zombieCatalog == null) {
+            zombieCatalog = new ZombieAnimationCatalog(assets.root());
         }
         if (controller != null) {
             bindCurrency(controller.getUser());
@@ -106,15 +139,15 @@ public final class PlantSelectionScreen extends MenuScreen {
         contentLayer.clearChildren();
         Skin skin = assets.skin();
 
-        Actor back = PvzButtons.iconButton(assets.region(MenuAssetIds.HUD_BACK), 88f, 88f, () -> controller.back());
-        Table chooser = chooserPanel(skin);
-        Table zombies = zombieColumn(skin);
-
         Table screen = new Table();
-        screen.add(back).size(88f).padLeft(18f).padTop(18f).top().left();
-        screen.add(chooser).size(PANEL_WIDTH, PANEL_HEIGHT).expand().center().pad(12f);
-        screen.add(zombies).width(140f).top().padTop(40f).padRight(16f);
-        contentLayer.add(screen).grow();
+        screen.add(leftColumn()).width(LOADOUT_WIDTH).top().left().padLeft(18f).padTop(18f);
+        screen.add(chooserPanel(skin)).size(PANEL_WIDTH, PANEL_HEIGHT).expand().center().pad(12f);
+        screen.add(zombieLineup()).width(ZOMBIE_LANE_WIDTH).bottom().padBottom(ZOMBIE_FLOOR_PAD).padRight(24f);
+
+        Stack layers = new Stack();
+        layers.add(screen);
+        layers.add(startButtonCorner(skin));
+        contentLayer.add(layers).grow();
         bindCurrency(controller.getUser());
     }
 
@@ -134,42 +167,89 @@ public final class PlantSelectionScreen extends MenuScreen {
         stage.draw();
     }
 
+    private Table leftColumn() {
+        Actor back = PvzButtons.iconButton(assets.region(MenuAssetIds.HUD_BACK), BACK_SIZE, BACK_SIZE, () -> controller.back());
+        loadoutColumn = new SeedLoadoutColumn(assets);
+        loadoutColumn.refresh(controller);
+        Table column = new Table();
+        column.top();
+        column.add(back).size(BACK_SIZE).padBottom(14f).row();
+        column.add(loadoutColumn).top();
+        return column;
+    }
+
     private Table chooserPanel(Skin skin) {
         Table chooser = new Table();
-        chooser.top().pad(18f, 22f, 16f, 22f);
-        if (skin.has(BUNDLE_BG, Drawable.class)) {
-            chooser.setBackground(skin.getDrawable(BUNDLE_BG));
-        } else {
-            chooser.setBackground(StoreChrome.panel());
-        }
-
-        loadoutBar = new SeedLoadoutBar(assets);
-        loadoutBar.refresh(controller);
-
-        TextButton start = PvzButtons.textButton("LET'S ROCK!", skin, greenStyle(skin), () -> controller.startGame());
-        chooser.add(detailPanel(skin)).growX().height(250f).padBottom(8f).row();
-        chooser.add(plantGrid(skin)).grow().padBottom(8f).row();
-        chooser.add(loadoutBar).padBottom(10f).row();
-        chooser.add(start).size(250f, 60f).padBottom(8f);
+        chooser.top().pad(FRAME_PAD_TOP, FRAME_PAD_SIDE, FRAME_PAD_BOTTOM, FRAME_PAD_SIDE);
+        chooser.setBackground(StoreChrome.panel());
+        chooser.add(detailPanel(skin)).growX().height(DETAIL_HEIGHT).padBottom(12f).row();
+        chooser.add(gridPanel(skin)).grow();
         return chooser;
     }
 
+    private Table startButtonCorner(Skin skin) {
+        TextButton start = PvzButtons.textButton("LET'S ROCK!", skin, greenStyle(skin), () -> controller.startGame());
+        Table corner = new Table();
+        corner.setTouchable(Touchable.childrenOnly);
+        corner.bottom().right();
+        corner.add(start).size(START_WIDTH, START_HEIGHT).padRight(START_PAD).padBottom(START_PAD);
+        return corner;
+    }
+
+    private Table gridPanel(Skin skin) {
+        Table panel = new Table();
+        panel.setBackground(gridBackground(skin));
+        panel.pad(14f, 10f, 14f, 10f);
+        panel.add(plantGrid(skin)).grow();
+        return panel;
+    }
+
+    private Drawable gridBackground(Skin skin) {
+        if (skin.has(DARK_PANEL, Drawable.class)) {
+            return skin.getDrawable(DARK_PANEL);
+        }
+        return StoreChrome.panel();
+    }
+
+    private Drawable detailBackground(Skin skin) {
+        if (skin.has(ROUNDED_CREAM_PANEL, Drawable.class)) {
+            return skin.getDrawable(ROUNDED_CREAM_PANEL);
+        }
+        return StoreChrome.panel();
+    }
+
     private Table detailPanel(Skin skin) {
-        BorderedTable panel = new BorderedTable();
-        panel.pad(12f, 18f, 16f, 18f);
+        Table panel = new Table();
+        panel.setBackground(detailBackground(skin));
+        panel.pad(14f, 18f, 16f, 18f);
         CollectionPlantDetail detail = focusedDetail();
+        panel.add(nameHeader(skin, detail == null ? "Choose Your Plants" : detail.name()))
+                .growX()
+                .colspan(2)
+                .height(HEADER_HEIGHT)
+                .padBottom(12f)
+                .row();
         if (detail == null) {
-            Label hint = PanelLabels.body(skin, "Choose plants for this level.");
+            Label hint = PanelLabels.body(skin, "Tap a seed packet to add it to your loadout.");
             hint.setAlignment(Align.center);
-            panel.add(hint).grow();
+            panel.add(hint).grow().colspan(2);
             return panel;
         }
-        Label name = PanelLabels.title(skin, detail.name());
-        name.setAlignment(Align.center);
-        panel.add(name).growX().colspan(2).padTop(8f).padBottom(8f).row();
-        panel.add(preview(detail)).size(180f, 180f).left().padRight(16f).padLeft(8f).padBottom(12f);
+        panel.add(preview(detail)).size(PREVIEW_SIZE, PREVIEW_SIZE).left().padRight(18f).padLeft(4f);
         panel.add(detailActions(skin, detail)).grow().top();
         return panel;
+    }
+
+    private Table nameHeader(Skin skin, String name) {
+        Table header = new Table();
+        if (skin.has(GREEN_PLATE, Drawable.class)) {
+            header.setBackground(skin.getDrawable(GREEN_PLATE));
+        }
+        Label label = new Label(name, skin, titleStyle(skin));
+        label.setAlignment(Align.center);
+        label.setColor(HEADER_CREAM);
+        header.add(label).grow().pad(2f, 18f, 6f, 18f);
+        return header;
     }
 
     private Table preview(CollectionPlantDetail detail) {
@@ -181,83 +261,118 @@ public final class PlantSelectionScreen extends MenuScreen {
         PamActor pam = new PamActor(assets.pamPlayer());
         pam.setClip(plantCatalog.idleFor(detail.name()), 1.15f);
         pam.setTouchable(Touchable.disabled);
-        card.add(pam).size(100f, 100f).expand().center().padBottom(36f);
-        if (!controller.isBoosted(detail.name())) {
-            return card;
-        }
-        Image sprout = new Image(new TextureRegionDrawable(assets.region(MenuAssetIds.SPROUT_ICON)));
-        sprout.setScaling(Scaling.fit);
+        card.add(pam).size(PREVIEW_PAM_SIZE, PREVIEW_PAM_SIZE).expand().center().padBottom(26f);
+
         Table overlay = new Table();
         overlay.setFillParent(true);
-        overlay.bottom().left().pad(8f);
-        overlay.add(sprout).size(32f, 32f);
+        overlay.bottom().pad(6f, 8f, 8f, 8f);
+        overlay.add(UpgradeBadges.forPlant(assets, detail)).size(BADGE_SIZE).padRight(4f);
+        overlay.add(previewSeedBar(detail)).growX().height(SEED_BAR_HEIGHT);
+
         Stack stack = new Stack();
         stack.add(card);
         stack.add(overlay);
         Table wrap = new Table();
-        wrap.add(stack).size(180f, 180f);
+        wrap.add(stack).grow();
         return wrap;
+    }
+
+    private Actor previewSeedBar(CollectionPlantDetail detail) {
+        int needed = Math.max(1, detail.seedPacketsNeeded());
+        float value = detail.maxLevel() ? 1f : Math.min(1f, detail.seedPackets() / (float) needed);
+        String text = detail.maxLevel() ? "MAX" : detail.seedPackets() + " / " + needed;
+        UpgradeSeedBar bar = new UpgradeSeedBar(assets.skin());
+        bar.bind(detail.owned() ? value : 0f, detail.owned() ? text : "LOCKED");
+        return bar;
     }
 
     private Table detailActions(Skin skin, CollectionPlantDetail detail) {
         Table column = new Table();
+        column.top();
+        Label description = new Label(
+                CollectionCardLooks.plantAbilityLine(detail.name(), detail.category(), detail.abilityType()),
+                skin,
+                "medium");
+        description.setColor(DESCRIPTION_OLIVE);
+        description.setWrap(true);
+        description.setFontScale(DESCRIPTION_FONT_SCALE);
+        description.setAlignment(Align.topLeft);
+        column.add(description).growX().top().padBottom(10f).row();
+
         PlantDefinition definition = controller.plantRegistry().getDefinition(detail.name());
         int cost = definition == null ? detail.cost() : definition.getCost();
         double recharge = definition == null ? detail.recharge() : definition.getRecharge();
         Label stats = new Label("Cost: " + cost + " | Recharge: " + formatRecharge(recharge), skin, "medium");
         stats.setColor(BODY_BROWN);
-        stats.setWrap(true);
+        stats.setFontScale(0.9f);
         stats.setAlignment(Align.topLeft);
-        column.add(stats).growX().height(56f).top().row();
+        column.add(stats).growX().top().row();
         if (detail.owned()) {
-            column.add(actionButtons(skin, detail)).right().expandX().bottom();
+            column.add(actionButtons(skin, detail)).expand().bottom().right();
         }
         return column;
     }
 
     private Table actionButtons(Skin skin, CollectionPlantDetail detail) {
         Table buttons = new Table();
-        String green = greenStyle(skin);
-        if (detail.canUpgrade()) {
-            TextButton upgrade = PvzButtons.textButton("UPGRADE", skin, "purple", () -> controller.upgradePlant(detail.name()));
-            buttons.add(upgrade).size(130f, 50f).padRight(8f);
+        if (!detail.maxLevel()) {
+            buttons.add(upgradeButton(skin, detail)).size(UPGRADE_BUTTON_WIDTH, ACTION_HEIGHT).padRight(12f);
         }
-        boolean matchBoosted = controller.boostedPlants().contains(detail.name());
-        if (matchBoosted) {
-            TextButton boosted = PvzButtons.textButton("BOOSTED", skin, green, null);
-            boosted.setDisabled(true);
-            boosted.setTouchable(Touchable.disabled);
-            buttons.add(boosted).size(110f, 50f).padRight(8f);
-        } else {
-            TextButton boost = PvzButtons.textButton("x2 BOOST", skin, green, () -> controller.boostPlant(detail.name()));
-            Image gem = new Image(new TextureRegionDrawable(assets.region(MenuAssetIds.STORE_PRICE_GEM)));
-            gem.setScaling(Scaling.fit);
-            boost.add(gem).size(22f, 22f).padLeft(4f);
-            buttons.add(boost).size(130f, 50f).padRight(8f);
-        }
-        buttons.add(selectButton(skin, detail, green)).size(120f, 50f);
+        buttons.add(boostButton(skin, detail)).size(BOOST_BUTTON_WIDTH, ACTION_HEIGHT);
         return buttons;
     }
 
-    private TextButton selectButton(Skin skin, CollectionPlantDetail detail, String green) {
-        boolean restricted = controller.isRestricted(detail.name());
-        boolean inLoadout = controller.selectedPlants().contains(detail.name());
-        if (restricted) {
-            TextButton banned = PvzButtons.textButton("BANNED", skin, green, null);
-            banned.setDisabled(true);
-            banned.setTouchable(Touchable.disabled);
-            return banned;
+    private Actor upgradeButton(Skin skin, CollectionPlantDetail detail) {
+        return PriceButton.coinsLabeled(
+                assets,
+                skin,
+                "UPGRADE",
+                Math.max(detail.upgradeCoins(), 0),
+                UPGRADE_BUTTON_WIDTH,
+                ACTION_HEIGHT,
+                StoreChrome.purpleButton(),
+                StoreChrome.purpleButtonDown(),
+                () -> controller.upgradePlant(detail.name()));
+    }
+
+    private Actor boostButton(Skin skin, CollectionPlantDetail detail) {
+        if (controller.boostedPlants().contains(detail.name())) {
+            return PriceButton.labeled(
+                    skin,
+                    "BOOSTED",
+                    BOOST_BUTTON_WIDTH,
+                    ACTION_HEIGHT,
+                    StoreChrome.disabledButton(assets.region(MenuAssetIds.STORE_BUY_DISABLED)),
+                    null,
+                    null);
         }
-        if (!detail.owned()) {
-            TextButton locked = PvzButtons.textButton("LOCKED", skin, green, null);
-            locked.setDisabled(true);
-            locked.setTouchable(Touchable.disabled);
-            return locked;
+        if (controller.getUser().hasStoredBoost(detail.name())) {
+            return PriceButton.labeled(
+                    skin,
+                    "BOOST",
+                    BOOST_BUTTON_WIDTH,
+                    ACTION_HEIGHT,
+                    greenPlate(skin, GREEN_PLATE),
+                    greenPlate(skin, GREEN_PLATE_DOWN),
+                    () -> controller.boostPlant(detail.name()));
         }
-        if (inLoadout) {
-            return PvzButtons.textButton("DESELECT", skin, green, () -> controller.removePlant(detail.name()));
+        return PriceButton.gemsLabeled(
+                assets,
+                skin,
+                "BOOST",
+                BOOST_COST_DIAMONDS,
+                BOOST_BUTTON_WIDTH,
+                ACTION_HEIGHT,
+                greenPlate(skin, GREEN_PLATE),
+                greenPlate(skin, GREEN_PLATE_DOWN),
+                () -> controller.boostPlant(detail.name()));
+    }
+
+    private Drawable greenPlate(Skin skin, String id) {
+        if (skin.has(id, Drawable.class)) {
+            return skin.getDrawable(id);
         }
-        return PvzButtons.textButton("SELECT", skin, green, () -> controller.addPlant(detail.name()));
+        return StoreChrome.coinButton(assets.region(MenuAssetIds.STORE_COIN_PLATE));
     }
 
     private Actor plantGrid(Skin skin) {
@@ -274,7 +389,7 @@ public final class PlantSelectionScreen extends MenuScreen {
             boolean restricted = controller.isRestricted(entry.name());
             card.setLocked(!entry.owned() || restricted);
             card.setBoosted(controller.isBoosted(entry.name()));
-            card.setSelected(controller.selectedPlants().contains(entry.name()));
+            card.setDisabled(controller.selectedPlants().contains(entry.name()));
             card.setOnClick(() -> onPlantClicked(entry.name()));
             grid.add(card).size(CARD_WIDTH, CARD_HEIGHT).pad(8f);
             column++;
@@ -288,33 +403,29 @@ public final class PlantSelectionScreen extends MenuScreen {
         return scroll;
     }
 
-    private Table zombieColumn(Skin skin) {
-        Table column = new Table();
-        column.top();
+    private Table zombieLineup() {
+        Table lane = new Table();
+        lane.bottom().right();
         List<String> aliases = controller.getLevel().getAllowedZombieAliases();
-        if (aliases.isEmpty()) {
-            return column;
-        }
-        Label title = new Label("Zombies", skin, "medium");
-        title.setColor(TITLE_WHITE);
-        column.add(title).padBottom(8f).row();
         int shown = 0;
         for (String alias : aliases) {
-            if (shown >= 4) {
+            if (shown >= ZOMBIE_PREVIEW_LIMIT) {
                 break;
             }
-            CollectionZombieCard card = new CollectionZombieCard(assets, skin);
-            card.bind(new CollectionZombieEntry(alias, true, 0, 0d, "", ""));
-            column.add(card).size(120f, 150f).padBottom(8f).row();
+            PamActor zombie = new PamActor(assets.pamPlayer());
+            zombie.setClip(zombieCatalog.plantClip(alias), ZOMBIE_SCALE);
+            zombie.setTouchable(Touchable.disabled);
+            float stagger = shown % 2 == 0 ? 0f : ZOMBIE_STAGGER;
+            lane.add(zombie).size(ZOMBIE_SLOT_WIDTH, ZOMBIE_SLOT_HEIGHT).right().padRight(stagger).row();
             shown++;
         }
-        return column;
+        return lane;
     }
 
     private void onPlantClicked(String name) {
         focusedPlant = name;
         if (controller.selectedPlants().contains(name)) {
-            controller.removePlant(name);
+            refresh();
             return;
         }
         controller.addPlant(name);
@@ -334,6 +445,13 @@ public final class PlantSelectionScreen extends MenuScreen {
             return null;
         }
         return controller.plantDetail(focusedPlant);
+    }
+
+    private static String titleStyle(Skin skin) {
+        if (skin.has("big_outline", Label.LabelStyle.class)) {
+            return "big_outline";
+        }
+        return "big";
     }
 
     private static String greenStyle(Skin skin) {

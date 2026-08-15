@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.assets;
 
+import com.badlogic.gdx.graphics.Color;
 import io.github.finalwave.model.collection.CollectionPlantEntry;
 
 import java.util.List;
@@ -7,6 +8,16 @@ import java.util.Locale;
 
 
 public final class CollectionCardLooks {
+    private static final Color FAMILY_SUN = Color.valueOf("FFD700");
+    private static final Color FAMILY_SHOOTER = Color.valueOf("3FD13F");
+    private static final Color FAMILY_MELEE = Color.valueOf("16645A");
+    private static final Color FAMILY_LOBBER = Color.valueOf("E01F1F");
+    private static final Color FAMILY_DEFENSE = Color.valueOf("D2691E");
+    private static final Color FAMILY_EXPLOSIVE = Color.valueOf("FF4500");
+    private static final Color FAMILY_SHADOW = Color.valueOf("3A46C8");
+    private static final Color FAMILY_ELECTRICITY = Color.valueOf("ADD8E6");
+    private static final Color FAMILY_MAGIC = Color.valueOf("800080");
+
     private CollectionCardLooks() {
     }
 
@@ -60,6 +71,23 @@ public final class CollectionCardLooks {
             case "WALL_NUT" -> "IMAGE_UI_PACKETS_MINTFAM_DEFENSE";
             case "EXPLOSIVE" -> "IMAGE_UI_PACKETS_MINTFAM_EXPLOSIVE";
             default -> "IMAGE_UI_PACKETS_MINTFAM_PEASHOOTER";
+        };
+    }
+
+    public static Color familyTint(String category) {
+        if (category == null) {
+            return FAMILY_SHOOTER;
+        }
+        return switch (category.toUpperCase(Locale.ROOT)) {
+            case "SUN_PRODUCER" -> FAMILY_SUN;
+            case "MELEE" -> FAMILY_MELEE;
+            case "STRIKE_THROUGH" -> FAMILY_ELECTRICITY;
+            case "HOMING" -> FAMILY_SHADOW;
+            case "LOBBER" -> FAMILY_LOBBER;
+            case "MODIFIER" -> FAMILY_MAGIC;
+            case "WALL_NUT" -> FAMILY_DEFENSE;
+            case "EXPLOSIVE" -> FAMILY_EXPLOSIVE;
+            default -> FAMILY_SHOOTER;
         };
     }
 

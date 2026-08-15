@@ -204,6 +204,41 @@ public final class PriceButton extends Stack {
         return new PriceButton(up, down, content, width, height, onBuy, true);
     }
 
+    public static Actor gemsLabeled(
+            GameAssets assets,
+            Skin skin,
+            String caption,
+            int price,
+            float width,
+            float height,
+            Drawable up,
+            Drawable down,
+            Runnable onBuy) {
+        TextureRegion region = assets.region(MenuAssetIds.STORE_PRICE_GEM);
+        float iconHeight = height * 0.56f;
+        float iconWidth = iconHeight * region.getRegionWidth() / (float) Math.max(1, region.getRegionHeight());
+        Image icon = new Image(new TextureRegionDrawable(region));
+        icon.setScaling(Scaling.fit);
+        Table content = new Table();
+        content.add(priceLabel(skin, caption, PRICE_TEXT, 0.7f)).padRight(10f);
+        content.add(icon).size(iconWidth, iconHeight).padRight(6f);
+        content.add(priceLabel(skin, amount(price), PRICE_TEXT, 0.78f));
+        return new PriceButton(up, down, content, width, height, onBuy, true);
+    }
+
+    public static Actor labeled(
+            Skin skin,
+            String caption,
+            float width,
+            float height,
+            Drawable up,
+            Drawable down,
+            Runnable onClick) {
+        Table content = new Table();
+        content.add(priceLabel(skin, caption, PRICE_TEXT, 0.72f)).expand().center();
+        return new PriceButton(up, down, content, width, height, onClick, onClick != null);
+    }
+
     private static PriceButton priced(
             GameAssets assets,
             Skin skin,
