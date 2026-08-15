@@ -50,6 +50,8 @@ public interface GamePlayView extends View {
 
     void showWinMessage();
 
+    void showLoseMessage();
+
     void showMap(String mapRepresentation);
 
     void showPlantsStatus(String status);

@@ -44,6 +44,10 @@ public final class ComingSoonViewGui extends GuiViewBase implements LockedPlants
     }
 
     @Override
+    public void showPlantUpgraded(String type, int newLevel) {
+    }
+
+    @Override
     public void showCurrentMenu() {
     }
 
@@ -94,6 +98,11 @@ public final class ComingSoonViewGui extends GuiViewBase implements LockedPlants
     @Override
     public void errorLoadoutEmpty() {
         toastError("Select plants first.");
+    }
+
+    @Override
+    public void errorUpgradeFailed(String message) {
+        toastError(message);
     }
 
     @Override
@@ -196,6 +205,10 @@ public final class ComingSoonViewGui extends GuiViewBase implements LockedPlants
 
     @Override
     public void showWinMessage() {
+    }
+
+    @Override
+    public void showLoseMessage() {
     }
 
     @Override

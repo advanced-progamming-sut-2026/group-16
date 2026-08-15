@@ -46,6 +46,11 @@ public class PlantSelectionViewCli extends CliView implements PlantSelectionView
     }
 
     @Override
+    public void showPlantUpgraded(String type, int newLevel) {
+        displayMessage(type + " upgraded to level " + newLevel + ".");
+    }
+
+    @Override
     public void showCurrentMenu() {
         displayMessage("Current menu: plant-selection");
     }
@@ -98,6 +103,11 @@ public class PlantSelectionViewCli extends CliView implements PlantSelectionView
     @Override
     public void errorLoadoutEmpty() {
         displayError("Select at least one plant before starting the game.");
+    }
+
+    @Override
+    public void errorUpgradeFailed(String message) {
+        displayError(message);
     }
 
     @Override

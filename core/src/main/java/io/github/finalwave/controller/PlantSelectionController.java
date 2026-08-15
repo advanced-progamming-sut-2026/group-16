@@ -4,6 +4,11 @@ import io.github.finalwave.model.App;
 import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.LevelConfig;
 import io.github.finalwave.model.adventure.LevelType;
+import io.github.finalwave.model.collection.CollectionPlantDetail;
+import io.github.finalwave.model.collection.CollectionPlantEntry;
+import io.github.finalwave.model.collection.CollectionPlantQuery;
+import io.github.finalwave.model.collection.CollectionService;
+import io.github.finalwave.model.collection.PlantCollection;
 import io.github.finalwave.model.command.PlantSelectionMenuCommands;
 import io.github.finalwave.model.definition.PlantRegistry;
 import io.github.finalwave.model.definition.ZombieRegistry;
@@ -30,6 +35,7 @@ public class PlantSelectionController extends ViewController {
     protected final Set<String> boosted = new LinkedHashSet<>();
     protected final PlantRegistry plantRegistry;
     protected final ZombieRegistry zombieRegistry;
+    private final CollectionService collectionService;
 
     public PlantSelectionController(User user,
                                     UserDatabase userDatabase,
@@ -41,10 +47,86 @@ public class PlantSelectionController extends ViewController {
         this.level = level;
         this.plantRegistry = App.getInstance().getPlantRegistry();
         this.zombieRegistry = loadZombieRegistry();
+        this.collectionService = CollectionService.createDefault(plantRegistry);
     }
 
     public User getUser() {
         return user;
+    }
+
+    public ChapterConfig getChapter() {
+        return chapter;
+    }
+
+    public LevelConfig getLevel() {
+        return level;
+    }
+
+    public PlantRegistry plantRegistry() {
+        return plantRegistry;
+    }
+
+    public List<String> selectedPlants() {
+        return List.copyOf(selected);
+    }
+
+    public Set<String> boostedPlants() {
+        return Set.copyOf(boosted);
+    }
+
+    public boolean isBoosted(String name) {
+        return name != null && (boosted.contains(name) || user.hasStoredBoost(name));
+    }
+
+    public boolean isOwned(String name) {
+        return name != null && user.getPlantProgress().isOwned(name);
+    }
+
+    public boolean isRestricted(String name) {
+        return level.getType() == LevelType.PLANT_WHAT_YOU_GET && isSunProducer(name);
+    }
+
+    public List<CollectionPlantEntry> plants(CollectionPlantQuery query) {
+        return collectionService.listPlants(user, query);
+    }
+
+    public List<String> plantFamilies() {
+        return collectionService.plantFamilies();
+    }
+
+    public CollectionPlantDetail plantDetail(String plantName) {
+        if (!collectionService.isKnownPlant(plantName)) {
+            getViewApi().errorPlantNotFound(plantName);
+            return null;
+        }
+        return collectionService.plantDetail(user, plantName);
+    }
+
+    public void addPlant(String type) {
+        handleAddPlant(type);
+    }
+
+    public void removePlant(String type) {
+        handleRemovePlant(type);
+    }
+
+    public void boostPlant(String type) {
+        handleBoostPlant(type);
+    }
+
+    public void startGame() {
+        handleStartGame();
+    }
+
+    public void upgradePlant(String plantName) {
+        PlantCollection.UpgradeResult result = collectionService.upgradePlant(user, plantName);
+        if (result.success()) {
+            userDatabase.saveUserWallet(user);
+            userDatabase.savePlantProgress(user);
+            getViewApi().showPlantUpgraded(plantName, result.newLevel());
+            return;
+        }
+        getViewApi().errorUpgradeFailed(upgradeFailureMessage(plantName, result.failure()));
     }
 
     public void back() {
@@ -136,6 +218,19 @@ public class PlantSelectionController extends ViewController {
                 && PlantCategory.SUN_PRODUCER.name().equalsIgnoreCase(definition.getCategory());
     }
 
+    private static String upgradeFailureMessage(String plantName, PlantCollection.UpgradeFailure failure) {
+        if (failure == null) {
+            return "Cannot upgrade " + plantName + ".";
+        }
+        return switch (failure) {
+            case UNKNOWN_PLANT -> "Plant " + plantName + " does not exist.";
+            case NOT_OWNED -> "Plant " + plantName + " is not owned.";
+            case MAX_LEVEL -> plantName + " is already at max level.";
+            case INSUFFICIENT_COINS -> "Not enough coins to upgrade " + plantName + ".";
+            case INSUFFICIENT_SEED_PACKETS -> "Not enough seed packets to upgrade " + plantName + ".";
+        };
+    }
+
     private void handleRemovePlant(String type) {
         if (!selected.remove(type)) {
             getViewApi().errorPlantNotSelected(type);
@@ -148,6 +243,9 @@ public class PlantSelectionController extends ViewController {
     private void handleBoostPlant(String type) {
         if (!selected.contains(type)) {
             getViewApi().errorCannotBoostPlant(type);
+            return;
+        }
+        if (boosted.contains(type)) {
             return;
         }
         if (user.hasStoredBoost(type)) {

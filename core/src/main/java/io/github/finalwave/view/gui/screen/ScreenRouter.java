@@ -20,6 +20,7 @@ import io.github.finalwave.controller.SettingController;
 import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.TravelLogController;
 import io.github.finalwave.controller.ViewController;
+import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.leaderboard.LeaderboardEntry;
 import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
 import io.github.finalwave.model.user.User;
@@ -45,6 +46,8 @@ public final class ScreenRouter {
     private ChapterSelectScreen chapterSelectScreen;
     private AdventureScreen adventureScreen;
     private TravelLogScreen travelLogScreen;
+    private PlantSelectionScreen plantSelectionScreen;
+    private GamePlayScreen gamePlayScreen;
     private ComingSoonScreen comingSoonScreen;
 
     public ScreenRouter(PvzGame game) {
@@ -106,9 +109,9 @@ public final class ScreenRouter {
         } else if (controller instanceof TravelLogController travelLogController) {
             showTravelLog(travelLogController);
         } else if (controller instanceof PlantSelectionController plantSelectionController) {
-            showComingSoon(plantSelectionController::back, "Plant selection");
+            showPlantSelection(plantSelectionController);
         } else if (controller instanceof GamePlayController gamePlayController) {
-            showComingSoon(gamePlayController::back, "Gameplay");
+            showGamePlay(gamePlayController);
         } else {
             Gdx.app.log(TAG, "No GUI screen registered for " + controller.getClass().getSimpleName());
         }
@@ -218,12 +221,81 @@ public final class ScreenRouter {
         setScreen(travelLogScreen);
     }
 
+    public void showPlantSelection(PlantSelectionController controller) {
+        if (plantSelectionScreen == null) {
+            plantSelectionScreen = new PlantSelectionScreen(game);
+        }
+        plantSelectionScreen.bind(controller);
+        setScreen(plantSelectionScreen);
+    }
+
+    public void showGamePlay(GamePlayController controller) {
+        if (gamePlayScreen == null) {
+            gamePlayScreen = new GamePlayScreen(game);
+        }
+        gamePlayScreen.bind(controller);
+        setScreen(gamePlayScreen);
+    }
+
     public void showComingSoon(Runnable onBack, String title) {
         if (comingSoonScreen == null) {
             comingSoonScreen = new ComingSoonScreen(game);
         }
         comingSoonScreen.bind(onBack, title);
         setScreen(comingSoonScreen);
+    }
+
+    public GamePlayScreen currentGamePlayScreen() {
+        Screen active = game.getScreen();
+        if (active instanceof GamePlayScreen screen) {
+            return screen;
+        }
+        if (current instanceof GamePlayScreen screen) {
+            return screen;
+        }
+        return gamePlayScreen;
+    }
+
+    public void toastGamePlayError(String message) {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.toastError(message);
+        }
+    }
+
+    public void toastGamePlayMessage(String message) {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.toastMessage(message);
+        }
+    }
+
+    public void showGamePlayAlert(String message) {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.showAlert(message);
+        }
+    }
+
+    public void showGamePlayPauseModal() {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.showPauseModal();
+        }
+    }
+
+    public void hideGamePlayPauseModal() {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.hidePauseModal();
+        }
+    }
+
+    public void showGamePlayResult(MatchResult result) {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.showResult(result);
+        }
+    }
+
+    public void refreshGamePlayHud() {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.refreshHud();
+        }
     }
 
     public MenuScreen currentMenuScreen() {
@@ -342,6 +414,12 @@ public final class ScreenRouter {
         }
     }
 
+    public void refreshPlantSelection() {
+        if (plantSelectionScreen != null) {
+            plantSelectionScreen.refresh();
+        }
+    }
+
     public void dispose() {
         if (signupScreen != null) {
             signupScreen.dispose();
@@ -381,6 +459,12 @@ public final class ScreenRouter {
         }
         if (travelLogScreen != null) {
             travelLogScreen.dispose();
+        }
+        if (plantSelectionScreen != null) {
+            plantSelectionScreen.dispose();
+        }
+        if (gamePlayScreen != null) {
+            gamePlayScreen.dispose();
         }
         if (comingSoonScreen != null) {
             comingSoonScreen.dispose();

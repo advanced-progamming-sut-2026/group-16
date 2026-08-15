@@ -87,6 +87,10 @@ public final class WaveManager {
         return List.copyOf(waves);
     }
 
+    public List<String> getZombiePool() {
+        return zombiePool;
+    }
+
     public Wave getCurrentWave() {
         if (currentWaveIndex < 0 || currentWaveIndex >= waves.size()) {
             return null;

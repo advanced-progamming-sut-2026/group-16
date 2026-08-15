@@ -140,6 +140,12 @@ public class GamePlayViewCli extends CliView implements GamePlayView {
 
 
     @Override
+    public void showLoseMessage() {
+        displayMessage("The zombies ate your brains!");
+    }
+
+
+    @Override
     public void showMap(String mapRepresentation) {
         System.out.println(mapRepresentation);
     }
