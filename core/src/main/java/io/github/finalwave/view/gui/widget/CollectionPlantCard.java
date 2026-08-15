@@ -3,6 +3,7 @@ package io.github.finalwave.view.gui.widget;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Container;
@@ -12,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
@@ -27,9 +29,13 @@ public final class CollectionPlantCard extends Table {
 
     private static Texture dimTexture;
 
+    private static final float BADGE_SIZE = 38f;
+    private static final float SHADOW_OFFSET = 4f;
+    private static final float SHADOW_ALPHA = 0.38f;
+
     private final GameAssets assets;
     private final Skin skin;
-    private Image familyImage;
+    private MintFamilyBadge familyBadge;
     private Container<Label> levelContainer;
     private Image darkOverlay;
     private Image lockIcon;
@@ -42,7 +48,7 @@ public final class CollectionPlantCard extends Table {
 
     public void bind(CollectionPlantEntry entry) {
         clearChildren();
-        familyImage = null;
+        familyBadge = null;
         levelContainer = null;
         darkOverlay = null;
         lockIcon = null;
@@ -53,15 +59,8 @@ public final class CollectionPlantCard extends Table {
                 assets.region(ShopItemCard.packetImageId(assets, entry.name()))));
         plantImage.setScaling(Scaling.fit);
         plantImage.setTouchable(Touchable.disabled);
-        add(plantImage).size(105f).expand().center().row();
-        add(seedProgress(entry)).growX().height(18f).bottom();
-
-        Image family = new Image(new TextureRegionDrawable(
-                assets.region(CollectionCardLooks.familyIcon(entry.category()))));
-        family.setScaling(Scaling.fit);
-        family.setTouchable(Touchable.disabled);
-        familyImage = family;
-        addActor(family);
+        add(plantImage).size(98f).expand().center().padTop(8f).row();
+        add(seedProgress(entry)).growX().height(16f).padBottom(6f).padLeft(10f).padRight(10f).bottom();
 
         if (entry.owned()) {
             Label level = new Label("LVL " + entry.level(), skin, outlineStyle());
@@ -85,6 +84,11 @@ public final class CollectionPlantCard extends Table {
             lockIcon.setTouchable(Touchable.disabled);
             addActor(lockIcon);
         }
+
+        MintFamilyBadge badge = new MintFamilyBadge(assets);
+        badge.bind(entry.category());
+        familyBadge = badge;
+        addActor(badge);
     }
 
     private Stack seedProgress(CollectionPlantEntry entry) {
@@ -105,11 +109,28 @@ public final class CollectionPlantCard extends Table {
     }
 
     @Override
+    public void draw(Batch batch, float parentAlpha) {
+        drawShadow(batch, parentAlpha);
+        super.draw(batch, parentAlpha);
+    }
+
+    private void drawShadow(Batch batch, float parentAlpha) {
+        Drawable background = getBackground();
+        if (background == null) {
+            return;
+        }
+        Color previous = batch.getColor();
+        batch.setColor(0f, 0f, 0f, SHADOW_ALPHA * parentAlpha * getColor().a);
+        background.draw(batch, getX() + SHADOW_OFFSET, getY() - SHADOW_OFFSET, getWidth(), getHeight());
+        batch.setColor(previous);
+    }
+
+    @Override
     public void layout() {
         super.layout();
-        if (familyImage != null) {
-            familyImage.setSize(32f, 32f);
-            familyImage.setPosition(-5f, getHeight() - 32f + 5f);
+        if (familyBadge != null) {
+            familyBadge.setSize(BADGE_SIZE, BADGE_SIZE);
+            familyBadge.setPosition(-BADGE_SIZE * 0.28f, getHeight() - BADGE_SIZE * 0.72f);
         }
         if (levelContainer != null) {
             levelContainer.pack();

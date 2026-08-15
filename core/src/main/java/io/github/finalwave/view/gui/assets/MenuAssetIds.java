@@ -83,6 +83,7 @@ public final class MenuAssetIds {
     public static final String PLANT_PREVIEW_CARD = "IMAGE_UI_CARDS_BACKGROUNDS_CARD_PLANT_BG_CARNIVAL";
     public static final String PACKET_HOMELESS = "IMAGE_UI_PACKETS_HOMELESS";
     public static final String PACKET_BOOST = "IMAGE_UI_PACKETS_BOOST";
+    public static final String MINTFAM_BANNER = "IMAGE_UI_PACKETS_MINTFAM_BANNER";
     public static final String MINTFAM_SUN = "IMAGE_UI_PACKETS_MINTFAM_SUN";
     public static final String MINTFAM_PEA = "IMAGE_UI_PACKETS_MINTFAM_PEASHOOTER";
     public static final String ALMANAC_STAT_ZOMBIE_TOUGHNESS = "IMAGE_UI_ALMANAC_ZOMBIES_ZOMBIETOUGHNESS_ICON";
@@ -198,6 +199,7 @@ public final class MenuAssetIds {
             PLANT_PREVIEW_CARD,
             PACKET_HOMELESS,
             PACKET_BOOST,
+            MINTFAM_BANNER,
             MINTFAM_SUN,
             MINTFAM_PEA,
             LOCK_ICON,

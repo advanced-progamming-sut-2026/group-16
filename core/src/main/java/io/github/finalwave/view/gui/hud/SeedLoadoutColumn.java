@@ -9,16 +9,17 @@ import io.github.finalwave.view.gui.widget.PlantCardActor;
 import java.util.List;
 
 
-public final class SeedLoadoutBar extends Table {
-    private static final float CARD_WIDTH = 90f;
-    private static final float CARD_HEIGHT = 60f;
+public final class SeedLoadoutColumn extends Table {
+    private static final float CARD_WIDTH = 116f;
+    private static final float CARD_HEIGHT = 84f;
+    private static final float CARD_GAP = 3f;
 
     private final GameAssets assets;
 
-    public SeedLoadoutBar(GameAssets assets) {
+    public SeedLoadoutColumn(GameAssets assets) {
         this.assets = assets;
-        defaults().pad(5f);
-        center();
+        defaults().pad(CARD_GAP);
+        top();
     }
 
     public void refresh(PlantSelectionController controller) {
@@ -36,17 +37,17 @@ public final class SeedLoadoutBar extends Table {
             } else {
                 card.setEmpty();
             }
-            add(card).size(CARD_WIDTH, CARD_HEIGHT);
+            add(card).size(CARD_WIDTH, CARD_HEIGHT).row();
         }
     }
 
     private void bindFilled(PlantSelectionController controller, PlantCardActor card, String name) {
         card.setPlant(name);
-        PlantDefinition definition = controller.plantRegistry().getDefinition(name);
         card.setCost(0);
         card.setLevel(0);
         card.setFamily(null);
         card.setBoosted(controller.isBoosted(name));
+        PlantDefinition definition = controller.plantRegistry().getDefinition(name);
         if (definition != null) {
             card.setCost(definition.getCost());
         }

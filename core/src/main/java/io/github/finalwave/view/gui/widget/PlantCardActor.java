@@ -1,11 +1,13 @@
 package io.github.finalwave.view.gui.widget;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
@@ -21,17 +23,24 @@ public final class PlantCardActor extends Group {
     public static final float WIDTH = 140f;
     public static final float HEIGHT = 105f;
 
+    private static final float REFERENCE_HEIGHT = 105f;
+    private static final float SHADOW_OFFSET = 4f;
+    private static final float SHADOW_ALPHA = 0.38f;
+    private static final float LEVEL_FONT_SCALE = 0.68f;
+    private static final String BIG_OUTLINE = "big_outline";
+    private static final String MEDIUM_OUTLINE = "medium_outline";
+    private static final Color BADGE_TINT = new Color(1f, 1f, 1f, 1f);
+
     private final GameAssets assets;
-    private final Skin skin;
     private final Image background;
     private final Image packet;
     private final Image cooldownShade;
     private final Image lockIcon;
-    private final Image familyIcon;
-    private final Image boostIcon;
+    private final MintFamilyBadge familyBadge;
     private final Label costLabel;
     private final Label levelLabel;
-    private final Label seedLabel;
+    private final UpgradeSeedBar seedBar;
+    private final float costFontScale;
     private String plantName;
     private String packetBackgroundId = LawnAssetIds.PACKET_BG;
     private Runnable onClick;
@@ -43,7 +52,6 @@ public final class PlantCardActor extends Group {
 
     public PlantCardActor(GameAssets assets, Skin skin, String plantName) {
         this.assets = assets;
-        this.skin = skin;
         setSize(WIDTH, HEIGHT);
         setTransform(true);
         setOrigin(Align.center);
@@ -53,7 +61,6 @@ public final class PlantCardActor extends Group {
         background.setScaling(Scaling.stretch);
 
         packet = new Image();
-        packet.setFillParent(true);
         packet.setScaling(Scaling.fit);
 
         cooldownShade = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.PACKET_BG)));
@@ -62,38 +69,28 @@ public final class PlantCardActor extends Group {
         cooldownShade.setVisible(false);
 
         lockIcon = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.PACKET_LOCK)));
-        lockIcon.setSize(36f, 36f);
         lockIcon.setVisible(false);
         lockIcon.setTouchable(Touchable.disabled);
 
-        familyIcon = new Image();
-        familyIcon.setSize(28f, 28f);
-        familyIcon.setVisible(false);
-        familyIcon.setTouchable(Touchable.disabled);
+        familyBadge = new MintFamilyBadge(assets);
+        familyBadge.setVisible(false);
 
-        boostIcon = new Image(new TextureRegionDrawable(assets.region(MenuAssetIds.SPROUT_ICON)));
-        boostIcon.setSize(26f, 26f);
-        boostIcon.setVisible(false);
-        boostIcon.setTouchable(Touchable.disabled);
-
-        String outline = outlineStyle(skin);
-        costLabel = new Label("", skin, outline);
+        costFontScale = skin.has(BIG_OUTLINE, Label.LabelStyle.class) ? 0.82f : 1.6f;
+        costLabel = new Label("", skin, costStyle(skin));
         costLabel.setAlignment(Align.right);
-        levelLabel = new Label("", skin, outline);
+        levelLabel = new Label("", skin, levelStyle(skin));
         levelLabel.setAlignment(Align.right);
-        seedLabel = new Label("", skin, outline);
-        seedLabel.setAlignment(Align.center);
-        seedLabel.setVisible(false);
+        seedBar = new UpgradeSeedBar(skin);
+        seedBar.setVisible(false);
 
         addActor(background);
         addActor(packet);
         addActor(cooldownShade);
-        addActor(familyIcon);
+        addActor(seedBar);
         addActor(lockIcon);
-        addActor(boostIcon);
         addActor(levelLabel);
         addActor(costLabel);
-        addActor(seedLabel);
+        addActor(familyBadge);
 
         PvzButtons.animate(this, 1.08f, 0.92f, () -> {
             if (onClick != null && !empty) {
@@ -127,13 +124,12 @@ public final class PlantCardActor extends Group {
         plantName = null;
         packetBackgroundId = LawnAssetIds.PACKET_EMPTY;
         packet.setDrawable(new TextureRegionDrawable(assets.region(LawnAssetIds.PACKET_EMPTY)));
-        packet.setVisible(true);
-        familyIcon.setVisible(false);
-        boostIcon.setVisible(false);
+        packet.setVisible(false);
+        familyBadge.setVisible(false);
         lockIcon.setVisible(false);
         costLabel.setText("");
         levelLabel.setText("");
-        seedLabel.setVisible(false);
+        seedBar.setVisible(false);
         locked = false;
         boosted = false;
         selected = false;
@@ -185,21 +181,14 @@ public final class PlantCardActor extends Group {
 
     public void setFamily(String category) {
         if (category == null || category.isBlank() || empty) {
-            familyIcon.setVisible(false);
+            familyBadge.setVisible(false);
             return;
         }
-        String iconId = CollectionCardLooks.familyIcon(category);
-        if (!assets.hasImage(iconId)) {
-            familyIcon.setVisible(false);
-            return;
-        }
-        familyIcon.setDrawable(new TextureRegionDrawable(assets.region(iconId)));
-        familyIcon.setVisible(true);
+        familyBadge.bind(category);
     }
 
     public void setBoosted(boolean boosted) {
         this.boosted = boosted;
-        boostIcon.setVisible(boosted && !empty);
         refreshBackground();
         refreshTint();
     }
@@ -214,13 +203,12 @@ public final class PlantCardActor extends Group {
     }
 
     public void setSeedProgress(int have, int need) {
-        if (need <= 0) {
-            seedLabel.setVisible(false);
-            seedLabel.setText("");
+        if (need <= 0 || empty) {
+            seedBar.setVisible(false);
             return;
         }
-        seedLabel.setVisible(true);
-        seedLabel.setText(have + "/" + need);
+        seedBar.setVisible(true);
+        seedBar.bind(have / (float) need, "");
     }
 
     public void setDisabled(boolean disabled) {
@@ -244,22 +232,56 @@ public final class PlantCardActor extends Group {
         layoutChildren();
     }
 
+    @Override
+    public void draw(Batch batch, float parentAlpha) {
+        drawShadow(batch, parentAlpha);
+        super.draw(batch, parentAlpha);
+    }
+
+    private void drawShadow(Batch batch, float parentAlpha) {
+        Drawable drawable = background.getDrawable();
+        if (drawable == null) {
+            return;
+        }
+        Color previous = batch.getColor();
+        batch.setColor(0f, 0f, 0f, SHADOW_ALPHA * parentAlpha * getColor().a);
+        drawable.draw(batch,
+                getX() + SHADOW_OFFSET,
+                getY() - SHADOW_OFFSET,
+                getWidth(),
+                getHeight());
+        batch.setColor(previous);
+    }
+
     private void layoutChildren() {
         if (costLabel == null) {
             return;
         }
         float width = getWidth();
         float height = getHeight();
-        costLabel.setSize(width * 0.42f, 22f);
-        costLabel.setPosition(width - costLabel.getWidth() - 6f, 4f);
-        levelLabel.setSize(width * 0.5f, 20f);
-        levelLabel.setPosition(width - levelLabel.getWidth() - 4f, height - 22f);
-        seedLabel.setSize(width - 12f, 16f);
-        seedLabel.setPosition(6f, 22f);
-        familyIcon.setSize(Math.min(28f, height * 0.28f), Math.min(28f, height * 0.28f));
-        familyIcon.setPosition(2f, height - familyIcon.getHeight() - 2f);
-        boostIcon.setPosition(6f, 22f);
-        lockIcon.setPosition((width - lockIcon.getWidth()) / 2f, (height - lockIcon.getHeight()) / 2f);
+        float scale = Math.min(width / WIDTH, height / REFERENCE_HEIGHT);
+
+        packet.setBounds(width * 0.04f, height * 0.19f, width * 0.58f, height * 0.66f);
+
+        costLabel.setFontScale(costFontScale * scale);
+        costLabel.setSize(width * 0.46f, height * 0.44f);
+        costLabel.setPosition(width * 0.48f, height * 0.2f);
+
+        levelLabel.setFontScale(LEVEL_FONT_SCALE * scale);
+        levelLabel.setSize(width * 0.6f, height * 0.18f);
+        levelLabel.setPosition(width * 0.34f, height * 0.78f);
+
+        float barHeight = Math.max(5f, height * 0.09f);
+        seedBar.setBounds(width * 0.1f, height * 0.07f, width * 0.8f, barHeight);
+
+        float badgeSize = height * 0.33f;
+        familyBadge.setSize(badgeSize, badgeSize);
+        familyBadge.setPosition(-badgeSize * 0.3f, height - badgeSize * 0.72f);
+
+        float lockSize = Math.min(width, height) * 0.42f;
+        lockIcon.setSize(lockSize, lockSize);
+        lockIcon.setPosition((width - lockSize) / 2f, (height - lockSize) / 2f);
+
         cooldownShade.setWidth(width);
     }
 
@@ -280,12 +302,17 @@ public final class PlantCardActor extends Group {
         }
         background.setColor(tint);
         packet.setColor(tint);
+        familyBadge.setColor(locked || disabled ? Color.LIGHT_GRAY : BADGE_TINT);
     }
 
-    private static String outlineStyle(Skin skin) {
-        if (skin.has("medium_outline", Label.LabelStyle.class)) {
-            return "medium_outline";
+    private static String costStyle(Skin skin) {
+        if (skin.has(BIG_OUTLINE, Label.LabelStyle.class)) {
+            return BIG_OUTLINE;
         }
-        return "medium";
+        return levelStyle(skin);
+    }
+
+    private static String levelStyle(Skin skin) {
+        return skin.has(MEDIUM_OUTLINE, Label.LabelStyle.class) ? MEDIUM_OUTLINE : "medium";
     }
 }
