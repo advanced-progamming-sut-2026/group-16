@@ -18,6 +18,7 @@ import io.github.finalwave.controller.ProfileController;
 import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.SettingController;
 import io.github.finalwave.controller.ShopController;
+import io.github.finalwave.controller.TravelLogController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.model.leaderboard.LeaderboardEntry;
 import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
@@ -43,6 +44,7 @@ public final class ScreenRouter {
     private CollectionScreen collectionScreen;
     private ChapterSelectScreen chapterSelectScreen;
     private AdventureScreen adventureScreen;
+    private TravelLogScreen travelLogScreen;
     private ComingSoonScreen comingSoonScreen;
 
     public ScreenRouter(PvzGame game) {
@@ -62,6 +64,7 @@ public final class ScreenRouter {
                 || controller instanceof CollectionController
                 || controller instanceof GameController
                 || controller instanceof AdventureController
+                || controller instanceof TravelLogController
                 || controller instanceof PlantSelectionController
                 || controller instanceof GamePlayController;
     }
@@ -100,6 +103,8 @@ public final class ScreenRouter {
             showChapterSelect(gameController);
         } else if (controller instanceof AdventureController adventureController) {
             showAdventure(adventureController);
+        } else if (controller instanceof TravelLogController travelLogController) {
+            showTravelLog(travelLogController);
         } else if (controller instanceof PlantSelectionController plantSelectionController) {
             showComingSoon(plantSelectionController::back, "Plant selection");
         } else if (controller instanceof GamePlayController gamePlayController) {
@@ -203,6 +208,14 @@ public final class ScreenRouter {
         }
         adventureScreen.bind(controller);
         setScreen(adventureScreen);
+    }
+
+    public void showTravelLog(TravelLogController controller) {
+        if (travelLogScreen == null) {
+            travelLogScreen = new TravelLogScreen(game);
+        }
+        travelLogScreen.bind(controller);
+        setScreen(travelLogScreen);
     }
 
     public void showComingSoon(Runnable onBack, String title) {
@@ -323,6 +336,12 @@ public final class ScreenRouter {
         }
     }
 
+    public void refreshTravelLog() {
+        if (travelLogScreen != null) {
+            travelLogScreen.refresh();
+        }
+    }
+
     public void dispose() {
         if (signupScreen != null) {
             signupScreen.dispose();
@@ -359,6 +378,9 @@ public final class ScreenRouter {
         }
         if (adventureScreen != null) {
             adventureScreen.dispose();
+        }
+        if (travelLogScreen != null) {
+            travelLogScreen.dispose();
         }
         if (comingSoonScreen != null) {
             comingSoonScreen.dispose();

@@ -21,18 +21,39 @@ public final class QuestService {
 
     public static QuestTracker createTrackerFor(User user, Consumer<Quest> onCompletedExtra) {
         QuestTracker tracker = new QuestTracker(quest -> {
-            applyReward(user, quest.getReward());
-            quest.markRewardClaimed();
             UserDatabase.getInstance().saveQuestProgress(user);
             if (onCompletedExtra != null) {
                 onCompletedExtra.accept(quest);
             }
         });
-        tracker.setQuests(QuestFactory.createAllQuests());
+        tracker.setQuests(QuestFactory.createAllQuests(questSeed(user)));
         user.setQuestTracker(tracker);
         UserDatabase.getInstance().loadQuestProgress(user, tracker);
         refreshDailyQuestsIfNeeded(user, tracker);
         return tracker;
+    }
+
+    public static boolean claimReward(User user, Quest quest) {
+        if (user == null || quest == null || !quest.isCompleted() || quest.isRewardClaimed()) {
+            return false;
+        }
+        applyReward(user, quest.getReward());
+        quest.markRewardClaimed();
+        UserDatabase.getInstance().saveQuestProgress(user);
+        return true;
+    }
+
+    public static int claimAll(User user, List<Quest> quests) {
+        if (user == null || quests == null || quests.isEmpty()) {
+            return 0;
+        }
+        int claimed = 0;
+        for (Quest quest : quests) {
+            if (claimReward(user, quest)) {
+                claimed++;
+            }
+        }
+        return claimed;
     }
 
     public static void refreshDailyQuestsIfNeeded(User user, QuestTracker tracker) {
@@ -114,5 +135,13 @@ public final class QuestService {
             return null;
         }
         return locked.get(new Random().nextInt(locked.size()));
+    }
+
+    private static long questSeed(User user) {
+        if (user.getId() != 0L) {
+            return user.getId();
+        }
+        String username = user.getUsername();
+        return username == null ? 0L : username.hashCode();
     }
 }

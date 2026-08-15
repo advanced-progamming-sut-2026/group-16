@@ -1,8 +1,5 @@
 package io.github.finalwave.model.quest;
 
-import io.github.finalwave.model.adventure.ChapterId;
-import io.github.finalwave.model.game.entity.plant.PlantCategory;
-import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.quest.condition.QuestConditions;
 import io.github.finalwave.model.quest.event.GameEvent;
 import io.github.finalwave.model.quest.event.GameEventBus;
@@ -126,21 +123,70 @@ class QuestConditionsFixTest {
     }
 
     @Test
-    void factoryIncludesLawnmowerChaptersAndBoardVariants() {
-        List<Quest> quests = QuestFactory.createAllQuests();
-        assertTrue(quests.stream().anyMatch(q -> q.getId().equals("lawnmower_kills_10")));
-        assertTrue(quests.stream().anyMatch(q -> q.getId().equals("lawnmower_kills_50")));
-        for (ChapterId id : ChapterId.values()) {
-            assertTrue(quests.stream().anyMatch(q -> q.getId().equals("chapter_hunter_" + id.getKey())));
-        }
-        assertTrue(quests.stream().anyMatch(q -> q.getId().equals("daily_sun_4000")));
-        assertTrue(quests.stream().anyMatch(q -> q.getId().equals("empty_col_0")));
-        assertTrue(quests.stream().anyMatch(q -> q.getId().equals("empty_col_" + (GameBoard.DEFAULT_COLS - 1))));
-        assertTrue(quests.stream().anyMatch(q -> q.getId().equals("empty_row_" + (GameBoard.DEFAULT_ROWS - 1))));
-        for (PlantCategory category : PlantCategory.values()) {
-            assertTrue(quests.stream().anyMatch(q -> q.getId().equals("family_kills_" + category.name())));
-            assertTrue(quests.stream().anyMatch(q -> q.getId().equals("family_banned_" + category.name())));
-        }
+    void factoryCreatesStableGroup20CatalogWithCanonicalCopy() {
+        List<Quest> quests = QuestFactory.createAllQuests(42L);
+        List<Quest> repeated = QuestFactory.createAllQuests(42L);
+        List<String> titles = quests.stream().map(Quest::getTitle).toList();
+
+        assertEquals(20, quests.size());
+        assertEquals(20, quests.stream().map(Quest::getId).distinct().count());
+        assertEquals(
+                quests.stream().map(Quest::getDescription).toList(),
+                repeated.stream().map(Quest::getDescription).toList());
+        assertTrue(titles.containsAll(List.of(
+                "Daily Sunblock",
+                "Chapter Hunter",
+                "Pro Plant Player",
+                "Only Cactus",
+                "Economical Herbivore",
+                "Defense Master",
+                "Quick Reaction",
+                "Pro Demolition",
+                "Symmetry",
+                "Family Massacre",
+                "Flourish in Limits",
+                "Night or Morning",
+                "Win Streak",
+                "Almost Won",
+                "What OCD?",
+                "Cloudy Day",
+                "One Column Less",
+                "Defenseless Row",
+                "Defenseless Cross",
+                "Lawnmower Time")));
+        Quest dailySunblock = questById(quests, "daily_sunblock");
+        Quest lawnmowerTime = questById(quests, "lawnmower_time");
+        Quest oneColumnLess = questById(quests, "one_column_less");
+        Quest defenselessRow = questById(quests, "defenseless_row");
+        Quest defenselessCross = questById(quests, "defenseless_cross");
+        Quest economicalHerbivore = questById(quests, "economical_herbivore");
+        assertTrue(dailySunblock.getDescription().matches("Collect [345]000 of sun during one day"));
+        assertTrue(lawnmowerTime.getDescription().matches(
+                "Kill at least (10|20|30|40|50) zombies with lawnmowers"));
+        assertTrue(oneColumnLess.getDescription().matches(
+                "Win a level without planting in the [1-9] column"));
+        assertTrue(defenselessRow.getDescription().matches(
+                "Win a level without planting in the [1-5] row"));
+        assertTrue(defenselessCross.getDescription().matches(
+                "Win a level with the [1-5] row and column empty"));
+        assertTrue(economicalHerbivore.getDescription().matches(
+                "Win a level losing no more than [0-5] plants"));
+        assertEquals(14, quests.stream()
+                .filter(quest -> quest.getCategory() == Quest.Category.DAILY)
+                .count());
+        assertEquals(3, quests.stream()
+                .filter(quest -> quest.getCategory() == Quest.Category.MAIN)
+                .count());
+        assertEquals(3, quests.stream()
+                .filter(quest -> quest.getCategory() == Quest.Category.EPIC_CHALLENGE)
+                .count());
+    }
+
+    private static Quest questById(List<Quest> quests, String id) {
+        return quests.stream()
+                .filter(quest -> quest.getId().equals(id))
+                .findFirst()
+                .orElseThrow();
     }
 
     @Test

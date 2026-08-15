@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,7 +42,7 @@ class QuestMatchIntegrationTest {
     }
 
     @Test
-    void sessionSunCollectCompletesQuestAndAppliesCoinReward() {
+    void sessionSunCollectCompletesQuestAndWaitsForClaim() {
         User user = new User("quest-player", HashUtil.hashSHA256("Passw0rd!"),
                 "QP", "quest@example.com", Gender.MALE);
         user.setSecurityQuestionId(1);
@@ -63,6 +64,10 @@ class QuestMatchIntegrationTest {
         session.getEventBus().publish(new GameEvent.SunCollected(3000));
 
         assertTrue(sunQuest.isCompleted());
+        assertFalse(sunQuest.isRewardClaimed());
+        assertEquals(coinsBefore, user.getCoins());
+
+        assertTrue(QuestService.claimReward(user, sunQuest));
         assertTrue(sunQuest.isRewardClaimed());
         assertEquals(coinsBefore + 30, user.getCoins());
     }

@@ -14,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,8 +79,10 @@ class CliTravelLogTest {
         assertTrue(output.contains("Main:"), output);
         assertTrue(output.contains("Epic:"), output);
         assertTrue(output.contains("Minigame stages completed:"), output);
-        assertTrue(output.contains("daily_sun_3000") || output.contains("آفتاب"), output);
-        assertTrue(output.contains("chapter_hunter") || output.contains("شکارچی"), output);
+        assertTrue(output.contains("daily_sunblock"), output);
+        assertTrue(output.contains("Daily Sunblock"), output);
+        assertTrue(output.contains("chapter_hunter"), output);
+        assertTrue(output.contains("Chapter Hunter"), output);
         assertTrue(parser.getCurrentController() instanceof GameController);
 
         User user = io.github.finalwave.model.App.getInstance().getCurrentUser();
@@ -86,5 +90,21 @@ class CliTravelLogTest {
         assertTrue(tracker.getDailyQuests().size() >= 1);
         assertTrue(tracker.getMainQuests().size() >= 1);
         assertTrue(tracker.getEpicQuests().size() >= 1);
+
+        var quest = tracker.getDailyQuests().stream()
+                .filter(candidate -> candidate.getReward().getCoins() > 0)
+                .findFirst()
+                .orElseThrow();
+        quest.restoreState(true, false, quest.exportProgressBlob());
+        int coinsBefore = user.getCoins();
+        assertFalse(quest.isRewardClaimed());
+        parser.parseAndExecute("menu travel-log");
+        parser.parseAndExecute("travel log claim " + quest.getId());
+
+        assertTrue(quest.isRewardClaimed());
+        assertEquals(coinsBefore + quest.getReward().getCoins(), user.getCoins());
+        parser.parseAndExecute("travel log claim " + quest.getId());
+        assertEquals(coinsBefore + quest.getReward().getCoins(), user.getCoins());
+        parser.parseAndExecute("menu exit");
     }
 }

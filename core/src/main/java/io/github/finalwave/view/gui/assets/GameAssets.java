@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Disposable;
 import io.github.finalwave.view.gui.widget.StoreChrome;
+import io.github.finalwave.view.gui.widget.TravelLogChrome;
 import pvz.libpvz.pam.PamPlayer;
 import pvz.libpvz.textures.ResourceIndex;
 import pvz.libpvz.textures.TextureBank;
@@ -90,6 +91,7 @@ public final class GameAssets implements Disposable {
     public void dispose() {
         textures.dispose();
         StoreChrome.dispose();
+        TravelLogChrome.dispose();
         if (missingTexture != null) {
             missingTexture.dispose();
             missingTexture = null;

@@ -6,6 +6,8 @@ import java.util.regex.Pattern;
 public enum TravelLogMenuCommands implements Command {
     MENU_SHOW_CURRENT("^menu show current$"),
     MENU_EXIT("^menu exit$"),
+    TRAVEL_LOG_CLAIM_ALL("^travel log claim all\\s+(?<pageName>.+)$"),
+    TRAVEL_LOG_CLAIM("^travel log claim\\s+(?<questId>\\S+)$"),
     TRAVEL_LOG_PAGE("^travel log page\\s+(?<pageName>.+)$");
 
     private final Pattern compiledPattern;

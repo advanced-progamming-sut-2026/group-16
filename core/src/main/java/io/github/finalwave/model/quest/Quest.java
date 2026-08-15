@@ -18,6 +18,7 @@ public final class Quest {
 
     private final String id;
     private final String title;
+    private final String description;
     private final Category category;
     private final Priority priority;
     private final QuestCondition condition;
@@ -28,8 +29,14 @@ public final class Quest {
 
     public Quest(String id, String title, Category category,
                  Priority priority, QuestCondition condition, QuestReward reward) {
+        this(id, title, condition.describe(), category, priority, condition, reward);
+    }
+
+    public Quest(String id, String title, String description, Category category,
+                 Priority priority, QuestCondition condition, QuestReward reward) {
         this.id = id;
         this.title = title;
+        this.description = description;
         this.category = category;
         this.priority = priority;
         this.condition = condition;
@@ -88,6 +95,10 @@ public final class Quest {
 
     public String getTitle() {
         return title;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public Category getCategory() {

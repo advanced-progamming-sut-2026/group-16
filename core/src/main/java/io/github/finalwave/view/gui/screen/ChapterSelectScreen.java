@@ -15,6 +15,7 @@ public final class ChapterSelectScreen extends MenuScreen {
     private static final float BACK_SIZE = 96f;
     private static final float HUD_ICON = 88f;
     private static final float STORE_SIZE = 92f;
+    private static final float LOG_SIZE = 110f;
 
     private GameController controller;
     private int focusIndex;
@@ -72,6 +73,7 @@ public final class ChapterSelectScreen extends MenuScreen {
         hudLayer.top().left();
         hudLayer.padTop(0f).padRight(0f).padLeft(0f);
         Table topBar = new Table();
+        Table left = new Table();
         Actor back = PvzButtons.iconButton(
                 assets.region(MenuAssetIds.HUD_BACK),
                 BACK_SIZE,
@@ -81,29 +83,40 @@ public final class ChapterSelectScreen extends MenuScreen {
                         controller.back();
                     }
                 });
-        topBar.add(back).size(BACK_SIZE).padLeft(16f).padTop(12f);
+        Actor log = PvzButtons.iconButton(
+                assets.region(MenuAssetIds.QUESTS_ICON),
+                LOG_SIZE,
+                LOG_SIZE,
+                () -> {
+                    if (controller != null) {
+                        controller.openTravelLog();
+                    }
+                });
+        left.add(back).size(BACK_SIZE).left().row();
+        left.add(log).size(LOG_SIZE).left().padTop(8f);
+        topBar.add(left).padLeft(16f).padTop(12f).top().left();
         topBar.add(hudShortcut(MenuAssetIds.HUD_SETTINGS_ICON, () -> {
             if (controller != null) {
                 controller.openSettings();
             }
-        })).size(HUD_ICON).padLeft(8f).padTop(14f);
+        })).size(HUD_ICON).padLeft(8f).padTop(14f).top();
         topBar.add(hudShortcut(MenuAssetIds.ALMANAC_ICON, () -> {
             if (controller != null) {
                 controller.openCollection();
             }
-        })).size(HUD_ICON).padLeft(8f).padTop(14f);
+        })).size(HUD_ICON).padLeft(8f).padTop(14f).top();
         topBar.add(hudShortcut(MenuAssetIds.GREENHOUSE_ICON, () -> {
             if (controller != null) {
                 controller.openGreenhouse();
             }
-        })).size(HUD_ICON).padLeft(8f).padTop(14f);
-        topBar.add().expandX();
-        topBar.add(currencyBar).padTop(14f);
+        })).size(HUD_ICON).padLeft(8f).padTop(14f).top();
+        topBar.add().expandX().top();
+        topBar.add(currencyBar).padTop(14f).top();
         topBar.add(hudShortcut(MenuAssetIds.STORE_ICON, () -> {
             if (controller != null) {
                 controller.openShop();
             }
-        })).size(STORE_SIZE).padLeft(8f).padRight(16f).padTop(10f);
+        })).size(STORE_SIZE).padLeft(8f).padRight(16f).padTop(10f).top();
         hudLayer.add(topBar).growX();
     }
 
