@@ -12,10 +12,10 @@ public record LawnLayout(
         int rows,
         int cols
 ) {
-    public static final float PLANT_SCALE = 0.40f;
-    public static final float GIANT_WALLNUT_SCALE = 0.58f;
+    public static final float PLANT_SCALE = 1.0f;
+    public static final float GIANT_WALLNUT_SCALE = 1.2f;
     public static final float ZOMBIE_SCALE = 1.05f;
-    public static final float ICE_BLOCK_SCALE = 0.42f;
+    public static final float ICE_BLOCK_SCALE = 1.0f;
     public static final float PLANT_ANCHOR_Y = 0.42f;
     public static final float ZOMBIE_ANCHOR_Y = 1.0f;
     public static final float MOWER_SCALE = 0.42f;

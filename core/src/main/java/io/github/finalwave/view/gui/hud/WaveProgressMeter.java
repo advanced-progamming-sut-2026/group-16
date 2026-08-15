@@ -77,7 +77,8 @@ public final class WaveProgressMeter extends WidgetGroup {
             }
             Image flag = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.PROGRESS_FLAG)));
             flag.setScaling(Scaling.fit);
-            float x = WIDTH * (wave.getNumber() / (float) Math.max(1, waves.getWaveCount())) - 14f;
+            float fraction = wave.getNumber() / (float) Math.max(1, waves.getWaveCount());
+            float x = leadingX(fraction) - 14f;
             flag.setSize(28f, 36f);
             flag.setPosition(Math.max(0f, Math.min(WIDTH - 28f, x)), 10f);
             flags.add(flag);
@@ -87,12 +88,18 @@ public final class WaveProgressMeter extends WidgetGroup {
 
     private void layoutFill(float progress) {
         float clamped = Math.max(0f, Math.min(1f, progress));
-        float fillWidth = Math.max(8f, WIDTH * clamped);
+        float fillWidth = WIDTH * clamped;
+        float fillX = leadingX(clamped);
+        fill.setVisible(fillWidth > 0.5f);
         fill.setSize(fillWidth, HEIGHT * 0.55f);
-        fill.setPosition(0f, (HEIGHT - fill.getHeight()) / 2f);
+        fill.setPosition(fillX, (HEIGHT - fill.getHeight()) / 2f);
         head.setSize(36f, 36f);
-        head.setPosition(Math.max(0f, fillWidth - 18f), (HEIGHT - 36f) / 2f);
+        head.setPosition(Math.max(0f, Math.min(WIDTH - 36f, fillX - 18f)), (HEIGHT - 36f) / 2f);
         head.toFront();
+    }
+
+    private static float leadingX(float progress) {
+        return WIDTH * (1f - Math.max(0f, Math.min(1f, progress)));
     }
 
     private static float progressOf(GameSession session) {
