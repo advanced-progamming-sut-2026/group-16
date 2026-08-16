@@ -19,8 +19,16 @@ public final class PlantClips {
         return catalog.plantIdle(plantName);
     }
 
-    public EntityAnimationCatalog.ClipSpec clip(String plantName, String preferredClip) {
-        return catalog.plantClip(plantName, preferredClip);
+    public EntityAnimationCatalog.ClipSpec attack(String plantName) {
+        return catalog.plantClip(plantName, "attack", "idle");
+    }
+
+    public boolean hasAttack(String plantName) {
+        return catalog.hasClip(catalog.plantIdle(plantName).path(), "attack");
+    }
+
+    public EntityAnimationCatalog.ClipSpec clip(String plantName, String... preferredClips) {
+        return catalog.plantClip(plantName, preferredClips);
     }
 
     public float scale(String plantName) {

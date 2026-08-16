@@ -38,6 +38,7 @@ public final class Plant extends Entity {
     private int chargeTicksRemaining;
     private int lifespanTicksRemaining = -1;
     private boolean armedTrap;
+    private boolean attacking;
 
     public Plant(String id, PlantDefinition definition, int level, int col, int row) {
         super(id, PlantStatsCalculator.compute(definition, level).maxHealth(), col, row);
@@ -93,9 +94,17 @@ public final class Plant extends Entity {
         actionCooldownTicks -= 1;
         if (actionCooldownTicks <= 0) {
             if (PlantBehaviorSupport.canAct(this)) {
-                ability.onActionReady(this, context);
+                if (ability.tryAction(this, context)) {
+                    double interval = PlantBehaviorSupport.actionIntervalTicks(
+                            this, context.getTicksPerSecond());
+                    actionCooldownTicks = Math.max(1, interval - ability.actionWindupTicks());
+                } else {
+                    actionCooldownTicks = 0;
+                }
+            } else {
+                actionCooldownTicks = PlantBehaviorSupport.actionIntervalTicks(
+                        this, context.getTicksPerSecond());
             }
-            actionCooldownTicks = PlantBehaviorSupport.actionIntervalTicks(this, context.getTicksPerSecond());
         }
     }
 
@@ -161,6 +170,14 @@ public final class Plant extends Entity {
 
     public void setArmedTrap(boolean armedTrap) {
         this.armedTrap = armedTrap;
+    }
+
+    public boolean isAttacking() {
+        return attacking;
+    }
+
+    public void setAttacking(boolean attacking) {
+        this.attacking = attacking;
     }
 
     public ProjectileEffect projectileEffect() {

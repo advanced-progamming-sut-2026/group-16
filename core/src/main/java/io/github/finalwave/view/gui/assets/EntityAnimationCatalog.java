@@ -7,6 +7,7 @@ import com.badlogic.gdx.utils.JsonValue;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -93,18 +94,23 @@ public final class EntityAnimationCatalog {
         return FALLBACK_PLANT;
     }
 
-    public ClipSpec plantClip(String plantName, String preferredClip) {
+    public ClipSpec plantClip(String plantName, String... preferredClips) {
         ClipSpec idle = plantIdle(plantName);
-        Map<String, String> clips = clipsByPath.getOrDefault(idle.path(), Map.of());
-        String clip = preferredClip(clips, preferredClip == null ? DEFAULT_PLANT_CLIP : preferredClip);
+        String clip = pick(idle.path(), DEFAULT_PLANT_CLIP, preferredClips);
         return new ClipSpec(idle.path(), clip);
     }
 
-    public ClipSpec zombieClip(String alias, String preferredClip) {
+    public ClipSpec zombieClip(String alias, String... preferredClips) {
         String path = zombiePath(alias);
-        Map<String, String> clips = clipsByPath.getOrDefault(path, Map.of());
-        String clip = preferredClip(clips, preferredClip == null ? DEFAULT_ZOMBIE_CLIP : preferredClip);
+        String clip = pick(path, DEFAULT_ZOMBIE_CLIP, preferredClips);
         return new ClipSpec(path, clip);
+    }
+
+    public boolean hasClip(String path, String name) {
+        if (path == null || name == null) {
+            return false;
+        }
+        return clipsByPath.getOrDefault(path, Map.of()).containsKey(name);
     }
 
     public String zombiePath(String alias) {
@@ -136,8 +142,26 @@ public final class EntityAnimationCatalog {
         };
     }
 
+    private String pick(String path, String lastResort, String... preferred) {
+        Map<String, String> clips = clipsByPath.getOrDefault(path, Map.of());
+        if (preferred != null) {
+            for (String name : preferred) {
+                if (name != null && clips.containsKey(name)) {
+                    return name;
+                }
+            }
+        }
+        if (clips.containsKey(lastResort)) {
+            return lastResort;
+        }
+        if (!clips.isEmpty()) {
+            return clips.keySet().iterator().next();
+        }
+        return lastResort;
+    }
+
     private static Map<String, String> clipNames(JsonValue clips) {
-        Map<String, String> names = new HashMap<>();
+        Map<String, String> names = new LinkedHashMap<>();
         if (clips == null || !clips.isObject()) {
             return names;
         }

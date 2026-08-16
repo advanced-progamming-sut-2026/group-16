@@ -10,4 +10,13 @@ public interface PlantAbility {
 
     default void onActionReady(Plant plant, GameContext context) {
     }
+
+    default boolean tryAction(Plant plant, GameContext context) {
+        onActionReady(plant, context);
+        return true;
+    }
+
+    default int actionWindupTicks() {
+        return 0;
+    }
 }

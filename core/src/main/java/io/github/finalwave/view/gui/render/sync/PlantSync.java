@@ -8,10 +8,13 @@ import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCovering;
+import io.github.finalwave.model.game.entity.projectile.Projectile;
+import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.ActorRegistry;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
+import io.github.finalwave.view.gui.widget.HitFlashTracker;
 import io.github.finalwave.view.gui.widget.PamActor;
 
 import java.util.ArrayList;
@@ -28,6 +31,9 @@ public final class PlantSync {
     private final Group layer;
     private final ActorRegistry<Plant, PamActor> plants = new ActorRegistry<>();
     private final ActorRegistry<Plant, PamActor> iceBlocks = new ActorRegistry<>();
+    private final HitFlashTracker<Plant> plantHits = new HitFlashTracker<>();
+    private final HitFlashTracker<Plant> iceHits = new HitFlashTracker<>();
+    private final PlantShotTracker shots = new PlantShotTracker();
 
     public PlantSync(GameAssets assets, LawnLayout layout, PlantClips clips, Group layer) {
         this.assets = assets;
@@ -52,13 +58,23 @@ public final class PlantSync {
                 frozen.add(plant);
             }
         }
+        Iterable<Projectile> projectiles = session.getProjectileSystem() == null
+                ? List.of()
+                : session.getProjectileSystem().getProjectiles();
+        shots.observe(projectiles);
         plants.sync(live, this::spawnPlant, (plant, actor) -> updatePlant(plant, actor, board, session), PamActor::remove);
-        iceBlocks.sync(frozen, this::spawnIce, this::updateIce, PamActor::remove);
+        iceBlocks.sync(frozen, this::spawnIce, (plant, actor) -> updateIce(plant, actor, session), PamActor::remove);
+        plantHits.retain(live);
+        iceHits.retain(frozen);
+        shots.retain(live, projectiles);
     }
 
     public void clear() {
         plants.clear(PamActor::remove);
         iceBlocks.clear(PamActor::remove);
+        plantHits.clear();
+        iceHits.clear();
+        shots.clear();
     }
 
     private PamActor spawnPlant(Plant plant) {
@@ -82,8 +98,16 @@ public final class PlantSync {
         Vector2 center = layout.cellCenter(plant.getCol(), plant.getRow());
         actor.setSize(layout.tileWidth(), layout.tileHeight());
         actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
-        var spec = clips.idle(plant.getName());
-        actor.setClip(spec.path(), spec.clip(), clips.scale(plant.getName()), true);
+        boolean justFired = shots.consume(plant);
+        EntityAnimationCatalog.ClipSpec spec = PlantVisualState.clip(plant, clips, justFired);
+        EntityAnimationCatalog.ClipSpec idle = clips.idle(plant.getName());
+        float scale = clips.scale(plant.getName());
+        boolean playingAttack = PlantVisualState.isAttackClip(actor.clipName());
+        if (PlantVisualState.isAttack(spec) && !playingAttack) {
+            actor.playThen(spec.path(), spec.clip(), scale, idle.clip(), true, null);
+        } else if (!playingAttack) {
+            actor.setClip(spec.path(), spec.clip(), scale, true);
+        }
         actor.setUserObject(sortKey(plant, board, 0));
         int freeze = freezeLevel(plant, session);
         if (plant.isDisabled() || plant.isCatTransformed()) {
@@ -93,14 +117,28 @@ public final class PlantSync {
         } else {
             actor.setTint(Color.WHITE);
         }
+        plantHits.observe(plant, plant.getHealth(), actor);
     }
 
-    private void updateIce(Plant plant, PamActor actor) {
+    private void updateIce(Plant plant, PamActor actor, GameSession session) {
         Vector2 center = layout.cellCenter(plant.getCol(), plant.getRow());
         actor.setSize(layout.tileWidth(), layout.tileHeight());
         actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
         actor.setClip(PlantClips.ICE_BLOCK_PATH, PlantClips.ICE_BLOCK_CLIP, LawnLayout.ICE_BLOCK_SCALE, true);
         actor.setUserObject(sortKey(plant, null, 2));
+        iceHits.observe(plant, iceHealth(plant, session), actor);
+    }
+
+    private static int iceHealth(Plant plant, GameSession session) {
+        for (PlantCovering covering : session.getPlantCoverings()) {
+            if (covering != null
+                    && covering.isAlive()
+                    && covering.getCoveredPlant() == plant
+                    && covering.getType() == PlantCovering.Type.HUNTER_ICE) {
+                return covering.getHealth();
+            }
+        }
+        return Integer.MAX_VALUE;
     }
 
     private static int freezeLevel(Plant plant, GameSession session) {

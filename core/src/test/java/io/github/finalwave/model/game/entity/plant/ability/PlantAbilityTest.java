@@ -5,7 +5,8 @@ import io.github.finalwave.model.game.board.BoardGameContext;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.board.PlantPlacementResult;
 import io.github.finalwave.model.game.entity.plant.Plant;
-import io.github.finalwave.model.game.entity.plant.PlantFactory;
+import io.github.finalwave.model.game.entity.zombie.Zombie;
+import io.github.finalwave.model.game.entity.zombie.ZombieState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -94,9 +95,19 @@ class PlantAbilityTest {
     }
 
     @Test
+    void peashooterDoesNotShootEmptyLane() {
+        session.tryPlant("Peashooter", 1, 2, 1);
+        for (int i = 0; i < 40; i++) {
+            session.tick();
+        }
+        assertTrue(session.getProjectileSystem().getProjectiles().isEmpty());
+    }
+
+    @Test
     void actionIntervalUsesSecondsNotTicks() {
         session.tryPlant("Peashooter", 1, 2, 1);
-        for (int i = 0; i < 14; i++) {
+        placeMovingZombie(7, 2);
+        for (int i = 0; i < 18; i++) {
             session.tick();
         }
         assertTrue(session.getProjectileSystem().getProjectiles().isEmpty());
@@ -108,10 +119,21 @@ class PlantAbilityTest {
     void torchwoodConvertsPeaProjectilesToFire() {
         session.tryPlant("Torchwood", 2, 2, 1);
         session.tryPlant("Peashooter", 1, 2, 1);
-        for (int i = 0; i < 15; i++) {
+        placeMovingZombie(7, 2);
+        for (int i = 0; i < 19; i++) {
             session.tick();
         }
         assertEquals(io.github.finalwave.model.game.entity.projectile.ProjectileEffect.FIRE,
                 session.getProjectileSystem().getProjectiles().getFirst().getEffect());
+    }
+
+    private void placeMovingZombie(double x, int row) {
+        Zombie zombie = new Zombie.Builder("dummy")
+                .maxHealth(200)
+                .speed(0)
+                .position(x, row)
+                .build();
+        zombie.setState(ZombieState.MOVING);
+        session.addZombie(zombie);
     }
 }

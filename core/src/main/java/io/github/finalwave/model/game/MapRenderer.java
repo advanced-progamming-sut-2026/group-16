@@ -86,7 +86,7 @@ public final class MapRenderer {
                     ? AnsiColors.color(AnsiColors.RED, " [Eaten]")
                     : AnsiColors.color(AnsiColors.CYAN, " [Brain]");
         }
-        boolean mowerReady = row < mowers.size() && !mowers.get(row).isUsed();
+        boolean mowerReady = row < mowers.size() && mowers.get(row).isReady();
         return mowerReady
                 ? AnsiColors.color(AnsiColors.GREEN, " [Mower]")
                 : AnsiColors.color(AnsiColors.GRAY, " [----]");

@@ -30,6 +30,7 @@ final class GameSessionCombat {
         session.getTileEffects().tickAdjacentFireIceMelt();
         tickLivingPlants();
         tickZombies();
+        tickMowers();
         session.getProjectileSystem().tick(
                 session.getBoard(),
                 session.zombieList(),
@@ -277,27 +278,61 @@ final class GameSessionCombat {
         }
         LawnMower mower = lawnMowers.get(row);
         MatchListener matchListener = session.getMatchListener();
-        if (mower.trigger()) {
-            List<Zombie> killed = new ArrayList<>();
-            for (Zombie candidate : List.copyOf(session.zombieList())) {
-                if (!candidate.isAlive() || candidate.getRow() != row) continue;
-                if (isBossZombie(candidate)) continue;
-                candidate.takeDirectDamage(candidate.getHealth() + 99999);
-                session.handleZombieKilled(candidate);
-                killed.add(candidate);
-            }
-            if (!session.isTickingZombies()) {
-                session.zombieList().removeIf(Zombie::isDead);
-            }
-            if (matchListener != null) {
-                matchListener.onLawnMowerTriggered(row + 1, killed);
-            }
-            session.getEventBus().publish(new GameEvent.LawnMowerTriggered(row, killed.size()));
-        } else {
+        if (mower.isUsed()) {
             if (matchListener != null) {
                 matchListener.onLawnMowerFailed(row + 1);
             }
             session.loseMatch();
+            return;
+        }
+        boolean started = mower.trigger();
+        List<Zombie> killed = new ArrayList<>();
+        if (zombie.isAlive() && !isBossZombie(zombie)) {
+            zombie.takeDirectDamage(zombie.getHealth() + 99999);
+            session.handleZombieKilled(zombie);
+            killed.add(zombie);
+        }
+        if (!session.isTickingZombies()) {
+            session.zombieList().removeIf(Zombie::isDead);
+        }
+        if (zombie.isAlive()) {
+            if (matchListener != null) {
+                matchListener.onLawnMowerFailed(row + 1);
+            }
+            session.loseMatch();
+            return;
+        }
+        if (started) {
+            if (matchListener != null) {
+                matchListener.onLawnMowerTriggered(row + 1, killed);
+            }
+            session.getEventBus().publish(new GameEvent.LawnMowerTriggered(row, killed.size()));
+        }
+    }
+
+    private void tickMowers() {
+        int cols = session.getBoard().getCols();
+        for (LawnMower mower : session.lawnMowerList()) {
+            if (mower == null || !mower.isActive()) {
+                continue;
+            }
+            mower.tick(cols);
+            if (session.getMatchResult() != MatchResult.IN_PROGRESS) {
+                continue;
+            }
+            for (Zombie candidate : List.copyOf(session.zombieList())) {
+                if (!candidate.isAlive()
+                        || candidate.getRow() != mower.getRow()
+                        || isBossZombie(candidate)
+                        || !mower.hits(candidate.getX())) {
+                    continue;
+                }
+                candidate.takeDirectDamage(candidate.getHealth() + 99999);
+                session.handleZombieKilled(candidate);
+            }
+        }
+        if (!session.isTickingZombies()) {
+            session.zombieList().removeIf(Zombie::isDead);
         }
     }
 

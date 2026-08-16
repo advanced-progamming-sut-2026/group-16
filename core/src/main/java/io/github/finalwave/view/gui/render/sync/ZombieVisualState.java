@@ -28,10 +28,21 @@ public final class ZombieVisualState {
     }
 
     public static EntityAnimationCatalog.ClipSpec clip(Zombie zombie, ZombieClips clips) {
+        String type = zombie.getType();
         if (zombie.getState() == ZombieState.EATING) {
-            return clips.eat(zombie.getType());
+            return clips.eat(type);
         }
-        return clips.walk(zombie.getType());
+        if (zombie.getState() == ZombieState.ABILITY) {
+            return clips.ability(type);
+        }
+        if (zombie.getState() == ZombieState.MOVING && !zombie.isStationary() && !isNearlyStopped(zombie)) {
+            return clips.walk(type);
+        }
+        return clips.idle(type);
+    }
+
+    private static boolean isNearlyStopped(Zombie zombie) {
+        return zombie.getCurrentSpeed() <= zombie.getBaseSpeed() * 0.05;
     }
 
     public static Color tint(Zombie zombie) {

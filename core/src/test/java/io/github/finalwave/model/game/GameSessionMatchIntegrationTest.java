@@ -65,7 +65,16 @@ class GameSessionMatchIntegrationTest {
         var zombie = session.spawnZombieOfType("ZombieDefault", 0, 0.0);
         session.handleZombieReachedHouse(zombie);
         assertEquals(MatchResult.IN_PROGRESS, session.getMatchResult());
-        assertTrue(session.getLawnMowers().get(0).isUsed());
+        LawnMower mower = session.getLawnMowers().get(0);
+        assertTrue(mower.isActive());
+        assertFalse(mower.isUsed());
+        assertTrue(zombie.isDead());
+
+        int guard = 0;
+        while (!mower.isUsed() && guard++ < 200) {
+            session.tick();
+        }
+        assertTrue(mower.isUsed());
 
         var second = session.spawnZombieOfType("ZombieDefault", 0, 0.0);
         session.handleZombieReachedHouse(second);
