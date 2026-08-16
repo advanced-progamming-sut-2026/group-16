@@ -16,8 +16,9 @@ import java.util.function.Consumer;
 
 
 public final class SeedBankBar extends Table {
-    private static final float CARD_WIDTH = 92f;
-    private static final float CARD_HEIGHT = 116f;
+    private static final float CARD_WIDTH = PlantCardActor.WIDTH;
+    private static final float CARD_HEIGHT = PlantCardActor.HEIGHT;
+    private static final float CARD_GAP = 2f;
     private static final int MAX_CARDS = 8;
 
     private final GameAssets assets;
@@ -28,7 +29,10 @@ public final class SeedBankBar extends Table {
     public SeedBankBar(GameAssets assets, Consumer<String> onSelect) {
         this.assets = assets;
         this.onSelect = onSelect;
-        defaults().pad(2f);
+        padLeft(22f);
+        defaults().pad(CARD_GAP);
+        top().left();
+        setClip(false);
     }
 
     public void refresh(GameSession session, User user, Set<String> boosted, ToolMode mode) {
@@ -51,13 +55,14 @@ public final class SeedBankBar extends Table {
             double recharge = definition == null ? 0d : definition.getRecharge();
             int remaining = cooldowns == null ? 0 : cooldowns.ticksRemaining(name);
             float ratio = recharge <= 0d ? 0f : remaining / (float) (recharge * GameSession.TICKS_PER_SECOND);
-            boolean ready = cooldowns == null || cooldowns.isReady(name);
             boolean affordable = sun >= cost;
             card.setCost(cost);
             card.setCooldownRatio(ratio);
             card.setBoosted(boosted != null && boosted.contains(name));
-            card.setDisabled(!ready || !affordable);
+            card.setAffordable(affordable);
+            card.setDisabled(false);
             card.setSelected(name.equals(selected));
+            card.setFamily(definition == null ? null : definition.getCategory());
             if (user != null) {
                 card.setLevel(user.getPlantProgress().getOwnedPlant(name)
                         .map(owned -> owned.getLevel())

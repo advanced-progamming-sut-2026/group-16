@@ -31,6 +31,7 @@ import java.util.Random;
 public final class GameSession {
 
     public static final int TICKS_PER_SECOND = 10;
+    public static final int MAX_PLANT_FOOD = 5;
 
     private final GameBoard board;
     private final BoardGameContext context;
@@ -265,11 +266,11 @@ public final class GameSession {
     }
 
     public void setPlantFoodCount(int plantFoodCount) {
-        this.plantFoodCount = Math.max(0, plantFoodCount);
+        this.plantFoodCount = Math.max(0, Math.min(MAX_PLANT_FOOD, plantFoodCount));
     }
 
     public void addPlantFood(int amount) {
-        plantFoodCount += Math.max(0, amount);
+        plantFoodCount = Math.min(MAX_PLANT_FOOD, plantFoodCount + Math.max(0, amount));
     }
 
     public void setSelectedLoadout(Set<String> plantNames) {

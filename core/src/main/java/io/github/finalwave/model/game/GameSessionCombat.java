@@ -199,7 +199,7 @@ final class GameSessionCombat {
         if (matchListener != null) {
             matchListener.onZombieDied(zombie.getType(), zombie.getX(), zombie.getRow());
         }
-        if (zombie.isGlowing() && session.getPlantFoodCount() < 3) {
+        if (zombie.isGlowing() && session.getPlantFoodCount() < GameSession.MAX_PLANT_FOOD) {
             session.addPlantFood(1);
             if (matchListener != null) {
                 matchListener.onGlowingZombieDroppedFood(session.getPlantFoodCount());
