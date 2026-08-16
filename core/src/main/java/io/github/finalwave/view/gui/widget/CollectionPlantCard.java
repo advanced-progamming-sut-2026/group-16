@@ -37,8 +37,11 @@ public final class CollectionPlantCard extends Table {
     private final Skin skin;
     private MintFamilyBadge familyBadge;
     private Container<Label> levelContainer;
+    private Image plantImage;
     private Image darkOverlay;
     private Image lockIcon;
+    private boolean conveyorLook;
+    private boolean selected;
 
     public CollectionPlantCard(GameAssets assets, Skin skin) {
         this.assets = assets;
@@ -47,22 +50,49 @@ public final class CollectionPlantCard extends Table {
     }
 
     public void bind(CollectionPlantEntry entry) {
+        bindInternal(entry, false);
+    }
+
+    public void bindConveyor(CollectionPlantEntry entry) {
+        bindInternal(entry, true);
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
+        setTransform(true);
+        setOrigin(Align.center);
+        setScale(selected ? 1.06f : 1f);
+    }
+
+    public boolean selected() {
+        return selected;
+    }
+
+    private void bindInternal(CollectionPlantEntry entry, boolean conveyor) {
         clearChildren();
         familyBadge = null;
         levelContainer = null;
+        plantImage = null;
         darkOverlay = null;
         lockIcon = null;
+        conveyorLook = conveyor;
+        selected = false;
+        setScale(1f);
 
         setBackground(new TextureRegionDrawable(assets.region(CollectionCardLooks.packetBackground(entry))));
 
-        Image plantImage = new Image(new TextureRegionDrawable(
+        plantImage = new Image(new TextureRegionDrawable(
                 assets.region(ShopItemCard.packetImageId(assets, entry.name()))));
         plantImage.setScaling(Scaling.fit);
         plantImage.setTouchable(Touchable.disabled);
-        add(plantImage).size(98f).expand().center().padTop(8f).row();
-        add(seedProgress(entry)).growX().height(16f).padBottom(6f).padLeft(10f).padRight(10f).bottom();
+        if (conveyor) {
+            addActor(plantImage);
+        } else {
+            add(plantImage).size(98f).expand().center().padTop(8f).row();
+            add(seedProgress(entry)).growX().height(16f).padBottom(6f).padLeft(10f).padRight(10f).bottom();
+        }
 
-        if (entry.owned()) {
+        if (conveyor || entry.owned()) {
             Label level = new Label("LVL " + entry.level(), skin, outlineStyle());
             level.setFontScale(0.72f);
             level.setAlignment(Align.center);
@@ -74,7 +104,7 @@ public final class CollectionPlantCard extends Table {
             addActor(levelContainer);
         }
 
-        if (!entry.owned()) {
+        if (!conveyor && !entry.owned()) {
             darkOverlay = new Image(dimDrawable());
             darkOverlay.setColor(0f, 0f, 0f, 0.65f);
             darkOverlay.setTouchable(Touchable.disabled);
@@ -128,13 +158,23 @@ public final class CollectionPlantCard extends Table {
     @Override
     public void layout() {
         super.layout();
+        if (conveyorLook && plantImage != null) {
+            float plantHeight = getHeight() * 0.88f;
+            float plantWidth = Math.min(getWidth() * 0.72f, plantHeight);
+            plantImage.setSize(plantWidth, plantHeight);
+            plantImage.setPosition(0f, (getHeight() - plantHeight) * 0.5f);
+        }
+        float badgeSize = conveyorLook ? Math.min(BADGE_SIZE, getHeight() * 0.38f) : BADGE_SIZE;
         if (familyBadge != null) {
-            familyBadge.setSize(BADGE_SIZE, BADGE_SIZE);
-            familyBadge.setPosition(-BADGE_SIZE * 0.28f, getHeight() - BADGE_SIZE * 0.72f);
+            familyBadge.setSize(badgeSize, badgeSize);
+            familyBadge.setPosition(-badgeSize * 0.28f, getHeight() - badgeSize * 0.72f);
         }
         if (levelContainer != null) {
             levelContainer.pack();
-            levelContainer.setPosition(getWidth() - levelContainer.getWidth(), getHeight() - levelContainer.getHeight() + 18f);
+            float levelLift = conveyorLook ? getHeight() * 0.16f : 18f;
+            levelContainer.setPosition(
+                    getWidth() - levelContainer.getWidth(),
+                    getHeight() - levelContainer.getHeight() + levelLift);
         }
         if (darkOverlay != null) {
             darkOverlay.setSize(getWidth(), getHeight());
