@@ -27,13 +27,54 @@ public final class ThemedSlider {
     private ThemedSlider() {
     }
 
+    public static Slider createVolume(Skin skin, TextureRegion knob) {
+        Slider.SliderStyle style = new Slider.SliderStyle();
+        style.background = StoreChrome.volumeTrack();
+        style.knobBefore = null;
+        style.knobAfter = null;
+        Drawable gear = knobDrawable(skin, knob);
+        style.knob = gear;
+        style.knobOver = gear;
+        style.knobDown = gear;
+        Slider slider = new Slider(0f, 100f, 1f, false, style);
+        slider.setValue(100f);
+        return slider;
+    }
+
+    private static Drawable knobDrawable(Skin skin, TextureRegion knob) {
+        if (knob != null) {
+            TextureRegionDrawable gear = new TextureRegionDrawable(knob);
+            float size = Math.max(knob.getRegionWidth(), knob.getRegionHeight());
+            gear.setMinWidth(size);
+            gear.setMinHeight(size);
+            return gear;
+        }
+        return firstDrawable(skin, KNOB_CANDIDATES);
+    }
+
     public static Slider create(Skin skin, int min, int max) {
+        return create(skin, min, max, 1f);
+    }
+
+    public static Slider create(Skin skin, float min, float max, float step) {
         if (max < min) {
             throw new IllegalArgumentException("slider max must be >= min");
         }
-        Slider slider = new Slider(min, max, 1f, false, buildStyle(skin));
+        Slider slider = new Slider(min, max, step, false, buildStyle(skin));
         slider.setValue(min);
         return slider;
+    }
+
+    public static void applyKnob(Slider slider, TextureRegion knob) {
+        if (slider == null || knob == null) {
+            return;
+        }
+        Slider.SliderStyle style = new Slider.SliderStyle(slider.getStyle());
+        Drawable drawable = new TextureRegionDrawable(knob);
+        style.knob = drawable;
+        style.knobOver = drawable;
+        style.knobDown = drawable;
+        slider.setStyle(style);
     }
 
     public static Slider.SliderStyle buildStyle(Skin skin) {

@@ -44,6 +44,12 @@ public final class StoreChrome {
     private static Texture purpleDownTexture;
     private static NinePatchDrawable purpleUpDrawable;
     private static NinePatchDrawable purpleDownDrawable;
+    private static Texture brownUpTexture;
+    private static Texture brownDownTexture;
+    private static NinePatchDrawable brownUpDrawable;
+    private static NinePatchDrawable brownDownDrawable;
+    private static Texture volumeTrackTexture;
+    private static NinePatchDrawable volumeTrackDrawable;
 
     private static final int BUTTON_PATCH = 64;
     private static final int BUTTON_SPLIT = 22;
@@ -54,6 +60,17 @@ public final class StoreChrome {
     private static final Color PURPLE_RIM = rgb(242, 226, 255);
     private static final Color PURPLE_OUTER = rgb(58, 22, 92);
     private static final Color PURPLE_SHINE = rgb(214, 168, 255);
+    private static final Color BROWN_FILL = rgb(176, 82, 48);
+    private static final Color BROWN_FILL_DOWN = rgb(138, 54, 30);
+    private static final Color BROWN_RIM = rgb(248, 238, 214);
+    private static final Color BROWN_OUTER = rgb(62, 28, 16);
+    private static final Color BROWN_SHINE = rgb(214, 126, 86);
+    private static final int TRACK_PATCH = 48;
+    private static final int TRACK_SPLIT = 20;
+    private static final float TRACK_RADIUS = 16f;
+    private static final Color TRACK_FILL = rgb(52, 122, 48);
+    private static final Color TRACK_RIM = rgb(28, 72, 28);
+    private static final Color TRACK_SHINE = rgb(86, 168, 72);
 
     private StoreChrome() {
     }
@@ -81,6 +98,21 @@ public final class StoreChrome {
             purpleDownTexture = null;
             purpleDownDrawable = null;
         }
+        if (brownUpTexture != null) {
+            brownUpTexture.dispose();
+            brownUpTexture = null;
+            brownUpDrawable = null;
+        }
+        if (brownDownTexture != null) {
+            brownDownTexture.dispose();
+            brownDownTexture = null;
+            brownDownDrawable = null;
+        }
+        if (volumeTrackTexture != null) {
+            volumeTrackTexture.dispose();
+            volumeTrackTexture = null;
+            volumeTrackDrawable = null;
+        }
     }
 
     public static Drawable card(TextureRegion region) {
@@ -105,7 +137,7 @@ public final class StoreChrome {
 
     public static Drawable purpleButton() {
         if (purpleUpDrawable == null) {
-            purpleUpTexture = buttonTexture(PURPLE_FILL, PURPLE_SHINE);
+            purpleUpTexture = buttonTexture(PURPLE_FILL, PURPLE_SHINE, PURPLE_RIM, PURPLE_OUTER);
             purpleUpDrawable = new NinePatchDrawable(new NinePatch(
                     purpleUpTexture, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT));
         }
@@ -114,11 +146,44 @@ public final class StoreChrome {
 
     public static Drawable purpleButtonDown() {
         if (purpleDownDrawable == null) {
-            purpleDownTexture = buttonTexture(PURPLE_FILL_DOWN, PURPLE_FILL);
+            purpleDownTexture = buttonTexture(PURPLE_FILL_DOWN, PURPLE_FILL, PURPLE_RIM, PURPLE_OUTER);
             purpleDownDrawable = new NinePatchDrawable(new NinePatch(
                     purpleDownTexture, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT));
         }
         return purpleDownDrawable;
+    }
+
+    public static Drawable brownButton() {
+        if (brownUpDrawable == null) {
+            brownUpTexture = buttonTexture(BROWN_FILL, BROWN_SHINE, BROWN_RIM, BROWN_OUTER);
+            brownUpDrawable = new NinePatchDrawable(new NinePatch(
+                    brownUpTexture, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT));
+        }
+        return brownUpDrawable;
+    }
+
+    public static Drawable brownButtonDown() {
+        if (brownDownDrawable == null) {
+            brownDownTexture = buttonTexture(BROWN_FILL_DOWN, BROWN_FILL, BROWN_RIM, BROWN_OUTER);
+            brownDownDrawable = new NinePatchDrawable(new NinePatch(
+                    brownDownTexture, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT, BUTTON_SPLIT));
+        }
+        return brownDownDrawable;
+    }
+
+    public static Drawable volumeTrack() {
+        if (volumeTrackDrawable == null) {
+            volumeTrackTexture = capsuleTexture(TRACK_FILL, TRACK_SHINE, TRACK_RIM);
+            volumeTrackDrawable = new NinePatchDrawable(new NinePatch(
+                    volumeTrackTexture, TRACK_SPLIT, TRACK_SPLIT, TRACK_SPLIT, TRACK_SPLIT));
+            volumeTrackDrawable.setMinHeight(28f);
+            volumeTrackDrawable.setMinWidth(0f);
+            volumeTrackDrawable.setLeftWidth(0f);
+            volumeTrackDrawable.setRightWidth(0f);
+            volumeTrackDrawable.setTopHeight(0f);
+            volumeTrackDrawable.setBottomHeight(0f);
+        }
+        return volumeTrackDrawable;
     }
 
     public static Drawable tabBody(TextureRegion region) {
@@ -170,7 +235,7 @@ public final class StoreChrome {
         return new NinePatch(panelTexture, PANEL_SPLIT, PANEL_SPLIT, PANEL_SPLIT, PANEL_SPLIT);
     }
 
-    private static Texture buttonTexture(Color fill, Color shine) {
+    private static Texture buttonTexture(Color fill, Color shine, Color rim, Color outer) {
         Pixmap pixmap = new Pixmap(BUTTON_PATCH, BUTTON_PATCH, Pixmap.Format.RGBA8888);
         pixmap.setBlending(Pixmap.Blending.None);
         float cx = (BUTTON_PATCH - 1) * 0.5f;
@@ -188,12 +253,47 @@ public final class StoreChrome {
                 float depth = -sdf;
                 Color tone;
                 if (depth < 1.2f) {
-                    tone = PURPLE_OUTER;
+                    tone = outer;
                 } else if (depth < BUTTON_RIM) {
-                    mix.set(PURPLE_OUTER).lerp(PURPLE_RIM, (depth - 1.2f) / (BUTTON_RIM - 1.2f));
+                    mix.set(outer).lerp(rim, (depth - 1.2f) / (BUTTON_RIM - 1.2f));
                     tone = mix;
                 } else {
                     float topGlow = MathUtils.clamp((0.38f - y / (float) BUTTON_PATCH) / 0.38f, 0f, 1f);
+                    mix.set(fill).lerp(shine, topGlow * 0.42f);
+                    tone = mix;
+                }
+                mix.set(tone);
+                mix.a = cover;
+                pixmap.drawPixel(x, y, Color.rgba8888(mix));
+            }
+        }
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        pixmap.dispose();
+        return texture;
+    }
+
+    private static Texture capsuleTexture(Color fill, Color shine, Color rim) {
+        Pixmap pixmap = new Pixmap(TRACK_PATCH, TRACK_PATCH, Pixmap.Format.RGBA8888);
+        pixmap.setBlending(Pixmap.Blending.None);
+        float cx = (TRACK_PATCH - 1) * 0.5f;
+        float cy = (TRACK_PATCH - 1) * 0.5f;
+        float half = TRACK_PATCH * 0.5f - 1f;
+        Color mix = new Color();
+        for (int y = 0; y < TRACK_PATCH; y++) {
+            for (int x = 0; x < TRACK_PATCH; x++) {
+                float sdf = roundedBox(x + 0.5f, y + 0.5f, cx, cy, half, half, TRACK_RADIUS);
+                float cover = smooth(0.75f, -0.75f, sdf);
+                if (cover <= 0.004f) {
+                    pixmap.drawPixel(x, y, 0);
+                    continue;
+                }
+                float depth = -sdf;
+                Color tone;
+                if (depth < 1.35f) {
+                    tone = rim;
+                } else {
+                    float topGlow = MathUtils.clamp((0.45f - y / (float) TRACK_PATCH) / 0.45f, 0f, 1f);
                     mix.set(fill).lerp(shine, topGlow * 0.42f);
                     tone = mix;
                 }
