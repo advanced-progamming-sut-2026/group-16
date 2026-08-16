@@ -84,8 +84,8 @@ public class GreenhouseService {
         if (!pot.isLocked()) {
             return UnlockResult.alreadyUnlocked();
         }
-        if (!user.spendCoins(GreenhouseLayout.POT_UNLOCK_COST_COINS)) {
-            return UnlockResult.notEnoughCoins();
+        if (!user.spendDiamonds(GreenhouseLayout.POT_UNLOCK_COST_DIAMONDS)) {
+            return UnlockResult.notEnoughDiamonds();
         }
         pot.setLocked(false);
         return UnlockResult.success();
@@ -304,8 +304,8 @@ public class GreenhouseService {
             return new UnlockResult("already_unlocked", 0, 0);
         }
 
-        static UnlockResult notEnoughCoins() {
-            return new UnlockResult("not_enough_coins", 0, 0);
+        static UnlockResult notEnoughDiamonds() {
+            return new UnlockResult("not_enough_diamonds", 0, 0);
         }
     }
 }

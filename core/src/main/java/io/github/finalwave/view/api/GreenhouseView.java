@@ -29,7 +29,7 @@ public interface GreenhouseView extends View {
 
     void errorInvalidPotLocation(int x, int y);
 
-    void errorNotEnoughCoinsToUnlock();
+    void errorNotEnoughDiamondsToUnlock();
 
     void errorPotAlreadyUnlocked(int x, int y);
 

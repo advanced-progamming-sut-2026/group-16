@@ -133,6 +133,25 @@ public final class PriceButton extends Stack {
                 onBuy);
     }
 
+    public static Actor gems(
+            GameAssets assets,
+            Skin skin,
+            int price,
+            float width,
+            float height,
+            Runnable onBuy) {
+        return priced(
+                assets,
+                skin,
+                MenuAssetIds.STORE_PRICE_GEM,
+                StoreChrome.gemButton(assets.region(MenuAssetIds.STORE_GEM_PLATE)),
+                StoreChrome.gemButton(assets.region(MenuAssetIds.STORE_GEM_PLATE_DOWN)),
+                price,
+                width,
+                height,
+                onBuy);
+    }
+
     public static Actor coinsLabeled(
             GameAssets assets,
             Skin skin,

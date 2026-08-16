@@ -1,5 +1,6 @@
 package io.github.finalwave.model.shop;
 
+import io.github.finalwave.model.greenhouse.GreenhouseLayout;
 import io.github.finalwave.model.user.Gender;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserProgressInitializer;
@@ -16,15 +17,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ShopManagerTest {
     @Test
-    void buyPotRequiresCoinsAndUnlocksSlots() {
+    void buyPotRequiresDiamondsAndUnlocksSlots() {
         User poor = createUser();
         ShopManager shop = new ShopManager(new FixedRandom(0));
-        assertEquals("insufficient_coins", shop.purchase(poor, "pot", 1, null).status());
+        assertEquals("insufficient_diamonds", shop.purchase(poor, "pot", 1, null).status());
 
         User rich = createUser();
-        rich.setCoins(4000);
+        rich.setDiamonds(GreenhouseLayout.POT_UNLOCK_COST_DIAMONDS * 2);
         assertEquals("success", shop.purchase(rich, "pot", 2, null).status());
         assertEquals(6, rich.countUnlockedPots());
+        assertEquals(0, rich.getDiamonds());
     }
 
     @Test

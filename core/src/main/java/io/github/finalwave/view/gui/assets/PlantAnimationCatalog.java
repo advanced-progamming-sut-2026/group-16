@@ -16,6 +16,9 @@ public final class PlantAnimationCatalog {
     public static final ClipSpec SPROUT = new ClipSpec(
             "768/INITIAL/ZEN_GARDEN/PLANT_ANIMATIONS/SPROUT/SPROUT.PAM",
             "idle");
+    public static final ClipSpec SPROUT_PLANT = new ClipSpec(
+            "768/INITIAL/ZEN_GARDEN/PLANT_ANIMATIONS/SPROUT/SPROUT.PAM",
+            "transition");
     public static final ClipSpec GROWING_SLOT = new ClipSpec(
             "768/INITIAL/ZEN_GARDEN/GROWING_PLANT_SLOT/GROWING_PLANT_SLOT.PAM",
             "idle");

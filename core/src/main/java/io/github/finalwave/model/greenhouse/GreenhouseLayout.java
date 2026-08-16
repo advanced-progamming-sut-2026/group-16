@@ -4,7 +4,7 @@ public final class GreenhouseLayout {
     public static final int COLUMNS = 4;
     public static final int ROWS = 3;
     public static final int SLOT_COUNT = COLUMNS * ROWS;
-    public static final int POT_UNLOCK_COST_COINS = 2000;
+    public static final int POT_UNLOCK_COST_DIAMONDS = 20;
 
     private GreenhouseLayout() {
     }

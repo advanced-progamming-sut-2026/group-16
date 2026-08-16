@@ -143,7 +143,7 @@ public class GreenhouseController extends ViewController {
         switch (result.status()) {
             case "invalid_location" -> getGreenhouseView().errorInvalidPotLocation(potX, potY);
             case "already_unlocked" -> getGreenhouseView().errorPotAlreadyUnlocked(potX, potY);
-            case "not_enough_coins" -> getGreenhouseView().errorNotEnoughCoinsToUnlock();
+            case "not_enough_diamonds" -> getGreenhouseView().errorNotEnoughDiamondsToUnlock();
             default -> {
                 userDatabase.saveUserWallet(user);
                 getGreenhouseView().showPotUnlocked(potX, potY);

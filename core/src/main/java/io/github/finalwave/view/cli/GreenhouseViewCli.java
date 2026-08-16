@@ -77,8 +77,8 @@ public class GreenhouseViewCli extends CliView implements GreenhouseView {
     }
 
     @Override
-    public void errorNotEnoughCoinsToUnlock() {
-        displayError("You don't have enough coins to unlock this pot.");
+    public void errorNotEnoughDiamondsToUnlock() {
+        displayError("You don't have enough diamonds to unlock this pot.");
     }
 
     @Override
