@@ -31,11 +31,20 @@ public final class GreenhouseGrid {
     public static final float HIT_HEIGHT = 150f;
     public static final float OVERLAY_Y = 58f;
 
+    public static final float PAM_Y = 40f;
+    public static final float PAM_HEIGHT = 220f;
+    public static final float PAM_ANCHOR_Y = 0.32f;
     public static final float EMPTY_SCALE = 0.55f;
     public static final float EMPTY_OFFSET_X = 24f;
     public static final float EMPTY_OFFSET_Y = 0f;
-    public static final float GROWING_SCALE = 0.58f;
-    public static final float READY_SCALE = 0.84f;
+    public static final float POT_WIDTH = 100f;
+    public static final float POT_HEIGHT = 95f;
+    public static final float PLANTED_OFFSET_X = -22f;
+    public static final float PLANTED_OFFSET_Y = 26f;
+    public static final float PLANT_FEET_ANCHOR_Y = 0.18f;
+    public static final float SOIL_FROM_POT = 0.62f;
+    public static final float GROWING_SCALE = 0.32f;
+    public static final float READY_SCALE = 0.55f;
 
     private GreenhouseGrid() {
     }
@@ -61,6 +70,30 @@ public final class GreenhouseGrid {
 
     public static float plantOffsetY(int row) {
         return 0f;
+    }
+
+    public static float pamOriginX() {
+        return PLANT_ANCHOR_X + EMPTY_OFFSET_X;
+    }
+
+    public static float pamOriginY() {
+        return PAM_Y + PAM_HEIGHT * PAM_ANCHOR_Y + EMPTY_OFFSET_Y;
+    }
+
+    public static float potImageX() {
+        return pamOriginX() - POT_WIDTH * 0.5f + PLANTED_OFFSET_X;
+    }
+
+    public static float potImageY() {
+        return pamOriginY() - POT_HEIGHT * 0.5f + PLANTED_OFFSET_Y;
+    }
+
+    public static float soilX() {
+        return pamOriginX() + PLANTED_OFFSET_X;
+    }
+
+    public static float soilY() {
+        return potImageY() + POT_HEIGHT * SOIL_FROM_POT;
     }
 
     public static float columnBgX(int column) {

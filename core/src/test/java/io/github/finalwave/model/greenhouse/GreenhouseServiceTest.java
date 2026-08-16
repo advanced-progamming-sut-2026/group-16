@@ -108,15 +108,15 @@ class GreenhouseServiceTest {
     }
 
     @Test
-    void unlockSpendsCoinsAndOpensLockedPot() {
+    void unlockSpendsDiamondsAndOpensLockedPot() {
         User user = createUser();
-        user.setCoins(GreenhouseLayout.POT_UNLOCK_COST_COINS);
+        user.setDiamonds(GreenhouseLayout.POT_UNLOCK_COST_DIAMONDS);
         GreenhouseService service = new GreenhouseService(plantRegistry, new FixedRandom(true, 0));
 
-        assertEquals("not_enough_coins", service.unlock(createUser(), 1, 2).status());
+        assertEquals("not_enough_diamonds", service.unlock(createUser(), 1, 2).status());
         assertEquals("success", service.unlock(user, 1, 2).status());
         assertFalse(user.getPotAt(1, 2).isLocked());
-        assertEquals(0, user.getCoins());
+        assertEquals(0, user.getDiamonds());
         assertEquals("already_unlocked", service.unlock(user, 1, 2).status());
     }
 

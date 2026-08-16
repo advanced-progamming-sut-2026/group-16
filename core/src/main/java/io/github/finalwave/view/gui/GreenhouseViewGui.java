@@ -88,8 +88,8 @@ public final class GreenhouseViewGui extends GuiViewBase implements GreenhouseVi
     }
 
     @Override
-    public void errorNotEnoughCoinsToUnlock() {
-        toastError("Not enough coins to unlock this pot.");
+    public void errorNotEnoughDiamondsToUnlock() {
+        toastError("Not enough gems to unlock this pot.");
     }
 
     @Override

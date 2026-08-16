@@ -20,6 +20,8 @@ public final class MenuAssetIds {
     public static final String ZEN_TIMER_BACKGROUND = "IMAGE_ZEN_GARDEN_FINISH_TIMER_BACKGROUND";
     public static final String ZEN_GEM_LARGE = "IMAGE_ZEN_GARDEN_GEM_LARGE";
     public static final String ZEN_BOOST_GLOW = "IMAGE_ZEN_GARDEN_BOOSTGLOW";
+    public static final String ZEN_POT = "IMAGE_ZEN_GARDEN_GROWING_PLANT_SLOT_GROWING_PLANT_SLOT_184X161";
+    public static final String ZEN_POT_PLANTED = "IMAGE_ZEN_GARDEN_GROWING_PLANT_SLOT_GROWING_PLANT_SLOT_184X161_2";
     public static final String STORE_ICON = "IMAGE_UI_HUD_WORLDMAP_BUTTONS_HUD_STORE_NORMAL";
     public static final String GREENHOUSE_ICON = "IMAGE_UI_GENERIC_BUTTONS_HUD_ZG_NORMAL";
     public static final String HUD_BACK = "IMAGE_UI_HUD_WORLDMAP_BUTTONS_HUD_BACK_NORMAL";
@@ -131,6 +133,8 @@ public final class MenuAssetIds {
             ZEN_TIMER_BACKGROUND,
             ZEN_GEM_LARGE,
             ZEN_BOOST_GLOW,
+            ZEN_POT,
+            ZEN_POT_PLANTED,
             STORE_ICON,
             GREENHOUSE_ICON,
             HUD_BACK,

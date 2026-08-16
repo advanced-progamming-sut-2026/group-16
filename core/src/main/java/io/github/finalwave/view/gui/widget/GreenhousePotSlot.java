@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.Scaling;
 import io.github.finalwave.model.greenhouse.GreenhouseLayout;
 import io.github.finalwave.model.greenhouse.GreenhouseSlotState;
 import io.github.finalwave.view.gui.assets.GameAssets;
+import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
 import io.github.finalwave.view.gui.assets.PlantAnimationCatalog;
 
@@ -32,50 +33,78 @@ public final class GreenhousePotSlot extends Group {
         void unlock();
     }
 
+    private static final float GLOW_WIDTH = 130f;
+    private static final float GLOW_HEIGHT = 210f;
+    private static final float LOCK_WIDTH = 34f;
+    private static final float LOCK_HEIGHT = 46f;
+    private static final float UNLOCK_TAG_WIDTH = 140f;
+    private static final float UNLOCK_TAG_HEIGHT = 58f;
+    private static final float TIMER_WIDTH = 100f;
+    private static final float TIMER_HEIGHT = 36f;
+    private static final float SPEEDUP_WIDTH = 64f;
+    private static final float GEM_ICON_SIZE = 26f;
+    private static final float GEM_HANG = 18f;
+    private static final float TIMER_UNDER_BUTTON = 22f;
+
     private final GameAssets assets;
     private final PlantAnimationCatalog catalog;
-    private final PamActor pamActor;
+    private final Skin skin;
+    private final PamActor potActor;
+    private final Image potImage;
+    private final PamActor plantActor;
     private final PamActor poofActor;
     private final Image lockIcon;
     private final Image glow;
     private final Image timerBackground;
     private final Label timerLabel;
-    private final Actor gemButton;
+    private final Label speedUpCost;
     private final TextButton plantButton;
-    private final TextButton unlockButton;
+    private final TextButton speedUpButton;
+    private final Stack unlockTag;
     private final Table overlay;
     private GreenhouseSlotState state;
     private Actions actions;
     private boolean grownInPot;
+    private int displayedCost = -1;
 
     public GreenhousePotSlot(GameAssets assets, PlantAnimationCatalog catalog, Skin skin) {
         this.assets = assets;
         this.catalog = catalog;
+        this.skin = skin;
         setSize(GreenhouseGrid.SLOT_WIDTH, GreenhouseGrid.SLOT_HEIGHT);
         setTransform(false);
         setTouchable(Touchable.childrenOnly);
 
-        pamActor = new PamActor(assets.pamPlayer());
-        pamActor.setSize(GreenhouseGrid.SLOT_WIDTH, 220f);
-        pamActor.setPosition(0f, 40f);
-        pamActor.setTouchable(Touchable.disabled);
-        addActor(pamActor);
-
-        poofActor = new PamActor(assets.pamPlayer());
-        poofActor.setSize(GreenhouseGrid.SLOT_WIDTH, 220f);
-        poofActor.setPosition(0f, 40f);
-        poofActor.setVisible(false);
-        poofActor.setTouchable(Touchable.disabled);
-        addActor(poofActor);
-
-        glow = image(MenuAssetIds.ZEN_BOOST_GLOW, 180f, 180f);
-        glow.setPosition(20f, 70f);
+        glow = image(MenuAssetIds.ZEN_BOOST_GLOW, GLOW_WIDTH, GLOW_HEIGHT);
+        glow.setPosition(
+                GreenhouseGrid.pamOriginX() - GLOW_WIDTH * 0.5f,
+                GreenhouseGrid.pamOriginY() - 40f);
         glow.setVisible(false);
         glow.setTouchable(Touchable.disabled);
         addActor(glow);
 
-        lockIcon = image(MenuAssetIds.ZEN_LOCKED_POT, 110f, 110f);
-        lockIcon.setPosition(55f, 90f);
+        potActor = pamLayer();
+        addActor(potActor);
+
+        potImage = image(MenuAssetIds.ZEN_POT, GreenhouseGrid.POT_WIDTH, GreenhouseGrid.POT_HEIGHT);
+        potImage.setPosition(GreenhouseGrid.potImageX(), GreenhouseGrid.potImageY());
+        potImage.setTouchable(Touchable.disabled);
+        potImage.setVisible(false);
+        addActor(potImage);
+
+        plantActor = pamLayer();
+        plantActor.setAnchor(0.5f, GreenhouseGrid.PLANT_FEET_ANCHOR_Y);
+        plantActor.setY(GreenhouseGrid.soilY() - GreenhouseGrid.PAM_HEIGHT * GreenhouseGrid.PLANT_FEET_ANCHOR_Y);
+        addActor(plantActor);
+
+        poofActor = pamLayer();
+        poofActor.setAnchor(0.5f, GreenhouseGrid.PLANT_FEET_ANCHOR_Y);
+        poofActor.setY(GreenhouseGrid.soilY() - GreenhouseGrid.PAM_HEIGHT * GreenhouseGrid.PLANT_FEET_ANCHOR_Y);
+        poofActor.setVisible(false);
+        addActor(poofActor);
+
+        lockIcon = image(LawnAssetIds.PACKET_LOCK, LOCK_WIDTH, LOCK_HEIGHT);
+        lockIcon.setPosition((GreenhouseGrid.SLOT_WIDTH - LOCK_WIDTH) * 0.5f, GreenhouseGrid.PLANT_ANCHOR_Y + 24f);
         lockIcon.setVisible(false);
         lockIcon.setTouchable(Touchable.disabled);
         addActor(lockIcon);
@@ -92,10 +121,13 @@ public final class GreenhousePotSlot extends Group {
         overlay.setSize(GreenhouseGrid.SLOT_WIDTH, 52f);
         overlay.setPosition(0f, GreenhouseGrid.OVERLAY_Y);
         overlay.setTouchable(Touchable.childrenOnly);
+        overlay.defaults().space(0f).pad(0f);
+        overlay.center();
         addActor(overlay);
 
         timerBackground = new Image(new TextureRegionDrawable(assets.region(MenuAssetIds.ZEN_TIMER_BACKGROUND)));
         timerBackground.setScaling(Scaling.stretch);
+        timerBackground.setFillParent(true);
 
         String style = skin.has("medium_outline", Label.LabelStyle.class) ? "medium_outline" : "medium";
         timerLabel = new Label("0h 0m", skin, style);
@@ -103,34 +135,36 @@ public final class GreenhousePotSlot extends Group {
         timerLabel.setColor(Color.WHITE);
         timerLabel.setFontScale(0.65f);
 
-        gemButton = PvzButtons.iconButton(assets.region(MenuAssetIds.ZEN_GEM_LARGE), 48f, 48f, () -> {
+        speedUpCost = new Label("0", skin, style);
+        speedUpCost.setAlignment(Align.right);
+        speedUpCost.setColor(Color.WHITE);
+        speedUpCost.setFontScale(0.72f);
+        Image gemIcon = image(MenuAssetIds.ZEN_GEM_LARGE, GEM_ICON_SIZE, GEM_ICON_SIZE);
+        speedUpButton = PvzButtons.textButton("", skin, "purple", () -> {
             if (actions != null) {
                 actions.grow();
             }
         });
+        speedUpButton.clearChildren();
+        speedUpButton.left();
+        speedUpButton.add(gemIcon).size(GEM_ICON_SIZE, GEM_ICON_SIZE).padLeft(-GEM_HANG).padRight(2f);
+        speedUpButton.add(speedUpCost).expandX().right().padRight(6f);
 
         plantButton = PvzButtons.textButton("Plant", skin, "green_small", () -> {
             if (actions != null) {
                 actions.plant();
             }
         });
-        unlockButton = PvzButtons.textButton(
-                GreenhouseLayout.POT_UNLOCK_COST_COINS + " coins",
-                skin,
-                "purple",
-                () -> {
-                    if (actions != null) {
-                        actions.unlock();
-                    }
-                });
 
-        overlay.center();
+        unlockTag = hangingUnlockTag(style);
+        addActor(unlockTag);
     }
 
     public void bind(GreenhouseSlotState slot, Actions actions) {
         this.state = slot;
         this.actions = actions;
         this.grownInPot = slot != null && slot.isReady(System.currentTimeMillis());
+        this.displayedCost = -1;
         poofActor.setClip(null, 1f);
         poofActor.setVisible(false);
         rebuildOverlay();
@@ -146,6 +180,11 @@ public final class GreenhousePotSlot extends Group {
         long now = System.currentTimeMillis();
         if (!state.isReady(now)) {
             timerLabel.setText(state.remainingLabel(now));
+            int cost = state.accelerateCost(now);
+            if (cost != displayedCost) {
+                displayedCost = cost;
+                speedUpCost.setText(String.valueOf(cost));
+            }
             return;
         }
         if (!grownInPot) {
@@ -174,12 +213,13 @@ public final class GreenhousePotSlot extends Group {
 
     private void rebuildOverlay() {
         overlay.clearChildren();
+        unlockTag.setVisible(false);
         if (state == null) {
             return;
         }
         long now = System.currentTimeMillis();
         if (state.locked()) {
-            overlay.add(unlockButton).width(170f).height(44f);
+            unlockTag.setVisible(true);
             return;
         }
         if (state.empty()) {
@@ -189,59 +229,113 @@ public final class GreenhousePotSlot extends Group {
         if (state.isReady(now)) {
             return;
         }
+        displayedCost = state.accelerateCost(now);
+        speedUpCost.setText(String.valueOf(displayedCost));
         Stack timerChip = new Stack();
         timerChip.add(timerBackground);
         Table labelTable = new Table();
-        labelTable.add(timerLabel).growX();
+        labelTable.add(timerLabel).grow().padRight(TIMER_UNDER_BUTTON);
         timerChip.add(labelTable);
-        overlay.add(timerChip).size(148f, 36f);
-        overlay.add(gemButton).size(48f).padLeft(8f);
+        overlay.add(timerChip).size(TIMER_WIDTH, TIMER_HEIGHT);
+        overlay.add(speedUpButton).size(SPEEDUP_WIDTH, TIMER_HEIGHT).padLeft(-TIMER_UNDER_BUTTON);
+        timerLabel.setText(state.remainingLabel(now));
     }
 
     private void refreshVisuals(long now) {
-        lockIcon.setVisible(state != null && state.locked());
-        glow.setVisible(state != null && state.isReady(now));
+        boolean locked = state != null && state.locked();
+        boolean empty = state != null && state.empty();
+        boolean ready = state != null && state.isReady(now);
+        lockIcon.setVisible(locked);
+        unlockTag.setVisible(locked);
+        glow.setVisible(ready);
         applyDrawOffset();
-        if (state == null || state.locked()) {
-            pamActor.setClip(null, 1f);
+        if (state == null || locked) {
+            potActor.setClip(null, 1f);
+            potImage.setVisible(false);
+            plantActor.setClip(null, 1f);
             return;
         }
-        if (state.empty()) {
-            pamActor.setClip(PlantAnimationCatalog.GROWING_SLOT, GreenhouseGrid.EMPTY_SCALE);
+        if (empty) {
+            potImage.setVisible(false);
+            potActor.setClip(PlantAnimationCatalog.GROWING_SLOT, GreenhouseGrid.EMPTY_SCALE);
+            plantActor.setClip(null, 1f);
             return;
         }
-        if (state.isReady(now)) {
-            pamActor.setClip(catalog.idleFor(state.plantType()), GreenhouseGrid.READY_SCALE);
+        potActor.setClip(null, 1f);
+        potImage.setVisible(true);
+        applyPotDrawable(ready);
+        if (ready) {
+            plantActor.setClip(catalog.idleFor(state.plantType()), GreenhouseGrid.READY_SCALE);
             return;
         }
-        pamActor.setClip(PlantAnimationCatalog.SPROUT, GreenhouseGrid.GROWING_SCALE);
+        plantActor.playThen(
+                PlantAnimationCatalog.SPROUT_PLANT.path(),
+                PlantAnimationCatalog.SPROUT_PLANT.clip(),
+                GreenhouseGrid.GROWING_SCALE,
+                PlantAnimationCatalog.SPROUT.clip(),
+                true,
+                null);
         timerLabel.setText(state.remainingLabel(now));
     }
 
     private void applyDrawOffset() {
-        if (state == null) {
-            pamActor.setDrawOffset(0f, 0f);
-            poofActor.setDrawOffset(0f, 0f);
-            return;
-        }
-        float extraX = 0f;
-        float extraY = 0f;
-        if (!state.locked() && state.empty()) {
-            extraX = GreenhouseGrid.EMPTY_OFFSET_X;
-            extraY = GreenhouseGrid.EMPTY_OFFSET_Y;
-        }
-        float offsetX = GreenhouseGrid.plantOffsetX(state.x()) + extraX;
-        float offsetY = GreenhouseGrid.plantOffsetY(state.y()) + extraY;
-        pamActor.setDrawOffset(offsetX, offsetY);
-        poofActor.setDrawOffset(offsetX, offsetY);
+        float extraX = state == null ? 0f : GreenhouseGrid.plantOffsetX(state.x());
+        float extraY = state == null ? 0f : GreenhouseGrid.plantOffsetY(state.y());
+        potActor.setDrawOffset(extraX + GreenhouseGrid.EMPTY_OFFSET_X, extraY + GreenhouseGrid.EMPTY_OFFSET_Y);
+        potImage.setPosition(GreenhouseGrid.potImageX() + extraX, GreenhouseGrid.potImageY() + extraY);
+        float plantX = GreenhouseGrid.soilX() - GreenhouseGrid.PLANT_ANCHOR_X + extraX;
+        float plantY = extraY;
+        plantActor.setDrawOffset(plantX, plantY);
+        poofActor.setDrawOffset(plantX, plantY);
+    }
+
+    private void applyPotDrawable(boolean ready) {
+        String id = ready ? MenuAssetIds.ZEN_POT_PLANTED : MenuAssetIds.ZEN_POT;
+        potImage.setDrawable(new TextureRegionDrawable(assets.region(id)));
     }
 
     private void startGrowInPot() {
         rebuildOverlay();
-        pamActor.setClip(catalog.idleFor(state.plantType()), GreenhouseGrid.READY_SCALE);
+        applyPotDrawable(true);
+        plantActor.setClip(catalog.idleFor(state.plantType()), GreenhouseGrid.READY_SCALE);
         poofActor.setVisible(true);
         poofActor.setClip(PlantAnimationCatalog.PLANT_POOF, GreenhouseGrid.READY_SCALE, false);
         glow.setVisible(true);
+    }
+
+    private PamActor pamLayer() {
+        PamActor actor = new PamActor(assets.pamPlayer());
+        actor.setSize(GreenhouseGrid.SLOT_WIDTH, GreenhouseGrid.PAM_HEIGHT);
+        actor.setPosition(0f, GreenhouseGrid.PAM_Y);
+        actor.setTouchable(Touchable.disabled);
+        return actor;
+    }
+
+    private Stack hangingUnlockTag(String style) {
+        Image plate = image(MenuAssetIds.ZEN_UNLOCK_BUTTON, UNLOCK_TAG_WIDTH, UNLOCK_TAG_HEIGHT);
+        plate.setFillParent(true);
+        Label price = new Label(
+                PriceButton.amount(GreenhouseLayout.POT_UNLOCK_COST_DIAMONDS),
+                skin,
+                style);
+        price.setAlignment(Align.center);
+        price.setColor(Color.WHITE);
+        price.setFontScale(0.78f);
+        Table pricePad = new Table();
+        pricePad.add(price).expand().center().padLeft(38f).padRight(10f);
+        Stack tag = new Stack();
+        tag.add(plate);
+        tag.add(pricePad);
+        tag.setSize(UNLOCK_TAG_WIDTH, UNLOCK_TAG_HEIGHT);
+        tag.setPosition((GreenhouseGrid.SLOT_WIDTH - UNLOCK_TAG_WIDTH) * 0.5f + 10f, GreenhouseGrid.OVERLAY_Y - 4f);
+        tag.setVisible(false);
+        PvzButtons.animate(tag, 1.06f, 0.94f, () -> {
+            if (actions != null) {
+                actions.unlock();
+            }
+        });
+        tag.setRotation(-12f);
+        return tag;
     }
 
     private Image image(String id, float width, float height) {
