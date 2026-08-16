@@ -3,6 +3,7 @@ package io.github.finalwave.view.gui.input;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -40,6 +41,7 @@ public final class LawnInputController implements Disposable {
     private final PamActor plantGhost;
     private final Image toolGhost;
     private final Vector2 cursor = new Vector2();
+    private final Vector2 lawnCursor = new Vector2();
     private ToolMode mode = NONE;
     private InputListener listener;
 
@@ -48,6 +50,7 @@ public final class LawnInputController implements Disposable {
                                BattlefieldGroup battlefield,
                                GameAssets assets,
                                EntityAnimationCatalog catalog,
+                               Group cursorLayer,
                                BooleanSupplier blocked) {
         this.controller = controller;
         this.layout = layout;
@@ -64,8 +67,9 @@ public final class LawnInputController implements Disposable {
         this.toolGhost.setTouchable(Touchable.disabled);
         this.toolGhost.setVisible(false);
         this.toolGhost.setScaling(Scaling.fit);
-        battlefield.fxLayer().addActor(plantGhost);
-        battlefield.fxLayer().addActor(toolGhost);
+        Group overlay = cursorLayer == null ? battlefield.fxLayer() : cursorLayer;
+        overlay.addActor(plantGhost);
+        overlay.addActor(toolGhost);
         attach();
     }
 
@@ -100,6 +104,31 @@ public final class LawnInputController implements Disposable {
         setMode(mode instanceof ToolMode.Shovel ? NONE : new ToolMode.Shovel());
     }
 
+    public void beginPlantFoodDrag() {
+        if (blocked()) {
+            return;
+        }
+        setMode(new ToolMode.PlantFood());
+    }
+
+    public void dropPlantFoodAtStage(float stageX, float stageY) {
+        if (!(mode instanceof ToolMode.PlantFood)) {
+            return;
+        }
+        if (blocked()) {
+            setMode(NONE);
+            return;
+        }
+        cursor.set(stageX, stageY);
+        battlefield.stageToLocalCoordinates(cursor);
+        int col = layout.colAt(cursor.x);
+        int row = layout.rowAt(cursor.y);
+        setMode(NONE);
+        if (col >= 0 && row >= 0) {
+            controller.feedAt(col, row);
+        }
+    }
+
     public void togglePlantFood() {
         if (mode instanceof ToolMode.PlantFood) {
             setMode(NONE);
@@ -121,15 +150,16 @@ public final class LawnInputController implements Disposable {
         }
         cursor.set(Gdx.input.getX(), Gdx.input.getY());
         stage.screenToStageCoordinates(cursor);
-        battlefield.stageToLocalCoordinates(cursor);
-        int col = layout.colAt(cursor.x);
-        int row = layout.rowAt(cursor.y);
+        placeGhost(cursor.x, cursor.y);
+        lawnCursor.set(cursor);
+        battlefield.stageToLocalCoordinates(lawnCursor);
+        int col = layout.colAt(lawnCursor.x);
+        int row = layout.rowAt(lawnCursor.y);
         if (col >= 0 && row >= 0) {
             highlights.show(layout, col, row);
         } else {
             highlights.hide();
         }
-        placeGhost(cursor.x, cursor.y);
     }
 
     public void collectSun(Sun sun) {

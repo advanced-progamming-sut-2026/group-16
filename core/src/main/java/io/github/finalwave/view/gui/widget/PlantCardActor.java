@@ -26,26 +26,31 @@ public final class PlantCardActor extends Group {
     private static final float REFERENCE_HEIGHT = 105f;
     private static final float SHADOW_OFFSET = 4f;
     private static final float SHADOW_ALPHA = 0.38f;
-    private static final float LEVEL_FONT_SCALE = 0.68f;
+    private static final float LEVEL_FONT_SCALE = 1.05f;
     private static final String BIG_OUTLINE = "big_outline";
     private static final String MEDIUM_OUTLINE = "medium_outline";
     private static final Color BADGE_TINT = new Color(1f, 1f, 1f, 1f);
+    private static final Color COST_OK = Color.WHITE;
+    private static final Color COST_SHORT = Color.valueOf("FF2A2A");
 
     private final GameAssets assets;
     private final Image background;
     private final Image packet;
     private final Image cooldownShade;
+    private final Image unaffordableShade;
     private final Image lockIcon;
     private final MintFamilyBadge familyBadge;
     private final Label costLabel;
     private final Label levelLabel;
     private final UpgradeSeedBar seedBar;
+    private final Image selectFrame;
     private final float costFontScale;
     private String plantName;
     private String packetBackgroundId = LawnAssetIds.PACKET_BG;
     private Runnable onClick;
     private boolean locked;
     private boolean disabled;
+    private boolean unaffordable;
     private boolean boosted;
     private boolean selected;
     private boolean empty;
@@ -68,6 +73,12 @@ public final class PlantCardActor extends Group {
         cooldownShade.setTouchable(Touchable.disabled);
         cooldownShade.setVisible(false);
 
+        unaffordableShade = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.PACKET_BG)));
+        unaffordableShade.setColor(0f, 0f, 0f, 0.48f);
+        unaffordableShade.setTouchable(Touchable.disabled);
+        unaffordableShade.setVisible(false);
+        unaffordableShade.setFillParent(true);
+
         lockIcon = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.PACKET_LOCK)));
         lockIcon.setVisible(false);
         lockIcon.setTouchable(Touchable.disabled);
@@ -78,19 +89,27 @@ public final class PlantCardActor extends Group {
         costFontScale = skin.has(BIG_OUTLINE, Label.LabelStyle.class) ? 0.82f : 1.6f;
         costLabel = new Label("", skin, costStyle(skin));
         costLabel.setAlignment(Align.right);
+        costLabel.setColor(COST_OK);
         levelLabel = new Label("", skin, levelStyle(skin));
         levelLabel.setAlignment(Align.right);
         seedBar = new UpgradeSeedBar(skin);
         seedBar.setVisible(false);
 
+        selectFrame = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.PACKET_SELECT)));
+        selectFrame.setScaling(Scaling.stretch);
+        selectFrame.setTouchable(Touchable.disabled);
+        selectFrame.setVisible(false);
+
         addActor(background);
         addActor(packet);
         addActor(cooldownShade);
+        addActor(unaffordableShade);
         addActor(seedBar);
         addActor(lockIcon);
         addActor(levelLabel);
         addActor(costLabel);
         addActor(familyBadge);
+        addActor(selectFrame);
 
         PvzButtons.animate(this, 1.08f, 0.92f, () -> {
             if (onClick != null && !empty) {
@@ -133,6 +152,10 @@ public final class PlantCardActor extends Group {
         locked = false;
         boosted = false;
         selected = false;
+        unaffordable = false;
+        unaffordableShade.setVisible(false);
+        selectFrame.setVisible(false);
+        costLabel.setColor(COST_OK);
         setScale(1f);
         refreshBackground();
         refreshTint();
@@ -185,6 +208,10 @@ public final class PlantCardActor extends Group {
             return;
         }
         familyBadge.bind(category);
+        familyBadge.toFront();
+        if (selectFrame.isVisible()) {
+            selectFrame.toFront();
+        }
     }
 
     public void setBoosted(boolean boosted) {
@@ -195,6 +222,8 @@ public final class PlantCardActor extends Group {
 
     public void setSelected(boolean selected) {
         this.selected = selected;
+        selectFrame.setVisible(selected && !empty);
+        selectFrame.toFront();
         setScale(selected ? 1.06f : 1f);
     }
 
@@ -209,6 +238,12 @@ public final class PlantCardActor extends Group {
         }
         seedBar.setVisible(true);
         seedBar.bind(have / (float) need, "");
+    }
+
+    public void setAffordable(boolean affordable) {
+        this.unaffordable = !affordable && !empty;
+        unaffordableShade.setVisible(unaffordable);
+        costLabel.setColor(unaffordable ? COST_SHORT : COST_OK);
     }
 
     public void setDisabled(boolean disabled) {
@@ -261,15 +296,16 @@ public final class PlantCardActor extends Group {
         float height = getHeight();
         float scale = Math.min(width / WIDTH, height / REFERENCE_HEIGHT);
 
-        packet.setBounds(width * 0.04f, height * 0.19f, width * 0.58f, height * 0.66f);
+        packet.setBounds(width * 0.04f, height * 0.12f, width * 0.58f, height * 0.78f);
 
-        costLabel.setFontScale(costFontScale * scale);
-        costLabel.setSize(width * 0.46f, height * 0.44f);
-        costLabel.setPosition(width * 0.48f, height * 0.2f);
+        float costScale = costFontScale * scale;
+        costLabel.setFontScale(costScale);
+        costLabel.setSize(width * 0.48f, height * 0.42f);
+        costLabel.setPosition(width * 0.48f, height * 0.02f);
 
         levelLabel.setFontScale(LEVEL_FONT_SCALE * scale);
-        levelLabel.setSize(width * 0.6f, height * 0.18f);
-        levelLabel.setPosition(width * 0.34f, height * 0.78f);
+        levelLabel.setSize(width * 0.58f, height * 0.28f);
+        levelLabel.setPosition(width * 0.38f, height * 0.68f);
 
         float barHeight = Math.max(5f, height * 0.09f);
         seedBar.setBounds(width * 0.1f, height * 0.07f, width * 0.8f, barHeight);
@@ -281,6 +317,10 @@ public final class PlantCardActor extends Group {
         float lockSize = Math.min(width, height) * 0.42f;
         lockIcon.setSize(lockSize, lockSize);
         lockIcon.setPosition((width - lockSize) / 2f, (height - lockSize) / 2f);
+
+        float framePad = Math.min(width, height) * 0.06f;
+        selectFrame.setBounds(-framePad, -framePad, width + framePad * 2f, height + framePad * 2f);
+        selectFrame.toFront();
 
         cooldownShade.setWidth(width);
     }

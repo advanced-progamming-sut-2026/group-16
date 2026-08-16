@@ -28,9 +28,14 @@ public final class LawnAssetIds {
     public static final String SHOVEL = "IMAGE_UI_HUD_INGAME_SHOVEL_BUTTON";
     public static final String FLOATING_SHOVEL = "IMAGE_UI_HUD_INGAME_SHOVEL_ICON";
     public static final String SUN_ICON = "IMAGE_UI_HUD_INGAME_SUN";
+    public static final String SUN_BANNER = "IMAGE_UI_HUD_INGAME_BACKGROUND_3SLICE";
     public static final String PLANTFOOD_BANK = "IMAGE_UI_HUD_INGAME_PLANTFOOD_BANK";
     public static final String PLANTFOOD_COLLECT = "IMAGE_UI_HUD_INGAME_PLANTFOOD_BANK_COLLECT";
+    public static final String PLANTFOOD_SLOT = "IMAGE_UI_HUD_INGAME_PLANTFOOD_BANK_FILLED_SLOT";
+    public static final String PLANTFOOD_LEAF = "IMAGE_UI_HUD_INGAME_PLANTFOOD_BUTTON";
     public static final String FLOATING_PLANTFOOD = "IMAGE_UI_HUD_INGAME_PLANTFOOD_BUTTON_DOWN";
+    public static final String HUD_PLUS = "IMAGE_UI_HUD_INGAME_COIN_BUY";
+    public static final String HUD_PLUS_DOWN = "IMAGE_UI_HUD_INGAME_COIN_BUY_DOWN";
     public static final String PROGRESS_METER = "IMAGE_UI_HUD_INGAME_PROGRESS_METER";
     public static final String PROGRESS_FILL = "IMAGE_UI_HUD_INGAME_PROGRESS_METER_FILL";
     public static final String PROGRESS_FLAG = "IMAGE_UI_HUD_INGAME_PROGRESS_METER_FLAG_DEFAULT";
@@ -39,6 +44,7 @@ public final class LawnAssetIds {
     public static final String PACKET_BG = "IMAGE_UI_PACKETS_MODERNDAY";
     public static final String PACKET_EMPTY = "IMAGE_UI_PACKETS_EMPTY_PACKET";
     public static final String PACKET_LOCK = "IMAGE_UI_CARDS_LOCK_MEDIUM";
+    public static final String PACKET_SELECT = "IMAGE_UI_PACKETS_SELECT";
     public static final String CONVEYOR_BELT = "IMAGE_UI_CONVEYOR_CONVEYOR_BELT";
     public static final String CONVEYOR_SIDE = "IMAGE_UI_CONVEYOR_CONVEYOR_SIDE";
     public static final String CONVEYOR_TOP = "IMAGE_UI_CONVEYOR_CONVEYOR_TOP";
@@ -57,14 +63,20 @@ public final class LawnAssetIds {
             SHOVEL,
             FLOATING_SHOVEL,
             SUN_ICON,
+            SUN_BANNER,
             PLANTFOOD_BANK,
+            PLANTFOOD_SLOT,
+            PLANTFOOD_LEAF,
             FLOATING_PLANTFOOD,
+            HUD_PLUS,
+            HUD_PLUS_DOWN,
             PROGRESS_METER,
             PROGRESS_FILL,
             PROGRESS_FLAG,
             PACKET_BG,
             PACKET_EMPTY,
-            PACKET_LOCK
+            PACKET_LOCK,
+            PACKET_SELECT
     };
 
     private LawnAssetIds() {

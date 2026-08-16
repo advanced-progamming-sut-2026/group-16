@@ -6,8 +6,10 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.GamePlayController;
@@ -38,7 +40,6 @@ import io.github.finalwave.view.gui.render.LawnGridOverlay;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.sync.SunSync;
-import io.github.finalwave.view.gui.widget.PvzButtons;
 
 
 public final class GamePlayScreen extends MenuScreen {
@@ -61,7 +62,7 @@ public final class GamePlayScreen extends MenuScreen {
     private AlertBanner alertBanner;
     private LevelObjectiveBanner objectiveBanner;
     private NpcDialogBox npcDialog;
-    private Table debugCheats;
+    private WidgetGroup cursorLayer;
     private boolean resultShown;
 
     public GamePlayScreen(PvzGame game) {
@@ -111,12 +112,17 @@ public final class GamePlayScreen extends MenuScreen {
         battlefield = new BattlefieldGroup();
         battlefield.bind(assets, layout, catalog);
         contentLayer.addActor(battlefield);
+        cursorLayer = new WidgetGroup();
+        cursorLayer.setFillParent(true);
+        cursorLayer.setTouchable(Touchable.disabled);
+        stage.addActor(cursorLayer);
         input = new LawnInputController(
                 controller,
                 layout,
                 battlefield,
                 assets,
                 catalog,
+                cursorLayer,
                 this::inputBlocked);
         battlefield.setSunCollector(sun -> {
             if (input != null) {
@@ -225,9 +231,6 @@ public final class GamePlayScreen extends MenuScreen {
         if (speedButton != null && clock != null) {
             speedButton.setSpeed(clock.speed());
         }
-        if (debugCheats != null) {
-            debugCheats.setVisible(user != null && user.isDebugMode());
-        }
     }
 
     public MatchClock clock() {
@@ -248,6 +251,10 @@ public final class GamePlayScreen extends MenuScreen {
             input.dispose();
             input = null;
         }
+        if (cursorLayer != null) {
+            cursorLayer.remove();
+            cursorLayer = null;
+        }
         pauseModal.dismiss();
         resultModal.dismiss();
         if (battlefield != null) {
@@ -263,6 +270,10 @@ public final class GamePlayScreen extends MenuScreen {
             input.dispose();
             input = null;
         }
+        if (cursorLayer != null) {
+            cursorLayer.remove();
+            cursorLayer = null;
+        }
         gridOverlay.dispose();
         super.dispose();
     }
@@ -273,31 +284,34 @@ public final class GamePlayScreen extends MenuScreen {
         hudLayer.top().left();
         hudLayer.pad(0f);
 
-        sunCounter = new SunCounter(assets);
-        plantFoodCounter = new PlantFoodCounter(assets, this::onPlantFood);
+        sunCounter = new SunCounter(assets, this::onAddSun);
+        plantFoodCounter = new PlantFoodCounter(assets, this::onAddPlantFood, this::onPlantFoodDragStart, this::onPlantFoodDrop);
         seedBank = new SeedBankBar(assets, this::onSeed);
         waveMeter = new WaveProgressMeter(assets);
         speedButton = new SpeedButton(assets, this::onSpeed);
         Actor pause = PauseButton.create(assets, this::togglePause);
         Actor shovel = ShovelButton.create(assets, this::onShovel);
-        debugCheats = debugTable();
 
         Table top = new Table();
         top.add(sunCounter).padLeft(16f).padTop(10f);
-        top.add(plantFoodCounter).padLeft(12f).padTop(10f);
-        top.add(debugCheats).padLeft(12f).padTop(10f);
         top.add().expandX();
-        top.add(shovel).size(84f).padRight(8f).padTop(8f);
+        top.add(meterBlock()).padTop(8f);
+        top.add().expandX();
         top.add(speedButton.actor()).size(84f).padRight(8f).padTop(8f);
         top.add(pause).size(84f).padRight(8f).padTop(8f);
         top.add(currencyBar).padTop(12f).padRight(20f);
         hudLayer.add(top).growX().row();
 
         Table mid = new Table();
-        mid.add(seedBank).left().top().padLeft(12f).padTop(6f);
+        mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
         mid.add().expand();
         hudLayer.add(mid).grow().row();
-        hudLayer.add(waveMeter).size(420f, 48f).center().padBottom(16f);
+
+        Table bottom = new Table();
+        bottom.add(plantFoodCounter).left().padLeft(128f).padBottom(18f);
+        bottom.add().expandX();
+        bottom.add(shovel).size(84f).padRight(20f).padBottom(18f);
+        hudLayer.add(bottom).growX();
 
         if (alertBanner != null) {
             alertBanner.remove();
@@ -317,22 +331,21 @@ public final class GamePlayScreen extends MenuScreen {
         npcDialog.setPosition(640f, 24f);
     }
 
-    private Table debugTable() {
-        Table table = new Table();
-        TextButton sun = PvzButtons.textButton("+Sun", assets.skin(), "brown", () -> {
-            if (controller != null) {
-                controller.cheatAddSun(50);
-            }
-        });
-        TextButton food = PvzButtons.textButton("+Food", assets.skin(), "brown", () -> {
-            if (controller != null) {
-                controller.cheatAddPlantFood();
-            }
-        });
-        table.add(sun).width(110f).height(42f).padRight(8f);
-        table.add(food).width(110f).height(42f);
-        table.setVisible(false);
-        return table;
+    private Table meterBlock() {
+        Table block = new Table();
+        block.add(waveMeter).size(420f, 48f).row();
+        Label title = new Label(levelCaption(), assets.skin(), "medium");
+        title.setAlignment(Align.center);
+        title.setFontScale(0.62f);
+        block.add(title).padTop(2f);
+        return block;
+    }
+
+    private String levelCaption() {
+        if (controller == null || controller.chapter() == null || controller.level() == null) {
+            return "";
+        }
+        return controller.chapter().getDisplayName() + " - Day " + controller.level().getIndex();
     }
 
     private void onSeed(String plantName) {
@@ -347,13 +360,31 @@ public final class GamePlayScreen extends MenuScreen {
         }
     }
 
-    private void onPlantFood() {
-        if (controller != null && controller.session() != null && controller.session().getPlantFoodCount() <= 0) {
-            controller.feedAt(0, 0);
+    private void onAddSun() {
+        if (controller != null) {
+            controller.cheatAddSun(50);
+        }
+    }
+
+    private void onAddPlantFood() {
+        if (controller == null || controller.session() == null) {
             return;
         }
+        if (controller.session().getPlantFoodCount() >= PlantFoodCounter.SLOT_COUNT) {
+            return;
+        }
+        controller.cheatAddPlantFood();
+    }
+
+    private void onPlantFoodDragStart() {
         if (input != null) {
-            input.togglePlantFood();
+            input.beginPlantFoodDrag();
+        }
+    }
+
+    private void onPlantFoodDrop(float stageX, float stageY) {
+        if (input != null) {
+            input.dropPlantFoodAtStage(stageX, stageY);
         }
     }
 
