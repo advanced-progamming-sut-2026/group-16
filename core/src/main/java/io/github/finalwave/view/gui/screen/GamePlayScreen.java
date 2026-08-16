@@ -161,6 +161,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (battlefield != null && controller != null && controller.session() != null) {
             battlefield.sync(controller.session(), tickFraction);
         }
+        if (clock != null && battlefield != null) {
+            battlefield.setPlaybackSpeed(clock.speed());
+        }
         if (input != null) {
             input.update();
         }

@@ -9,9 +9,11 @@ import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
+import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
+import io.github.finalwave.view.gui.render.sync.ProjectileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 import io.github.finalwave.view.gui.render.sync.ZombieSync;
 import io.github.finalwave.view.gui.widget.PamActor;
@@ -33,6 +35,7 @@ public final class BattlefieldGroup extends WidgetGroup {
 
     private PlantSync plantSync;
     private ZombieSync zombieSync;
+    private ProjectileSync projectileSync;
     private SunSync sunSync;
     private MowerSync mowerSync;
     private Consumer<Sun> sunCollector;
@@ -55,12 +58,14 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (assets == null || layout == null || catalog == null) {
             plantSync = null;
             zombieSync = null;
+            projectileSync = null;
             sunSync = null;
             mowerSync = null;
             return;
         }
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
         zombieSync = new ZombieSync(assets, layout, new ZombieClips(catalog), zombieLayer);
+        projectileSync = new ProjectileSync(assets, layout, new ProjectileClips(), zombieLayer);
         sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
         mowerSync = new MowerSync(assets, layout, mowerLayer);
     }
@@ -83,10 +88,15 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (zombieSync != null) {
             zombieSync.sync(session, tickFraction);
+        }
+        if (projectileSync != null) {
+            projectileSync.sync(session, tickFraction);
+        }
+        if (zombieSync != null || projectileSync != null) {
             sortByRow(zombieLayer, BattlefieldGroup::sortKey);
         }
         if (mowerSync != null) {
-            mowerSync.sync(session);
+            mowerSync.sync(session, tickFraction);
         }
         if (sunSync != null) {
             sunSync.sync(session, tickFraction);
@@ -103,6 +113,16 @@ public final class BattlefieldGroup extends WidgetGroup {
         setPlaying(fxLayer, playing);
     }
 
+    public void setPlaybackSpeed(float playbackSpeed) {
+        setPlaybackSpeed(environmentLayer, playbackSpeed);
+        setPlaybackSpeed(mowerLayer, playbackSpeed);
+        setPlaybackSpeed(plantLayer, playbackSpeed);
+        setPlaybackSpeed(zombieLayer, playbackSpeed);
+        setPlaybackSpeed(projectileLayer, playbackSpeed);
+        setPlaybackSpeed(sunLayer, playbackSpeed);
+        setPlaybackSpeed(fxLayer, playbackSpeed);
+    }
+
     public void sortByRow(Group layer, ToIntFunction<Actor> rowOf) {
         layer.getChildren().sort(Comparator.comparingInt(rowOf));
     }
@@ -113,6 +133,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (zombieSync != null) {
             zombieSync.clear();
+        }
+        if (projectileSync != null) {
+            projectileSync.clear();
         }
         if (sunSync != null) {
             sunSync.clear();
@@ -177,6 +200,14 @@ public final class BattlefieldGroup extends WidgetGroup {
         for (Actor actor : layer.getChildren()) {
             if (actor instanceof PamActor pamActor) {
                 pamActor.setPlaying(playing);
+            }
+        }
+    }
+
+    private static void setPlaybackSpeed(Group layer, float playbackSpeed) {
+        for (Actor actor : layer.getChildren()) {
+            if (actor instanceof PamActor pamActor) {
+                pamActor.setPlaybackSpeed(playbackSpeed);
             }
         }
     }

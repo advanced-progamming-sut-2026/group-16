@@ -18,9 +18,11 @@ public record LawnLayout(
     public static final float ICE_BLOCK_SCALE = 1.0f;
     public static final float PLANT_ANCHOR_Y = 0.42f;
     public static final float ZOMBIE_ANCHOR_Y = 1.0f;
-    public static final float MOWER_SCALE = 0.42f;
+    public static final float MOWER_SCALE = 1.0f;
     public static final float MOWER_ANCHOR_Y = 0.42f;
     public static final float MOWER_MODEL_X = -0.5f;
+    public static final float PROJECTILE_SCALE = 1.0f;
+    public static final float PROJECTILE_ANCHOR_Y = 0.55f;
 
     public float mowerCenterX() {
         return worldX(MOWER_MODEL_X);
