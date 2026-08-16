@@ -436,7 +436,7 @@ public final class GamePlayScreen extends MenuScreen {
         if (input != null) {
             input.setMode(new ToolMode.None());
         }
-        pauseModal.show(modalLayer, viewport, assets.skin(), this::resumeMatch, this::restartMatch, this::exitMatch);
+        pauseModal.show(modalLayer, viewport, assets, this::resumeMatch, this::restartMatch, this::exitMatch);
     }
 
     private void resumeMatch() {

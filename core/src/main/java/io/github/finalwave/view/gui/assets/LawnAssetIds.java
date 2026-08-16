@@ -23,6 +23,9 @@ public final class LawnAssetIds {
     public static final String MINIGAME_MAIN = "IMAGE_BACKGROUNDS_DINO_TEXTURE";
 
     public static final String PAUSE = "IMAGE_UI_HUD_INGAME_PAUSE_BUTTON";
+    public static final String PAUSE_TOPPER = "IMAGE_UI_PAUSEMENU_WINDOWTOPPER";
+    public static final String PAUSE_SUNFLOWER = "IMAGE_UI_PAUSEMENU_SUNFLOWER_TOPPER";
+    public static final String PAUSE_SLIDER_BOLT = "IMAGE_UI_PAUSEMENU_SLIDER_BOLT";
     public static final String SPEED_2X = "IMAGE_UI_HUD_INGAME_2X";
     public static final String SPEED_2X_SELECTED = "IMAGE_UI_HUD_INGAME_2X_SELECTED";
     public static final String SHOVEL = "IMAGE_UI_HUD_INGAME_SHOVEL_BUTTON";
@@ -58,6 +61,9 @@ public final class LawnAssetIds {
             BEACH_MAIN,
             DARK_MAIN,
             PAUSE,
+            PAUSE_TOPPER,
+            PAUSE_SUNFLOWER,
+            PAUSE_SLIDER_BOLT,
             SPEED_2X,
             SPEED_2X_SELECTED,
             SHOVEL,
