@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
@@ -19,6 +20,7 @@ import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
+import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.hud.AlertBanner;
 import io.github.finalwave.view.gui.hud.LevelObjectiveBanner;
 import io.github.finalwave.view.gui.hud.MatchResultModal;
@@ -31,6 +33,7 @@ import io.github.finalwave.view.gui.hud.ShovelButton;
 import io.github.finalwave.view.gui.hud.SpeedButton;
 import io.github.finalwave.view.gui.hud.SunCounter;
 import io.github.finalwave.view.gui.hud.WaveProgressMeter;
+import io.github.finalwave.view.gui.hud.special.ConveyorBeltBar;
 import io.github.finalwave.view.gui.input.LawnInputController;
 import io.github.finalwave.view.gui.input.ToolMode;
 import io.github.finalwave.view.gui.match.MatchClock;
@@ -40,6 +43,9 @@ import io.github.finalwave.view.gui.render.LawnGridOverlay;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.sync.SunSync;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 public final class GamePlayScreen extends MenuScreen {
@@ -55,7 +61,11 @@ public final class GamePlayScreen extends MenuScreen {
     private EntityAnimationCatalog catalog;
     private LawnInputController input;
     private SeedBankBar seedBank;
+    private ConveyorBeltBar conveyorBeltBar;
+    private Table hudTop;
+    private Table hudBottom;
     private SunCounter sunCounter;
+    private final Set<String> preloadedPlantPams = new HashSet<>();
     private PlantFoodCounter plantFoodCounter;
     private WaveProgressMeter waveMeter;
     private SpeedButton speedButton;
@@ -73,6 +83,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.controller = controller;
         this.resultShown = false;
         this.clock = null;
+        preloadedPlantPams.clear();
         this.chapterBackground = new ChapterBackground(assets, ChapterId.ANCIENT_EGYPT);
         this.layout = lawnLayoutFor(5, 9);
         this.catalog = new EntityAnimationCatalog(assets.root());
@@ -225,6 +236,16 @@ public final class GamePlayScreen extends MenuScreen {
         if (seedBank != null && session != null) {
             seedBank.refresh(session, user, controller.boostedPlants(), input == null ? null : input.mode());
         }
+        if (conveyorBeltBar != null) {
+            boolean freeze = clock != null && clock.shouldFreeze();
+            conveyorBeltBar.refresh(session, user, input == null ? null : input.mode(), freeze);
+            updateSunPad();
+            if (session != null && session.isConveyorBeltActive()) {
+                for (String plantName : session.getConveyorBeltPlants()) {
+                    preloadPlantPam(plantName);
+                }
+            }
+        }
         if (waveMeter != null) {
             waveMeter.refresh(session);
         }
@@ -287,31 +308,34 @@ public final class GamePlayScreen extends MenuScreen {
         sunCounter = new SunCounter(assets, this::onAddSun);
         plantFoodCounter = new PlantFoodCounter(assets, this::onAddPlantFood, this::onPlantFoodDragStart, this::onPlantFoodDrop);
         seedBank = new SeedBankBar(assets, this::onSeed);
+        conveyorBeltBar = new ConveyorBeltBar(assets, this::onSeed);
         waveMeter = new WaveProgressMeter(assets);
         speedButton = new SpeedButton(assets, this::onSpeed);
         Actor pause = PauseButton.create(assets, this::togglePause);
         Actor shovel = ShovelButton.create(assets, this::onShovel);
 
-        Table top = new Table();
-        top.add(sunCounter).padLeft(16f).padTop(10f);
-        top.add().expandX();
-        top.add(meterBlock()).padTop(8f);
-        top.add().expandX();
-        top.add(speedButton.actor()).size(84f).padRight(8f).padTop(8f);
-        top.add(pause).size(84f).padRight(8f).padTop(8f);
-        top.add(currencyBar).padTop(12f).padRight(20f);
-        hudLayer.add(top).growX().row();
+        hudTop = new Table();
+        hudTop.add(sunCounter).padLeft(sunPad()).padTop(10f);
+        hudTop.add().expandX();
+        hudTop.add(meterBlock()).padTop(8f);
+        hudTop.add().expandX();
+        hudTop.add(speedButton.actor()).size(84f).padRight(8f).padTop(8f);
+        hudTop.add(pause).size(84f).padRight(8f).padTop(8f);
+        hudTop.add(currencyBar).padTop(12f).padRight(20f);
+        hudLayer.add(hudTop).growX().row();
 
         Table mid = new Table();
+        mid.setTouchable(Touchable.childrenOnly);
         mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
         mid.add().expand();
         hudLayer.add(mid).grow().row();
 
-        Table bottom = new Table();
-        bottom.add(plantFoodCounter).left().padLeft(128f).padBottom(18f);
-        bottom.add().expandX();
-        bottom.add(shovel).size(84f).padRight(20f).padBottom(18f);
-        hudLayer.add(bottom).growX();
+        hudBottom = new Table();
+        hudBottom.add(plantFoodCounter).left().padLeft(plantFoodPad()).padBottom(18f);
+        hudBottom.add().expandX();
+        hudBottom.add(shovel).size(84f).padRight(20f).padBottom(18f);
+        hudLayer.add(hudBottom).growX();
+        hudLayer.addActor(conveyorBeltBar);
 
         if (alertBanner != null) {
             alertBanner.remove();
@@ -457,15 +481,65 @@ public final class GamePlayScreen extends MenuScreen {
                 && controller.getUser().isShowLawnGrid();
     }
 
+    private void updateSunPad() {
+        if (hudTop != null && sunCounter != null) {
+            Cell<?> sunCell = hudTop.getCell(sunCounter);
+            if (sunCell != null) {
+                sunCell.padLeft(sunPad());
+                hudTop.invalidate();
+            }
+        }
+        if (hudBottom != null && plantFoodCounter != null) {
+            Cell<?> foodCell = hudBottom.getCell(plantFoodCounter);
+            if (foodCell != null) {
+                foodCell.padLeft(plantFoodPad());
+                hudBottom.invalidate();
+            }
+        }
+    }
+
+    private float sunPad() {
+        if (conveyorBeltBar != null && conveyorBeltBar.isVisible()) {
+            return conveyorBeltBar.stripWidth() + 16f;
+        }
+        return 16f;
+    }
+
+    private float plantFoodPad() {
+        if (conveyorBeltBar != null && conveyorBeltBar.isVisible()) {
+            return conveyorBeltBar.stripWidth() + 16f;
+        }
+        return 128f;
+    }
+
+    private void preloadPlantPam(String plantName) {
+        if (plantName == null || plantName.isBlank() || catalog == null || !preloadedPlantPams.add(plantName)) {
+            return;
+        }
+        preload(catalog.plantIdle(plantName).path());
+    }
+
     private void preloadMatchAssets(GameSession session) {
         if (catalog == null) {
             catalog = new EntityAnimationCatalog(assets.root());
         }
-        for (String plantName : session.getSelectedLoadout()) {
-            preload(catalog.plantIdle(plantName).path());
+        if (session.isConveyorBeltActive()) {
+            assets.region(LawnAssetIds.CONVEYOR_BELT);
+            assets.region(LawnAssetIds.CONVEYOR_SIDE);
+        }
+        Set<String> loadout = session.getSelectedLoadout();
+        if (loadout != null) {
+            for (String plantName : loadout) {
+                preloadPlantPam(plantName);
+            }
         }
         for (String plantName : session.getConveyorBeltPlants()) {
-            preload(catalog.plantIdle(plantName).path());
+            preloadPlantPam(plantName);
+        }
+        if (session.isConveyorBeltActive() && controller != null && controller.getUser() != null) {
+            for (String plantName : controller.getUser().getPlantProgress().getUnlockedPlantNames()) {
+                preloadPlantPam(plantName);
+            }
         }
         preload(PlantClips.ICE_BLOCK_PATH);
         preload(SunSync.SUN_PATH);

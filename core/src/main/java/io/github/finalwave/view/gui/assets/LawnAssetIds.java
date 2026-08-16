@@ -76,7 +76,9 @@ public final class LawnAssetIds {
             PACKET_BG,
             PACKET_EMPTY,
             PACKET_LOCK,
-            PACKET_SELECT
+            PACKET_SELECT,
+            CONVEYOR_BELT,
+            CONVEYOR_SIDE
     };
 
     private LawnAssetIds() {

@@ -314,10 +314,12 @@ public final class GamePlayViewGui extends GuiViewBase implements
 
     @Override
     public void showConveyorBelt(List<String> plantsOnBelt) {
+        router.refreshGamePlayHud();
     }
 
     @Override
     public void showConveyorBeltPlantArrived(String plantName) {
+        router.refreshGamePlayHud();
     }
 
     @Override
