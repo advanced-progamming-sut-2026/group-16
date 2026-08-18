@@ -79,7 +79,11 @@ public final class LevelConfig {
     }
 
     public static LevelConfig special(int index, LevelType type, String handlerKey) {
-        return new LevelConfig(index, type, 3, 8, 50, 300, List.of("ZombieDefault"), handlerKey);
+        return special(index, type, handlerKey, List.of("ZombieDefault"));
+    }
+
+    public static LevelConfig special(int index, LevelType type, String handlerKey, List<String> zombies) {
+        return new LevelConfig(index, type, 3, 8, 50, 300, zombies, handlerKey);
     }
 
     public static LevelConfig boss(int index) {

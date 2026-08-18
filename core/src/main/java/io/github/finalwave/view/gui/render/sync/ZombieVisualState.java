@@ -29,16 +29,32 @@ public final class ZombieVisualState {
 
     public static EntityAnimationCatalog.ClipSpec clip(Zombie zombie, ZombieClips clips) {
         String type = zombie.getType();
+        boolean newspaper = hasNewspaper(zombie);
         if (zombie.getState() == ZombieState.EATING) {
-            return clips.eat(type);
+            return newspaper ? clips.eatNewspaper(type) : clips.eat(type);
         }
         if (zombie.getState() == ZombieState.ABILITY) {
             return clips.ability(type);
         }
         if (zombie.getState() == ZombieState.MOVING && !zombie.isStationary() && !isNearlyStopped(zombie)) {
-            return clips.walk(type);
+            return newspaper ? clips.walkNewspaper(type) : clips.walk(type);
         }
         return clips.idle(type);
+    }
+
+    private static boolean hasNewspaper(Zombie zombie) {
+        if (!"ZombieNewspaper".equals(zombie.getType())) {
+            return false;
+        }
+        for (Armor armor : zombie.getArmorLayers()) {
+            if (armor.isDestroyed()) {
+                continue;
+            }
+            if ("Newspaper".equals(armor.getType()) || "NewspaperDefault".equals(armor.getAlias())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isNearlyStopped(Zombie zombie) {
@@ -68,7 +84,7 @@ public final class ZombieVisualState {
             if (armor.isDestroyed()) {
                 continue;
             }
-            String part = clips.armorPart(armor.getType(), armor.getAlias());
+            String part = clips.armorLayer(armor);
             if (part == null) {
                 continue;
             }

@@ -40,8 +40,8 @@ public final class AdventureRegistry {
                 "ZombieRa", "ZombieExplorer", "ZombieTombRaiser");
         return new ChapterConfig(ChapterId.ANCIENT_EGYPT, ChapterRules.ancientEgypt(), List.of(
                 LevelConfig.normal(1, 3, 50, 300, zombies),
-                LevelConfig.special(2, LevelType.CONVEYOR_BELT, "conveyor"),
-                LevelConfig.special(3, LevelType.LOCKED_PLANTS, "locked"),
+                LevelConfig.special(2, LevelType.CONVEYOR_BELT, "conveyor", zombies),
+                LevelConfig.special(3, LevelType.LOCKED_PLANTS, "locked", zombies),
                 LevelConfig.boss(4)));
     }
 
@@ -51,10 +51,9 @@ public final class AdventureRegistry {
                 "ZombieIceAgeDodo", "ZombieIceAgeHunter", "ZombieIceAgeTroglobite");
         return new ChapterConfig(ChapterId.FROSTBITE_CAVES, ChapterRules.frostbiteCaves(), List.of(
                 LevelConfig.normal(1, 3, 50, 350, zombies),
-                LevelConfig.special(2, LevelType.SAVE_OUR_SEEDS, "sos"),
-                LevelConfig.special(3, LevelType.TIMED_WAR, "timed"),
-                LevelConfig.special(4, LevelType.TIMED_WAR, "timed-sun"),
-                LevelConfig.boss(5)));
+                LevelConfig.special(2, LevelType.SAVE_OUR_SEEDS, "sos", zombies),
+                LevelConfig.special(3, LevelType.TIMED_WAR, "timed", zombies),
+                LevelConfig.boss(4)));
     }
 
     private static ChapterConfig beach() {
@@ -63,8 +62,8 @@ public final class AdventureRegistry {
                 "ZombieBeachFisherman", "ZombieBeachOctopus", "ZombieBeachSnorkel");
         return new ChapterConfig(ChapterId.BIG_WAVE_BEACH, ChapterRules.bigWaveBeach(), List.of(
                 LevelConfig.normal(1, 3, 75, 400, zombies),
-                LevelConfig.special(2, LevelType.NIGHT_OPS, "night_ops"),
-                LevelConfig.special(3, LevelType.DEAD_LINE, "deadline"),
+                LevelConfig.special(2, LevelType.NIGHT_OPS, "night_ops", zombies),
+                LevelConfig.special(3, LevelType.DEAD_LINE, "deadline", zombies),
                 LevelConfig.boss(4)));
     }
 
@@ -74,8 +73,8 @@ public final class AdventureRegistry {
                 "ZombieDarkJuggler", "ZombieWizard", "ZombieDarkKing", "ZombieDarkImpDragon");
         return new ChapterConfig(ChapterId.DARK_AGES, ChapterRules.darkAges(), List.of(
                 LevelConfig.normal(1, 3, 50, 400, zombies),
-                LevelConfig.special(2, LevelType.LOVE_YOUR_PLANTS, "love"),
-                LevelConfig.special(3, LevelType.PLANT_WHAT_YOU_GET, "plant_what"),
+                LevelConfig.special(2, LevelType.LOVE_YOUR_PLANTS, "love", zombies),
+                LevelConfig.special(3, LevelType.PLANT_WHAT_YOU_GET, "plant_what", zombies),
                 LevelConfig.boss(4)));
     }
 }
