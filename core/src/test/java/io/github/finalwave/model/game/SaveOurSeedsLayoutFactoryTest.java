@@ -14,22 +14,20 @@ import static org.junit.jupiter.api.Assertions.*;
 class SaveOurSeedsLayoutFactoryTest {
 
     @Test
-    void frostbiteLevel2ReturnsDemoWallNutLayout() {
+    void frostbiteLevel2ReturnsProtectedWallNutColumn() {
         ChapterConfig chapter = AdventureRegistry.getInstance().getChapter(ChapterId.FROSTBITE_CAVES);
         LevelConfig level = chapter.getLevel(2);
 
         SaveOurSeedsLayout layout = SaveOurSeedsLayoutFactory.create(chapter, level);
 
-        assertEquals(2, layout.getPlacements().size());
-        SeedPlacement first = layout.getPlacements().get(0);
-        SeedPlacement second = layout.getPlacements().get(1);
-        assertEquals("Wall-nut", first.getPlantName());
-        assertEquals(2, first.getCol());
-        assertEquals(1, first.getRow());
-        assertEquals("Wall-nut", second.getPlantName());
-        assertEquals(2, second.getCol());
-        assertEquals(3, second.getRow());
-        assertEquals(List.of(1, 3), layout.getDangerRows());
+        assertEquals(5, layout.getPlacements().size());
+        for (int row = 0; row < 5; row++) {
+            SeedPlacement placement = layout.getPlacements().get(row);
+            assertEquals("Wall-nut", placement.getPlantName());
+            assertEquals(2, placement.getCol());
+            assertEquals(row, placement.getRow());
+        }
+        assertEquals(List.of(0, 1, 2, 3, 4), layout.getDangerRows());
     }
 
     @Test

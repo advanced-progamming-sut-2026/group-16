@@ -14,6 +14,7 @@ import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
+import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 import io.github.finalwave.view.gui.render.sync.ZombieSync;
 import io.github.finalwave.view.gui.widget.PamActor;
@@ -38,6 +39,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private ProjectileSync projectileSync;
     private SunSync sunSync;
     private MowerSync mowerSync;
+    private ProtectTileSync protectTileSync;
     private Consumer<Sun> sunCollector;
 
     public BattlefieldGroup() {
@@ -61,6 +63,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             projectileSync = null;
             sunSync = null;
             mowerSync = null;
+            protectTileSync = null;
             return;
         }
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
@@ -68,6 +71,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         projectileSync = new ProjectileSync(assets, layout, new ProjectileClips(), zombieLayer);
         sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
         mowerSync = new MowerSync(assets, layout, mowerLayer);
+        protectTileSync = new ProtectTileSync(layout, environmentLayer);
     }
 
     public void setSunCollector(Consumer<Sun> sunCollector) {
@@ -81,6 +85,9 @@ public final class BattlefieldGroup extends WidgetGroup {
     public void sync(GameSession session, float tickFraction) {
         if (session == null) {
             return;
+        }
+        if (protectTileSync != null) {
+            protectTileSync.sync(session);
         }
         if (plantSync != null) {
             plantSync.sync(session);
@@ -142,6 +149,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (mowerSync != null) {
             mowerSync.clear();
+        }
+        if (protectTileSync != null) {
+            protectTileSync.clear();
         }
         environmentLayer.clearChildren();
         highlightLayer.clearChildren();

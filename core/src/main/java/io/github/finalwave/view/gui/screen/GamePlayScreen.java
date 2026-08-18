@@ -17,6 +17,7 @@ import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
+import io.github.finalwave.model.game.SeedPlacement;
 import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
@@ -42,6 +43,7 @@ import io.github.finalwave.view.gui.render.ChapterBackground;
 import io.github.finalwave.view.gui.render.LawnGridOverlay;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
+import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 
 import java.util.HashSet;
@@ -530,6 +532,10 @@ public final class GamePlayScreen extends MenuScreen {
             assets.region(LawnAssetIds.CONVEYOR_BELT);
             assets.region(LawnAssetIds.CONVEYOR_SIDE);
         }
+        if (!session.getProtectedSeedPlacements().isEmpty()) {
+            assets.region(LawnAssetIds.PROTECT_TILE);
+            preload(ProtectTileSync.PAM_PATH);
+        }
         Set<String> loadout = session.getSelectedLoadout();
         if (loadout != null) {
             for (String plantName : loadout) {
@@ -538,6 +544,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         for (String plantName : session.getConveyorBeltPlants()) {
             preloadPlantPam(plantName);
+        }
+        for (SeedPlacement placement : session.getProtectedSeedPlacements()) {
+            preloadPlantPam(placement.getPlantName());
         }
         if (session.isConveyorBeltActive() && controller != null && controller.getUser() != null) {
             for (String plantName : controller.getUser().getPlantProgress().getUnlockedPlantNames()) {
