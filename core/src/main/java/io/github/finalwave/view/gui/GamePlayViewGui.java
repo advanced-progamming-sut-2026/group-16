@@ -349,6 +349,7 @@ public final class GamePlayViewGui extends GuiViewBase implements
 
     @Override
     public void showTimedWarStatus(TimedWarMode mode, int remainingSeconds, int durationSeconds, int progress, int goal) {
+        router.refreshGamePlayHud();
     }
 
     @Override
