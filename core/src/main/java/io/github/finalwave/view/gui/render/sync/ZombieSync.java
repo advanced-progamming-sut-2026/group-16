@@ -13,6 +13,7 @@ import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.ActorRegistry;
 import io.github.finalwave.view.gui.render.LawnLayout;
+import io.github.finalwave.view.gui.render.clip.ArmorPartVisibility;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.widget.ActorFades;
 import io.github.finalwave.view.gui.widget.HitFlashTracker;
@@ -21,9 +22,11 @@ import io.github.finalwave.view.gui.widget.PamPartCentroid;
 import pvz.libpvz.pam.PamPlayer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 public final class ZombieSync {
@@ -31,6 +34,7 @@ public final class ZombieSync {
     private static final float DEBRIS_DROP_X = 0.35f;
     private static final float HEAD_DROP_Y = 0.58f;
     private static final float ARM_DROP_Y = 0.7f;
+    private static final float ARMOR_DROP_Y = 1.15f;
     private static final String PARTICLE_HEAD = "particle_head";
     private static final String PARTICLE_ARM = "particle_arm";
 
@@ -42,6 +46,8 @@ public final class ZombieSync {
     private final HitFlashTracker<Zombie> hits = new HitFlashTracker<>();
     private final Map<PamActor, String> aliases = new IdentityHashMap<>();
     private final List<PamActor> deathActors = new ArrayList<>();
+    private final Set<Armor> thrownArmor = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Map<Armor, String> lastArmorLayers = new IdentityHashMap<>();
     private float tickFraction;
 
     public ZombieSync(GameAssets assets, LawnLayout layout, ZombieClips clips, Group layer) {
@@ -68,12 +74,16 @@ public final class ZombieSync {
         }
         zombies.sync(live, this::spawn, this::update, this::beginDeath);
         hits.retain(live);
+        retainThrownArmor(live);
     }
 
     public void clear() {
         zombies.clear(PamActor::remove);
         hits.clear();
         aliases.clear();
+        thrownArmor.clear();
+        lastArmorLayers.clear();
+        ArmorPartVisibility.clear();
         for (PamActor actor : deathActors) {
             actor.remove();
         }
@@ -97,11 +107,13 @@ public final class ZombieSync {
         actor.setClip(clip.path(), clip.clip(), LawnLayout.ZOMBIE_SCALE, true);
         actor.setFlipX(zombie.isMovingRight() || zombie.isHypnotized());
         actor.setTint(ZombieVisualState.tint(zombie));
-        actor.setVisibility(ZombieVisualState.armorVisibility(zombie, clips));
+        actor.setVisibility(ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(),
+                ZombieVisualState.armorVisibility(zombie, clips)));
         actor.setUserObject(zombie.getRow() * 8);
         actor.setVisible(!zombie.isSubmerged());
         aliases.put(actor, zombie.getType());
         hits.observe(zombie, flashHealth(zombie), actor);
+        throwBrokenArmor(zombie, actor, clip);
     }
 
     private void beginDeath(PamActor actor) {
@@ -118,6 +130,38 @@ public final class ZombieSync {
         actor.setVisibility(null);
         actor.playOnce(die.path(), die.clip(), LawnLayout.ZOMBIE_SCALE,
                 () -> actor.addAction(ActorFades.holdThenFade(() -> deathActors.remove(actor))));
+    }
+
+    private void throwBrokenArmor(Zombie zombie, PamActor body, EntityAnimationCatalog.ClipSpec clip) {
+        for (Armor armor : zombie.getArmorLayers()) {
+            if (!armor.isDestroyed()) {
+                String layer = clips.armorLayer(armor);
+                if (layer != null) {
+                    lastArmorLayers.put(armor, layer);
+                }
+                continue;
+            }
+            if (!thrownArmor.add(armor)) {
+                continue;
+            }
+            String part = lastArmorLayers.remove(armor);
+            if (part == null) {
+                part = clips.armorLayer(armor);
+            }
+            if (part == null || !ArmorPartVisibility.hasPart(assets.pamPlayer(), clip.path(), part)) {
+                continue;
+            }
+            spawnDebris(body, clip, part);
+        }
+    }
+
+    private void retainThrownArmor(List<Zombie> live) {
+        Set<Armor> keep = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Zombie zombie : live) {
+            keep.addAll(zombie.getArmorLayers());
+        }
+        thrownArmor.retainAll(keep);
+        lastArmorLayers.keySet().retainAll(keep);
     }
 
     private List<PamActor> spawnParticles(PamActor body, EntityAnimationCatalog.ClipSpec parts) {
@@ -211,7 +255,10 @@ public final class ZombieSync {
         if (PARTICLE_ARM.equals(partName)) {
             return ARM_DROP_Y;
         }
-        return HEAD_DROP_Y;
+        if (partName == null || PARTICLE_HEAD.equals(partName)) {
+            return HEAD_DROP_Y;
+        }
+        return ARMOR_DROP_Y;
     }
 
     private double displayX(Zombie zombie) {

@@ -28,9 +28,11 @@ import io.github.finalwave.model.collection.CollectionZombieDetail;
 import io.github.finalwave.model.collection.CollectionZombieEntry;
 import io.github.finalwave.model.collection.PlantCollection;
 import io.github.finalwave.view.gui.assets.CollectionCardLooks;
+import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
 import io.github.finalwave.view.gui.assets.PlantAnimationCatalog;
 import io.github.finalwave.view.gui.assets.ZombieAnimationCatalog;
+import io.github.finalwave.view.gui.render.clip.ArmorPartVisibility;
 import io.github.finalwave.view.gui.widget.CollectionPlantCard;
 import io.github.finalwave.view.gui.widget.CollectionZombieCard;
 import io.github.finalwave.view.gui.widget.ModalPanel;
@@ -42,8 +44,10 @@ import io.github.finalwave.view.gui.widget.ThemedSelectBox;
 import io.github.finalwave.view.gui.widget.UpgradeBadges;
 import io.github.finalwave.view.gui.widget.UpgradeSeedBar;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 
 public final class CollectionScreen extends MenuScreen {
@@ -87,6 +91,7 @@ public final class CollectionScreen extends MenuScreen {
     private CollectionController controller;
     private PlantAnimationCatalog plantCatalog;
     private ZombieAnimationCatalog zombieCatalog;
+    private EntityAnimationCatalog entityCatalog;
     private Table idleTabHost;
     private Table activeTabHost;
     private Table cardGrid;
@@ -125,6 +130,9 @@ public final class CollectionScreen extends MenuScreen {
         }
         if (zombieCatalog == null) {
             zombieCatalog = new ZombieAnimationCatalog(assets.root());
+        }
+        if (entityCatalog == null) {
+            entityCatalog = new EntityAnimationCatalog(assets.root());
         }
         if (controller != null) {
             bindCurrency(controller.getUser());
@@ -434,7 +442,8 @@ public final class CollectionScreen extends MenuScreen {
         contentLayer.pad(16f, 40f, 16f, 40f);
         buildHud(false);
         Table body = new Table();
-        body.add(lawnPreview(zombieCatalog.plantClip(detail.alias()), 0.72f, 220f, null))
+        body.add(lawnPreview(zombieCatalog.plantClip(detail.alias()), 0.72f, 220f, null,
+                        intactArmorLeaves(detail)))
                 .size(PREVIEW_WIDTH, PREVIEW_HEIGHT)
                 .center()
                 .padRight(56f);
@@ -447,7 +456,7 @@ public final class CollectionScreen extends MenuScreen {
 
     private Table plantPreviewColumn(CollectionPlantDetail detail) {
         Table column = new Table();
-        column.add(lawnPreview(plantCatalog.idleFor(detail.name()), 0.84f, 320f, detail))
+        column.add(lawnPreview(plantCatalog.idleFor(detail.name()), 0.84f, 320f, detail, null))
                 .size(PREVIEW_WIDTH, PREVIEW_HEIGHT)
                 .row();
         column.add(detailSeedBar(detail)).width(SEED_BAR_WIDTH + BADGE_SIZE).height(BADGE_SIZE).padTop(10f).row();
@@ -458,11 +467,15 @@ public final class CollectionScreen extends MenuScreen {
         return column;
     }
 
-    private Table lawnPreview(PlantAnimationCatalog.ClipSpec clip, float scale, float pamSize, CollectionPlantDetail plant) {
+    private Table lawnPreview(PlantAnimationCatalog.ClipSpec clip, float scale, float pamSize,
+                              CollectionPlantDetail plant, Map<String, Boolean> armorLeaves) {
         Table preview = new Table();
         preview.setBackground(new TextureRegionDrawable(assets.region(MenuAssetIds.ALMANAC_LAWN)));
         PamActor pam = new PamActor(assets.pamPlayer());
         pam.setClip(clip, scale);
+        if (armorLeaves != null && clip != null) {
+            pam.setVisibility(ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(), armorLeaves));
+        }
         pam.setTouchable(Touchable.disabled);
         preview.add(pam).size(pamSize, pamSize).expand().center();
         if (plant == null || !plant.owned()) {
@@ -481,6 +494,21 @@ public final class CollectionScreen extends MenuScreen {
         Table wrap = new Table();
         wrap.add(stack).grow();
         return wrap;
+    }
+
+    private Map<String, Boolean> intactArmorLeaves(CollectionZombieDetail detail) {
+        if (detail == null || detail.armorAliases() == null || detail.armorAliases().isEmpty()) {
+            return null;
+        }
+        Map<String, Boolean> leaves = new HashMap<>();
+        for (String alias : detail.armorAliases()) {
+            String[] layers = entityCatalog.armorLayers(alias);
+            if (layers == null || layers.length == 0) {
+                continue;
+            }
+            leaves.put(layers[0], Boolean.TRUE);
+        }
+        return leaves.isEmpty() ? null : leaves;
     }
 
     private Table detailSeedBar(CollectionPlantDetail plant) {

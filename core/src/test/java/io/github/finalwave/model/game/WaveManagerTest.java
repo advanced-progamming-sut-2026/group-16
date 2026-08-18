@@ -1,13 +1,30 @@
 package io.github.finalwave.model.game;
 
+import io.github.finalwave.model.definition.PlantRegistry;
+import io.github.finalwave.model.definition.ZombieRegistry;
+import io.github.finalwave.model.game.entity.zombie.Zombie;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class WaveManagerTest {
+
+    private PlantRegistry plantRegistry;
+    private ZombieRegistry zombieRegistry;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        plantRegistry = new PlantRegistry();
+        plantRegistry.loadFromJson("src/main/resources/plants.json");
+        zombieRegistry = new ZombieRegistry();
+        zombieRegistry.loadFromJson("src/main/resources/zombies.json");
+        zombieRegistry.loadArmorFromJson("src/main/resources/ArmorTypeData.json");
+    }
 
     @Test
     void waveCostsScaleAndFlagWaveDoubles() {
@@ -33,5 +50,29 @@ class WaveManagerTest {
         Wave wave = new Wave(1, 100, false);
         assertEquals(1.0, wave.getDestroyedHealthRatio(), 0.001);
         assertFalse(wave.isCleared());
+    }
+
+    @Test
+    void firstWaveAlwaysIncludesConeArmor() {
+        List<String> pool = List.of("ZombieDefault", "ZombieArmor1");
+        int[] seeds = {1, 2, 7, 9, 42, 99, 1234};
+        for (int seed : seeds) {
+            GameSession session = new GameSession(plantRegistry, zombieRegistry, 1);
+            session.setWavesAutoStart(false);
+            WaveManager waves = new WaveManager(1, 300, pool, new Random(seed));
+            session.setWaveManager(waves);
+            waves.startWaves(session);
+            assertTrue(containsAlias(session.getZombies(), "ZombieArmor1"),
+                    "seed " + seed + " first wave missing ZombieArmor1");
+        }
+    }
+
+    private static boolean containsAlias(List<Zombie> zombies, String alias) {
+        for (Zombie zombie : zombies) {
+            if (alias.equals(zombie.getType())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

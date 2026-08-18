@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.render.clip;
 
+import io.github.finalwave.model.game.entity.zombie.Armor;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 
 import java.util.Map;
@@ -26,8 +27,16 @@ public final class ZombieClips {
         return catalog.zombieClip(alias, "walk", "idle");
     }
 
+    public EntityAnimationCatalog.ClipSpec walkNewspaper(String alias) {
+        return catalog.zombieClip(alias, "walk_newspaper", "walk", "idle");
+    }
+
     public EntityAnimationCatalog.ClipSpec eat(String alias) {
         return catalog.zombieClip(alias, "eat", "walk", "idle");
+    }
+
+    public EntityAnimationCatalog.ClipSpec eatNewspaper(String alias) {
+        return catalog.zombieClip(alias, "eat_newspaper", "eat", "walk", "idle");
     }
 
     public EntityAnimationCatalog.ClipSpec ability(String alias) {
@@ -64,5 +73,38 @@ public final class ZombieClips {
             return fromType;
         }
         return catalog.armorPart(armorAlias);
+    }
+
+    public String armorLayer(Armor armor) {
+        if (armor == null) {
+            return null;
+        }
+        String[] layers = catalog.armorLayers(armor.getType());
+        if (layers == null || layers.length == 0) {
+            layers = catalog.armorLayers(armor.getAlias());
+        }
+        if (layers == null || layers.length == 0) {
+            return null;
+        }
+        int index = damageLayerIndex(armor);
+        if (index >= layers.length) {
+            index = layers.length - 1;
+        }
+        return layers[index];
+    }
+
+    private static int damageLayerIndex(Armor armor) {
+        int max = armor.getMaxHealth();
+        if (max <= 0) {
+            return 2;
+        }
+        float ratio = armor.getHealth() / (float) max;
+        if (ratio > 0.666f) {
+            return 0;
+        }
+        if (ratio > 0.333f) {
+            return 1;
+        }
+        return 2;
     }
 }

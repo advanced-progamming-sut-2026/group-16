@@ -173,7 +173,7 @@ public final class WaveManager {
                     break;
                 }
             }
-            String alias = affordable.get(random.nextInt(affordable.size()));
+            String alias = pickSpawnAlias(session, affordable, spent == 0);
             int lane = random.nextInt(rows);
             double x = spawnX;
             if (wave.isFlagWave() && sandstormOnFinalWave) {
@@ -207,6 +207,41 @@ public final class WaveManager {
                         wave.getNumber(), wave.isFlagWave()));
             }
         }
+    }
+
+    private String pickSpawnAlias(GameSession session, List<String> affordable, boolean firstSpawn) {
+        List<String> armored = armoredAliases(affordable);
+        if (firstSpawn && !armored.isEmpty()) {
+            return cheapestAlias(session, armored);
+        }
+        if (!armored.isEmpty() && random.nextInt(100) < 80) {
+            return armored.get(random.nextInt(armored.size()));
+        }
+        return affordable.get(random.nextInt(affordable.size()));
+    }
+
+    private static List<String> armoredAliases(List<String> aliases) {
+        List<String> armored = new ArrayList<>();
+        for (String alias : aliases) {
+            if (alias != null && alias.contains("Armor")) {
+                armored.add(alias);
+            }
+        }
+        return armored;
+    }
+
+    private String cheapestAlias(GameSession session, List<String> aliases) {
+        String cheapest = aliases.get(0);
+        int cheapestCost = resolveWaveCost(session, cheapest);
+        for (int i = 1; i < aliases.size(); i++) {
+            String alias = aliases.get(i);
+            int cost = resolveWaveCost(session, alias);
+            if (cost > 0 && (cheapestCost <= 0 || cost < cheapestCost)) {
+                cheapest = alias;
+                cheapestCost = cost;
+            }
+        }
+        return cheapest;
     }
 
     private List<String> aliasesAffordable(GameSession session, int remainingBudget) {
