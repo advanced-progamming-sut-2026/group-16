@@ -53,7 +53,9 @@ public final class SeedBankBar extends Table {
             PlantDefinition definition = session.getPlantRegistry().getDefinition(name);
             int cost = definition == null ? 0 : definition.getCost();
             double recharge = definition == null ? 0d : definition.getRecharge();
-            int remaining = cooldowns == null ? 0 : cooldowns.ticksRemaining(name);
+            int remaining = session.isPrepPhaseActive() || cooldowns == null
+                    ? 0
+                    : cooldowns.ticksRemaining(name);
             float ratio = recharge <= 0d ? 0f : remaining / (float) (recharge * GameSession.TICKS_PER_SECOND);
             boolean affordable = sun >= cost;
             card.setCost(cost);

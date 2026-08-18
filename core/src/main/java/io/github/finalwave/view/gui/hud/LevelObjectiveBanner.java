@@ -86,7 +86,7 @@ public final class LevelObjectiveBanner extends Table {
             case NIGHT_OPS -> "No sky sun. Plan your producers.";
             case DEAD_LINE -> "Do not let zombies cross the line.";
             case LOVE_YOUR_PLANTS -> "Do not lose too many plants.";
-            case PLANT_WHAT_YOU_GET -> "Use only the plants you are given.";
+            case PLANT_WHAT_YOU_GET -> "Plant freely with the starting sun, then start the waves.";
             case BOSS -> "Defeat the boss.";
         };
     }
