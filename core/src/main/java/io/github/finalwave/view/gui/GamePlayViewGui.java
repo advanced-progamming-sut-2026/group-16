@@ -377,15 +377,18 @@ public final class GamePlayViewGui extends GuiViewBase implements
 
     @Override
     public void showPlantWhatYouGetRule(int startingSun) {
+        router.refreshGamePlayHud();
     }
 
     @Override
     public void showPrepPhaseHint() {
-        playToast("Start waves when you are ready.");
+        router.refreshGamePlayHud();
     }
 
     @Override
     public void showWavesStartedFromPrep() {
+        router.refreshGamePlayHud();
+        playToast("Zombie waves started.");
     }
 
     @Override

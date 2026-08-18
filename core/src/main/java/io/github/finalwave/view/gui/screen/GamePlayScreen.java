@@ -35,6 +35,7 @@ import io.github.finalwave.view.gui.hud.SpeedButton;
 import io.github.finalwave.view.gui.hud.SunCounter;
 import io.github.finalwave.view.gui.hud.WaveProgressMeter;
 import io.github.finalwave.view.gui.hud.special.ConveyorBeltBar;
+import io.github.finalwave.view.gui.hud.special.StartWaveButton;
 import io.github.finalwave.view.gui.hud.special.TimedWarPanel;
 import io.github.finalwave.view.gui.input.LawnInputController;
 import io.github.finalwave.view.gui.input.ToolMode;
@@ -66,6 +67,7 @@ public final class GamePlayScreen extends MenuScreen {
     private LawnInputController input;
     private SeedBankBar seedBank;
     private ConveyorBeltBar conveyorBeltBar;
+    private StartWaveButton startWaveButton;
     private Table hudTop;
     private Table hudBottom;
     private SunCounter sunCounter;
@@ -259,6 +261,9 @@ public final class GamePlayScreen extends MenuScreen {
                 }
             }
         }
+        if (startWaveButton != null) {
+            startWaveButton.refresh(session);
+        }
         if (waveMeter != null) {
             waveMeter.refresh(session);
         }
@@ -323,6 +328,7 @@ public final class GamePlayScreen extends MenuScreen {
         plantFoodCounter = new PlantFoodCounter(assets, this::onAddPlantFood, this::onPlantFoodDragStart, this::onPlantFoodDrop);
         seedBank = new SeedBankBar(assets, this::onSeed);
         conveyorBeltBar = new ConveyorBeltBar(assets, this::onSeed);
+        startWaveButton = new StartWaveButton(assets, this::onStartWaves);
         waveMeter = new WaveProgressMeter(assets);
         speedButton = new SpeedButton(assets, this::onSpeed);
         Actor pause = PauseButton.create(assets, this::togglePause);
@@ -330,6 +336,7 @@ public final class GamePlayScreen extends MenuScreen {
 
         hudTop = new Table();
         hudTop.add(sunCounter).padLeft(sunPad()).padTop(10f);
+        hudTop.add(startWaveButton).padLeft(8f).padTop(10f);
         hudTop.add(timedWarPanel).padLeft(8f).padTop(10f);
         hudTop.add().expandX();
         hudTop.add(meterBlock()).padTop(8f);
@@ -425,6 +432,17 @@ public final class GamePlayScreen extends MenuScreen {
         if (input != null) {
             input.dropPlantFoodAtStage(stageX, stageY);
         }
+    }
+
+    private void onStartWaves() {
+        if (controller == null || inputBlocked()) {
+            return;
+        }
+        GameSession session = controller.session();
+        if (session == null || !session.isPrepPhaseActive()) {
+            return;
+        }
+        controller.startWaves();
     }
 
     private void onSpeed() {
@@ -581,6 +599,10 @@ public final class GamePlayScreen extends MenuScreen {
         if (!session.getProtectedSeedPlacements().isEmpty()) {
             assets.region(LawnAssetIds.PROTECT_TILE);
             preload(ProtectTileSync.PAM_PATH);
+        }
+        if (session.isPrepPhaseActive()) {
+            assets.region(LawnAssetIds.PURPLE_BUTTON);
+            assets.region(LawnAssetIds.PURPLE_BUTTON_DOWN);
         }
         if (session.isDeadLineActive()) {
             assets.pamPlayer().loadSync(DeadLineSync.PAM_PATH);

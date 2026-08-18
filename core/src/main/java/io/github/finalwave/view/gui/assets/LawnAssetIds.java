@@ -57,6 +57,8 @@ public final class LawnAssetIds {
     public static final String CHALLENGE_TIMER_ICON = "IMAGE_UI_HUD_INGAME_CHALLENGE_SUN_TIMER_ICON";
     public static final String CHALLENGE_SUCCESS = "IMAGE_UI_HUD_INGAME_CHALLENGE_SUCCESS";
     public static final String CHALLENGE_FAILED = "IMAGE_UI_HUD_INGAME_CHALLENGE_FAILED";
+    public static final String PURPLE_BUTTON = "IMAGE_UI_GENERIC_PURPLEBUTTON";
+    public static final String PURPLE_BUTTON_DOWN = "IMAGE_UI_GENERIC_PURPLEBUTTON_DOWN";
 
     public static final String[] BOOT_PRELOAD = {
             EGYPT_MAIN,
@@ -95,7 +97,9 @@ public final class LawnAssetIds {
             CHALLENGE_SUN_PRODUCED,
             CHALLENGE_TIMER_ICON,
             CHALLENGE_SUCCESS,
-            CHALLENGE_FAILED
+            CHALLENGE_FAILED,
+            PURPLE_BUTTON,
+            PURPLE_BUTTON_DOWN
     };
 
     private LawnAssetIds() {

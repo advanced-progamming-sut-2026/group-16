@@ -381,13 +381,15 @@ public final class PlantSelectionScreen extends MenuScreen {
         List<CollectionPlantEntry> plants = controller.plants(CollectionPlantQuery.all());
         int column = 0;
         for (CollectionPlantEntry entry : plants) {
+            if (controller.isRestricted(entry.name())) {
+                continue;
+            }
             PlantCardActor card = new PlantCardActor(assets, skin, entry.name());
             card.setSize(CARD_WIDTH, CARD_HEIGHT);
             card.bind(entry);
             PlantDefinition definition = controller.plantRegistry().getDefinition(entry.name());
             card.setCost(definition == null ? 0 : definition.getCost());
-            boolean restricted = controller.isRestricted(entry.name());
-            card.setLocked(!entry.owned() || restricted);
+            card.setLocked(!entry.owned());
             card.setBoosted(controller.isBoosted(entry.name()));
             card.setDisabled(controller.selectedPlants().contains(entry.name()));
             card.setOnClick(() -> onPlantClicked(entry.name()));
