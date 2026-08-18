@@ -11,6 +11,7 @@ import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
+import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
@@ -29,6 +30,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private final Group highlightLayer = new Group();
     private final Group mowerLayer = new Group();
     private final Group plantLayer = new Group();
+    private final Group deadlineLayer = new Group();
     private final Group zombieLayer = new Group();
     private final Group projectileLayer = new Group();
     private final Group sunLayer = new Group();
@@ -40,15 +42,25 @@ public final class BattlefieldGroup extends WidgetGroup {
     private SunSync sunSync;
     private MowerSync mowerSync;
     private ProtectTileSync protectTileSync;
+    private DeadLineSync deadLineSync;
     private Consumer<Sun> sunCollector;
 
     public BattlefieldGroup() {
         setFillParent(true);
         setTouchable(Touchable.enabled);
+        environmentLayer.setTouchable(Touchable.disabled);
+        highlightLayer.setTouchable(Touchable.disabled);
+        mowerLayer.setTouchable(Touchable.disabled);
+        plantLayer.setTouchable(Touchable.disabled);
+        deadlineLayer.setTouchable(Touchable.disabled);
+        zombieLayer.setTouchable(Touchable.disabled);
+        projectileLayer.setTouchable(Touchable.disabled);
+        fxLayer.setTouchable(Touchable.disabled);
         addActor(environmentLayer);
         addActor(highlightLayer);
         addActor(mowerLayer);
         addActor(plantLayer);
+        addActor(deadlineLayer);
         addActor(zombieLayer);
         addActor(projectileLayer);
         addActor(sunLayer);
@@ -64,6 +76,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             sunSync = null;
             mowerSync = null;
             protectTileSync = null;
+            deadLineSync = null;
             return;
         }
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
@@ -72,6 +85,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
         mowerSync = new MowerSync(assets, layout, mowerLayer);
         protectTileSync = new ProtectTileSync(layout, environmentLayer);
+        deadLineSync = new DeadLineSync(assets, layout, deadlineLayer);
     }
 
     public void setSunCollector(Consumer<Sun> sunCollector) {
@@ -88,6 +102,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (protectTileSync != null) {
             protectTileSync.sync(session);
+        }
+        if (deadLineSync != null) {
+            deadLineSync.sync(session);
         }
         if (plantSync != null) {
             plantSync.sync(session);
@@ -111,23 +128,33 @@ public final class BattlefieldGroup extends WidgetGroup {
     }
 
     public void setPlaying(boolean playing) {
-        setPlaying(environmentLayer, playing);
-        setPlaying(mowerLayer, playing);
-        setPlaying(plantLayer, playing);
-        setPlaying(zombieLayer, playing);
-        setPlaying(projectileLayer, playing);
-        setPlaying(sunLayer, playing);
-        setPlaying(fxLayer, playing);
+        setPlaying(playing, playing);
+    }
+
+    public void setPlaying(boolean unitsPlaying, boolean environmentPlaying) {
+        setPlaying(environmentLayer, environmentPlaying);
+        setPlaying(deadlineLayer, environmentPlaying);
+        setPlaying(mowerLayer, unitsPlaying);
+        setPlaying(plantLayer, unitsPlaying);
+        setPlaying(zombieLayer, unitsPlaying);
+        setPlaying(projectileLayer, unitsPlaying);
+        setPlaying(sunLayer, unitsPlaying);
+        setPlaying(fxLayer, unitsPlaying);
     }
 
     public void setPlaybackSpeed(float playbackSpeed) {
-        setPlaybackSpeed(environmentLayer, playbackSpeed);
-        setPlaybackSpeed(mowerLayer, playbackSpeed);
-        setPlaybackSpeed(plantLayer, playbackSpeed);
-        setPlaybackSpeed(zombieLayer, playbackSpeed);
-        setPlaybackSpeed(projectileLayer, playbackSpeed);
-        setPlaybackSpeed(sunLayer, playbackSpeed);
-        setPlaybackSpeed(fxLayer, playbackSpeed);
+        setPlaybackSpeed(playbackSpeed, playbackSpeed);
+    }
+
+    public void setPlaybackSpeed(float unitSpeed, float environmentSpeed) {
+        setPlaybackSpeed(environmentLayer, environmentSpeed);
+        setPlaybackSpeed(deadlineLayer, environmentSpeed);
+        setPlaybackSpeed(mowerLayer, unitSpeed);
+        setPlaybackSpeed(plantLayer, unitSpeed);
+        setPlaybackSpeed(zombieLayer, unitSpeed);
+        setPlaybackSpeed(projectileLayer, unitSpeed);
+        setPlaybackSpeed(sunLayer, unitSpeed);
+        setPlaybackSpeed(fxLayer, unitSpeed);
     }
 
     public void sortByRow(Group layer, ToIntFunction<Actor> rowOf) {
@@ -153,10 +180,14 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (protectTileSync != null) {
             protectTileSync.clear();
         }
+        if (deadLineSync != null) {
+            deadLineSync.clear();
+        }
         environmentLayer.clearChildren();
         highlightLayer.clearChildren();
         mowerLayer.clearChildren();
         plantLayer.clearChildren();
+        deadlineLayer.clearChildren();
         zombieLayer.clearChildren();
         projectileLayer.clearChildren();
         sunLayer.clearChildren();
