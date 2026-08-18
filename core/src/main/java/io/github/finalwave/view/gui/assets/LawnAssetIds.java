@@ -84,7 +84,8 @@ public final class LawnAssetIds {
             PACKET_LOCK,
             PACKET_SELECT,
             CONVEYOR_BELT,
-            CONVEYOR_SIDE
+            CONVEYOR_SIDE,
+            PROTECT_TILE
     };
 
     private LawnAssetIds() {

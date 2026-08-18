@@ -4,16 +4,18 @@ import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.adventure.LevelConfig;
 import io.github.finalwave.model.adventure.LevelType;
+import io.github.finalwave.model.game.board.GameBoard;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public final class SaveOurSeedsLayoutFactory {
 
+    private static final int PROTECTED_COLUMN = 2;
+
     private static final Map<String, List<SeedPlacement>> LAYOUTS = Map.of(
-            chapterLevelKey(ChapterId.FROSTBITE_CAVES, 2), List.of(
-                    new SeedPlacement("Wall-nut", 2, 1),
-                    new SeedPlacement("Wall-nut", 2, 3)));
+            chapterLevelKey(ChapterId.FROSTBITE_CAVES, 2), wallNutColumn(PROTECTED_COLUMN));
 
     private SaveOurSeedsLayoutFactory() {
     }
@@ -37,6 +39,14 @@ public final class SaveOurSeedsLayoutFactory {
                     "No Save Our Seeds layout for " + chapter.getId() + " level " + level.getIndex());
         }
         return new SaveOurSeedsLayout(placements);
+    }
+
+    private static List<SeedPlacement> wallNutColumn(int col) {
+        List<SeedPlacement> placements = new ArrayList<>();
+        for (int row = 0; row < GameBoard.DEFAULT_ROWS; row++) {
+            placements.add(new SeedPlacement("Wall-nut", col, row));
+        }
+        return List.copyOf(placements);
     }
 
     private static String chapterLevelKey(ChapterId chapterId, int levelIndex) {

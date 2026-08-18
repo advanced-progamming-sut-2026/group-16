@@ -324,10 +324,12 @@ public final class GamePlayViewGui extends GuiViewBase implements
 
     @Override
     public void showProtectedSeeds(List<SeedPlacement> seeds) {
+        router.refreshGamePlayHud();
     }
 
     @Override
     public void showDangerRows(List<Integer> rows) {
+        router.refreshGamePlayHud();
     }
 
     @Override

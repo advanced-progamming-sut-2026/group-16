@@ -53,16 +53,14 @@ class SaveOurSeedsHandlerTest {
         session.setActiveSpecialLevelHandler(handler);
         handler.onLevelStart(session);
 
-        assertEquals(2, session.getProtectedSeedPlacements().size());
-        Plant first = session.getBoard().getPlantAt(2, 1);
-        Plant second = session.getBoard().getPlantAt(2, 3);
-        assertNotNull(first);
-        assertNotNull(second);
-        assertEquals("Wall-nut", first.getName());
-        assertEquals("Wall-nut", second.getName());
-        assertTrue(session.isProtectedSeed(first));
-        assertTrue(session.isProtectedSeed(second));
-        assertEquals(List.of(1, 3), session.getDangerRows());
+        assertEquals(5, session.getProtectedSeedPlacements().size());
+        for (int row = 0; row < 5; row++) {
+            Plant seed = session.getBoard().getPlantAt(2, row);
+            assertNotNull(seed);
+            assertEquals("Wall-nut", seed.getName());
+            assertTrue(session.isProtectedSeed(seed));
+        }
+        assertEquals(List.of(0, 1, 2, 3, 4), session.getDangerRows());
     }
 
     @Test
