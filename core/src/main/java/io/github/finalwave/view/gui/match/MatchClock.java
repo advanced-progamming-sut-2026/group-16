@@ -26,8 +26,9 @@ public final class MatchClock {
 
     public void update(float deltaSeconds, BattlefieldGroup battlefield) {
         boolean freeze = shouldFreeze();
-        if (battlefield != null && freeze != frozenActors) {
-            battlefield.setPlaying(!freeze);
+        if (battlefield != null) {
+            boolean environmentPlaying = !paused && !resultShowing;
+            battlefield.setPlaying(!freeze, environmentPlaying);
             frozenActors = freeze;
         }
         if (freeze) {

@@ -43,6 +43,7 @@ import io.github.finalwave.view.gui.render.ChapterBackground;
 import io.github.finalwave.view.gui.render.LawnGridOverlay;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
+import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 
@@ -76,6 +77,7 @@ public final class GamePlayScreen extends MenuScreen {
     private NpcDialogBox npcDialog;
     private WidgetGroup cursorLayer;
     private boolean resultShown;
+    private float resultHold;
 
     public GamePlayScreen(PvzGame game) {
         super(game, new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
@@ -84,6 +86,7 @@ public final class GamePlayScreen extends MenuScreen {
     public void bind(GamePlayController controller) {
         this.controller = controller;
         this.resultShown = false;
+        this.resultHold = 0f;
         this.clock = null;
         preloadedPlantPams.clear();
         this.chapterBackground = new ChapterBackground(assets, ChapterId.ANCIENT_EGYPT);
@@ -164,13 +167,21 @@ public final class GamePlayScreen extends MenuScreen {
             battlefield.sync(controller.session(), tickFraction);
         }
         if (clock != null && battlefield != null) {
-            battlefield.setPlaybackSpeed(clock.speed());
+            float unitSpeed = clock.speed();
+            float environmentSpeed = unitSpeed;
+            GameSession session = controller == null ? null : controller.session();
+            if (session != null
+                    && session.isDeadLineActive()
+                    && session.getMatchResult() != MatchResult.IN_PROGRESS) {
+                environmentSpeed = 1f;
+            }
+            battlefield.setPlaybackSpeed(unitSpeed, environmentSpeed);
         }
         if (input != null) {
             input.update();
         }
         refreshHud();
-        pollResult();
+        pollResult(delta);
         viewport.apply();
         Batch batch = stage.getBatch();
         batch.setProjectionMatrix(viewport.getCamera().combined);
@@ -206,21 +217,13 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     public void showResult(MatchResult result) {
-        if (clock != null) {
-            clock.setResultShowing(true);
-        }
         if (resultShown || result == null || result == MatchResult.IN_PROGRESS) {
             return;
         }
-        resultShown = true;
-        pauseModal.dismiss();
-        resultModal.show(
-                modalLayer,
-                viewport,
-                assets.skin(),
-                result,
-                this::exitMatch,
-                result == MatchResult.LOST ? this::restartMatch : null);
+        if (deadlineHoldRemaining(result) > 0f) {
+            return;
+        }
+        presentResult(result);
     }
 
     public void refreshHud() {
@@ -424,7 +427,7 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void togglePause() {
-        if (resultShown || resultModal.isShowing()) {
+        if (resultShown || resultModal.isShowing() || matchFinished()) {
             return;
         }
         if (pauseModal.isShowing()) {
@@ -463,20 +466,56 @@ public final class GamePlayScreen extends MenuScreen {
         }
     }
 
-    private void pollResult() {
+    private void pollResult(float delta) {
         if (controller == null || controller.session() == null) {
             return;
         }
-        MatchResult result = controller.session().getMatchResult();
-        if (result != MatchResult.IN_PROGRESS) {
-            showResult(result);
+        GameSession session = controller.session();
+        MatchResult result = session.getMatchResult();
+        if (result == MatchResult.IN_PROGRESS) {
+            resultHold = 0f;
+            return;
         }
+        resultHold += Math.max(0f, delta);
+        if (deadlineHoldRemaining(result) > 0f) {
+            return;
+        }
+        showResult(result);
+    }
+
+    private float deadlineHoldRemaining(MatchResult result) {
+        if (controller == null || controller.session() == null || !controller.session().isDeadLineActive()) {
+            return 0f;
+        }
+        return Math.max(0f, DeadLineSync.resultHoldSeconds(result) - resultHold);
+    }
+
+    private void presentResult(MatchResult result) {
+        if (clock != null) {
+            clock.setResultShowing(true);
+        }
+        resultShown = true;
+        pauseModal.dismiss();
+        resultModal.show(
+                modalLayer,
+                viewport,
+                assets.skin(),
+                result,
+                this::exitMatch,
+                result == MatchResult.LOST ? this::restartMatch : null);
     }
 
     private boolean inputBlocked() {
         return resultShown
                 || pauseModal.isShowing()
-                || (clock != null && clock.isPaused());
+                || (clock != null && clock.isPaused())
+                || matchFinished();
+    }
+
+    private boolean matchFinished() {
+        return controller != null
+                && controller.session() != null
+                && controller.session().getMatchResult() != MatchResult.IN_PROGRESS;
     }
 
     private boolean shouldDrawGrid() {
@@ -535,6 +574,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (!session.getProtectedSeedPlacements().isEmpty()) {
             assets.region(LawnAssetIds.PROTECT_TILE);
             preload(ProtectTileSync.PAM_PATH);
+        }
+        if (session.isDeadLineActive()) {
+            assets.pamPlayer().loadSync(DeadLineSync.PAM_PATH);
         }
         Set<String> loadout = session.getSelectedLoadout();
         if (loadout != null) {

@@ -339,6 +339,7 @@ public final class GamePlayViewGui extends GuiViewBase implements
 
     @Override
     public void showDeadLineRule(int column) {
+        router.refreshGamePlayHud();
     }
 
     @Override
