@@ -29,13 +29,13 @@ class TimedWarRulesFactoryTest {
     @Test
     void timedSunKeyCreatesSunModeDemoRules() {
         ChapterConfig chapter = AdventureRegistry.getInstance().getChapter(ChapterId.FROSTBITE_CAVES);
-        LevelConfig level = new LevelConfig(
-                3, LevelType.TIMED_WAR, 3, 8, 50, 300, List.of("ZombieDefault"), "timed-sun");
+        LevelConfig level = chapter.getLevel(4);
 
         TimedWarRules rules = TimedWarRulesFactory.create(chapter, level);
 
         assertEquals(TimedWarMode.SUN, rules.getMode());
         assertEquals(60, rules.getDurationSeconds());
+        assertEquals(60 * GameSession.TICKS_PER_SECOND, rules.getDurationTicks());
         assertEquals(150, rules.getGoalAmount());
     }
 

@@ -45,7 +45,7 @@ public final class LevelObjectiveBanner extends Table {
         }
         shown = true;
         title.setText(heading(chapter, level));
-        body.setText(objective(level.getType()));
+        body.setText(objective(level));
         setVisible(true);
         clearActions();
         getColor().a = 0f;
@@ -70,7 +70,8 @@ public final class LevelObjectiveBanner extends Table {
         return chapterName + " — Level " + level.getIndex();
     }
 
-    private static String objective(LevelType type) {
+    private static String objective(LevelConfig level) {
+        LevelType type = level == null ? null : level.getType();
         if (type == null) {
             return "Survive the zombie attack.";
         }
@@ -79,7 +80,9 @@ public final class LevelObjectiveBanner extends Table {
             case CONVEYOR_BELT -> "Plant what arrives on the conveyor.";
             case LOCKED_PLANTS -> "Some plants are locked this level.";
             case SAVE_OUR_SEEDS -> "Protect the marked plants.";
-            case TIMED_WAR -> "Complete the goal before time runs out.";
+            case TIMED_WAR -> "timed-sun".equals(level.getSpecialHandlerKey())
+                    ? "Produce the required sun before time runs out."
+                    : "Defeat the zombies before time runs out.";
             case NIGHT_OPS -> "No sky sun. Plan your producers.";
             case DEAD_LINE -> "Do not let zombies cross the line.";
             case LOVE_YOUR_PLANTS -> "Do not lose too many plants.";

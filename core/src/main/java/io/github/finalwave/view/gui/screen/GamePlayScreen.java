@@ -35,6 +35,7 @@ import io.github.finalwave.view.gui.hud.SpeedButton;
 import io.github.finalwave.view.gui.hud.SunCounter;
 import io.github.finalwave.view.gui.hud.WaveProgressMeter;
 import io.github.finalwave.view.gui.hud.special.ConveyorBeltBar;
+import io.github.finalwave.view.gui.hud.special.TimedWarPanel;
 import io.github.finalwave.view.gui.input.LawnInputController;
 import io.github.finalwave.view.gui.input.ToolMode;
 import io.github.finalwave.view.gui.match.MatchClock;
@@ -68,6 +69,7 @@ public final class GamePlayScreen extends MenuScreen {
     private Table hudTop;
     private Table hudBottom;
     private SunCounter sunCounter;
+    private TimedWarPanel timedWarPanel;
     private final Set<String> preloadedPlantPams = new HashSet<>();
     private PlantFoodCounter plantFoodCounter;
     private WaveProgressMeter waveMeter;
@@ -238,6 +240,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (sunCounter != null && session != null) {
             sunCounter.setAmount(session.getSunBalance());
         }
+        if (timedWarPanel != null) {
+            timedWarPanel.refresh(session);
+        }
         if (plantFoodCounter != null && session != null) {
             plantFoodCounter.setCount(session.getPlantFoodCount());
         }
@@ -314,6 +319,7 @@ public final class GamePlayScreen extends MenuScreen {
         hudLayer.pad(0f);
 
         sunCounter = new SunCounter(assets, this::onAddSun);
+        timedWarPanel = new TimedWarPanel(assets);
         plantFoodCounter = new PlantFoodCounter(assets, this::onAddPlantFood, this::onPlantFoodDragStart, this::onPlantFoodDrop);
         seedBank = new SeedBankBar(assets, this::onSeed);
         conveyorBeltBar = new ConveyorBeltBar(assets, this::onSeed);
@@ -324,6 +330,7 @@ public final class GamePlayScreen extends MenuScreen {
 
         hudTop = new Table();
         hudTop.add(sunCounter).padLeft(sunPad()).padTop(10f);
+        hudTop.add(timedWarPanel).padLeft(8f).padTop(10f);
         hudTop.add().expandX();
         hudTop.add(meterBlock()).padTop(8f);
         hudTop.add().expandX();

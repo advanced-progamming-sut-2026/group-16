@@ -52,6 +52,11 @@ public final class LawnAssetIds {
     public static final String CONVEYOR_SIDE = "IMAGE_UI_CONVEYOR_CONVEYOR_SIDE";
     public static final String CONVEYOR_TOP = "IMAGE_UI_CONVEYOR_CONVEYOR_TOP";
     public static final String PROTECT_TILE = "IMAGE_BACKGROUNDS_PROTECT_TILE_PROTECT_TILE_133X157";
+    public static final String CHALLENGE_ZOMBIE_HEAD = "IMAGE_UI_HUD_INGAME_CHALLENGE_ZOMBIE_HEAD";
+    public static final String CHALLENGE_SUN_PRODUCED = "IMAGE_UI_HUD_INGAME_CHALLENGE_SUN_PRODUCED_ICON";
+    public static final String CHALLENGE_TIMER_ICON = "IMAGE_UI_HUD_INGAME_CHALLENGE_SUN_TIMER_ICON";
+    public static final String CHALLENGE_SUCCESS = "IMAGE_UI_HUD_INGAME_CHALLENGE_SUCCESS";
+    public static final String CHALLENGE_FAILED = "IMAGE_UI_HUD_INGAME_CHALLENGE_FAILED";
 
     public static final String[] BOOT_PRELOAD = {
             EGYPT_MAIN,
@@ -85,7 +90,12 @@ public final class LawnAssetIds {
             PACKET_SELECT,
             CONVEYOR_BELT,
             CONVEYOR_SIDE,
-            PROTECT_TILE
+            PROTECT_TILE,
+            CHALLENGE_ZOMBIE_HEAD,
+            CHALLENGE_SUN_PRODUCED,
+            CHALLENGE_TIMER_ICON,
+            CHALLENGE_SUCCESS,
+            CHALLENGE_FAILED
     };
 
     private LawnAssetIds() {

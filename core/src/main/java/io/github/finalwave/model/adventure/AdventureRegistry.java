@@ -53,7 +53,8 @@ public final class AdventureRegistry {
                 LevelConfig.normal(1, 3, 50, 350, zombies),
                 LevelConfig.special(2, LevelType.SAVE_OUR_SEEDS, "sos"),
                 LevelConfig.special(3, LevelType.TIMED_WAR, "timed"),
-                LevelConfig.boss(4)));
+                LevelConfig.special(4, LevelType.TIMED_WAR, "timed-sun"),
+                LevelConfig.boss(5)));
     }
 
     private static ChapterConfig beach() {
