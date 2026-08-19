@@ -241,6 +241,10 @@ public final class GameSession {
         return planting.plantFromSeedPacket(col, row);
     }
 
+    public PlantPlacementResult plantFromSeedPacket(String plantName, int col, int row) {
+        return planting.plantFromSeedPacket(plantName, col, row);
+    }
+
     public void setActiveMiniGameHandler(MiniGameHandler handler) {
         this.activeMiniGameHandler = handler;
     }

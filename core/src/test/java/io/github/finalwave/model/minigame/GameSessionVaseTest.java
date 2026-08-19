@@ -96,9 +96,20 @@ class GameSessionVaseTest {
     }
 
     @Test
-    void plantFromSeedPacketFailsWithoutPacket() {
+    void plantFromSeedPacketByNamePlacesAtClickedCell() {
         GameSession session = emptySession();
-        assertEquals(PlantPlacementResult.NO_SEED_PACKET, session.plantFromSeedPacket(0, 0));
+        session.addGroundSeedPacket("Peashooter", 1, 1);
+        assertEquals(PlantPlacementResult.SUCCESS, session.plantFromSeedPacket("Peashooter", 4, 2));
+        assertNotNull(session.getBoard().getPlantAt(4, 2));
+        assertEquals("Peashooter", session.getBoard().getPlantAt(4, 2).getName());
+        assertNull(session.getGroundSeedPacketAt(1, 1));
+        assertNull(session.getBoard().getPlantAt(1, 1));
+    }
+
+    @Test
+    void plantFromSeedPacketByNameFailsWithoutPacket() {
+        GameSession session = emptySession();
+        assertEquals(PlantPlacementResult.NO_SEED_PACKET, session.plantFromSeedPacket("Peashooter", 2, 2));
     }
 
     @Test

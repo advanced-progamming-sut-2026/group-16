@@ -14,11 +14,14 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.GamePlayController;
+import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.game.SeedPlacement;
 import io.github.finalwave.model.game.board.GameBoard;
+import io.github.finalwave.model.minigame.GroundSeedPacket;
+import io.github.finalwave.model.minigame.MiniGameStageConfig;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.LawnAssetIds;
@@ -37,8 +40,11 @@ import io.github.finalwave.view.gui.hud.WaveProgressMeter;
 import io.github.finalwave.view.gui.hud.special.ConveyorBeltBar;
 import io.github.finalwave.view.gui.hud.special.StartWaveButton;
 import io.github.finalwave.view.gui.hud.special.TimedWarPanel;
+import io.github.finalwave.view.gui.input.ControllerLawnHost;
+import io.github.finalwave.view.gui.input.LawnActionHost;
 import io.github.finalwave.view.gui.input.LawnInputController;
 import io.github.finalwave.view.gui.input.ToolMode;
+import io.github.finalwave.view.gui.match.ControllerTicker;
 import io.github.finalwave.view.gui.match.MatchClock;
 import io.github.finalwave.view.gui.render.BattlefieldGroup;
 import io.github.finalwave.view.gui.render.ChapterBackground;
@@ -49,6 +55,7 @@ import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
+import io.github.finalwave.view.gui.render.sync.VaseSync;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -60,6 +67,7 @@ public final class GamePlayScreen extends MenuScreen {
     private final MatchResultModal resultModal = new MatchResultModal();
 
     private GamePlayController controller;
+    private VaseBreakerController vaseBreaker;
     private MatchClock clock;
     private LawnLayout layout;
     private ChapterBackground chapterBackground;
@@ -90,6 +98,17 @@ public final class GamePlayScreen extends MenuScreen {
 
     public void bind(GamePlayController controller) {
         this.controller = controller;
+        this.vaseBreaker = null;
+        bindMatch(controller == null ? null : controller.getUser(), controller == null ? null : controller.session());
+    }
+
+    public void bind(VaseBreakerController vaseBreaker) {
+        this.controller = null;
+        this.vaseBreaker = vaseBreaker;
+        bindMatch(vaseBreaker == null ? null : vaseBreaker.getUser(), vaseBreaker == null ? null : vaseBreaker.session());
+    }
+
+    private void bindMatch(User user, GameSession session) {
         this.resultShown = false;
         this.resultHold = 0f;
         this.clock = null;
@@ -102,12 +121,10 @@ public final class GamePlayScreen extends MenuScreen {
         if (objectiveBanner != null) {
             objectiveBanner.reset();
         }
-        if (controller == null) {
+        if (user == null && session == null) {
             return;
         }
-        User user = controller.getUser();
-        GameSession session = controller.session();
-        clock = new MatchClock(controller, user);
+        clock = new MatchClock(matchTicker(), user);
         if (session != null && session.getBoard() != null) {
             GameBoard board = session.getBoard();
             chapterBackground = new ChapterBackground(assets, ChapterId.fromName(session.getChapterId()));
@@ -138,7 +155,7 @@ public final class GamePlayScreen extends MenuScreen {
         cursorLayer.setTouchable(Touchable.disabled);
         stage.addActor(cursorLayer);
         input = new LawnInputController(
-                controller,
+                lawnHost(),
                 layout,
                 battlefield,
                 assets,
@@ -151,7 +168,7 @@ public final class GamePlayScreen extends MenuScreen {
             }
         });
         buildHud();
-        if (objectiveBanner != null && controller != null) {
+        if (objectiveBanner != null && controller != null && vaseBreaker == null) {
             objectiveBanner.showOnce(controller.chapter(), controller.level());
         }
     }
@@ -168,13 +185,13 @@ public final class GamePlayScreen extends MenuScreen {
             clock.update(delta, battlefield);
             tickFraction = clock.tickFraction();
         }
-        if (battlefield != null && controller != null && controller.session() != null) {
-            battlefield.sync(controller.session(), tickFraction);
+        if (battlefield != null && matchSession() != null) {
+            battlefield.sync(matchSession(), tickFraction);
         }
         if (clock != null && battlefield != null) {
             float unitSpeed = clock.speed();
             float environmentSpeed = unitSpeed;
-            GameSession session = controller == null ? null : controller.session();
+            GameSession session = matchSession();
             if (session != null
                     && session.isDeadLineActive()
                     && session.getMatchResult() != MatchResult.IN_PROGRESS) {
@@ -232,11 +249,11 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     public void refreshHud() {
-        if (controller == null) {
+        if (controller == null && vaseBreaker == null) {
             return;
         }
-        User user = controller.getUser();
-        GameSession session = controller.session();
+        User user = matchUser();
+        GameSession session = matchSession();
         if (user != null) {
             bindCurrency(user);
         }
@@ -249,8 +266,34 @@ public final class GamePlayScreen extends MenuScreen {
         if (plantFoodCounter != null && session != null) {
             plantFoodCounter.setCount(session.getPlantFoodCount());
         }
+        boolean vaseMode = vaseBreaker != null;
+        if (sunCounter != null) {
+            sunCounter.setVisible(!vaseMode);
+        }
+        if (plantFoodCounter != null) {
+            plantFoodCounter.setVisible(!vaseMode);
+        }
+        if (waveMeter != null) {
+            waveMeter.setVisible(!vaseMode);
+        }
         if (seedBank != null && session != null) {
-            seedBank.refresh(session, user, controller.boostedPlants(), input == null ? null : input.mode());
+            if (vaseMode) {
+                seedBank.setVisible(false);
+            } else {
+                seedBank.refresh(session, user, controller == null ? Set.of() : controller.boostedPlants(),
+                        input == null ? null : input.mode());
+            }
+        }
+        if (vaseMode && session != null) {
+            if (input != null && input.mode() instanceof ToolMode.Seed seed
+                    && !hasGroundPacket(session, seed.plantName())) {
+                input.setMode(new ToolMode.None());
+            }
+            for (GroundSeedPacket packet : session.getGroundSeedPackets()) {
+                if (packet != null) {
+                    preloadPlantPam(packet.plantName());
+                }
+            }
         }
         if (conveyorBeltBar != null) {
             boolean freeze = clock != null && clock.shouldFreeze();
@@ -333,10 +376,12 @@ public final class GamePlayScreen extends MenuScreen {
         waveMeter = new WaveProgressMeter(assets);
         speedButton = new SpeedButton(assets, this::onSpeed);
         Actor pause = PauseButton.create(assets, this::togglePause);
-        Actor shovel = ShovelButton.create(assets, this::onShovel);
+        Actor shovel = vaseBreaker == null ? ShovelButton.create(assets, this::onShovel) : null;
 
         hudTop = new Table();
-        hudTop.add(sunCounter).padLeft(sunPad()).padTop(10f);
+        if (vaseBreaker == null) {
+            hudTop.add(sunCounter).padLeft(sunPad()).padTop(10f);
+        }
         hudTop.add(startWaveButton).padLeft(8f).padTop(10f);
         hudTop.add(timedWarPanel).padLeft(8f).padTop(10f);
         hudTop.add().expandX();
@@ -349,14 +394,20 @@ public final class GamePlayScreen extends MenuScreen {
 
         Table mid = new Table();
         mid.setTouchable(Touchable.childrenOnly);
-        mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
+        if (vaseBreaker == null) {
+            mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
+        }
         mid.add().expand();
         hudLayer.add(mid).grow().row();
 
         hudBottom = new Table();
-        hudBottom.add(plantFoodCounter).left().padLeft(plantFoodPad()).padBottom(18f);
+        if (vaseBreaker == null) {
+            hudBottom.add(plantFoodCounter).left().padLeft(plantFoodPad()).padBottom(18f);
+        }
         hudBottom.add().expandX();
-        hudBottom.add(shovel).size(84f).padRight(20f).padBottom(18f);
+        if (shovel != null) {
+            hudBottom.add(shovel).size(84f).padRight(20f).padBottom(18f);
+        }
         hudLayer.add(hudBottom).growX();
         hudLayer.addActor(conveyorBeltBar);
 
@@ -389,6 +440,10 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private String levelCaption() {
+        if (vaseBreaker != null && vaseBreaker.getStage() != null) {
+            MiniGameStageConfig stage = vaseBreaker.getStage();
+            return "Vasebreaker - Stage " + stage.getStageIndex();
+        }
         if (controller == null || controller.chapter() == null || controller.level() == null) {
             return "";
         }
@@ -481,22 +536,30 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void exitMatch() {
+        if (vaseBreaker != null) {
+            vaseBreaker.confirmMatchExit();
+            return;
+        }
         if (controller != null) {
             controller.confirmMatchExit();
         }
     }
 
     private void restartMatch() {
+        if (vaseBreaker != null) {
+            vaseBreaker.restartMatch();
+            return;
+        }
         if (controller != null) {
             controller.restartMatch();
         }
     }
 
     private void pollResult(float delta) {
-        if (controller == null || controller.session() == null) {
+        if (matchSession() == null) {
             return;
         }
-        GameSession session = controller.session();
+        GameSession session = matchSession();
         MatchResult result = session.getMatchResult();
         if (result == MatchResult.IN_PROGRESS) {
             resultHold = 0f;
@@ -510,7 +573,7 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private float deadlineHoldRemaining(MatchResult result) {
-        if (controller == null || controller.session() == null || !controller.session().isDeadLineActive()) {
+        if (matchSession() == null || !matchSession().isDeadLineActive()) {
             return 0f;
         }
         return Math.max(0f, DeadLineSync.resultHoldSeconds(result) - resultHold);
@@ -539,16 +602,14 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private boolean matchFinished() {
-        return controller != null
-                && controller.session() != null
-                && controller.session().getMatchResult() != MatchResult.IN_PROGRESS;
+        return matchSession() != null
+                && matchSession().getMatchResult() != MatchResult.IN_PROGRESS;
     }
 
     private boolean shouldDrawGrid() {
         return layout != null
-                && controller != null
-                && controller.getUser() != null
-                && controller.getUser().isShowLawnGrid();
+                && matchUser() != null
+                && matchUser().isShowLawnGrid();
     }
 
     private void updateSunPad() {
@@ -620,10 +681,32 @@ public final class GamePlayScreen extends MenuScreen {
         for (SeedPlacement placement : session.getProtectedSeedPlacements()) {
             preloadPlantPam(placement.getPlantName());
         }
-        if (session.isConveyorBeltActive() && controller != null && controller.getUser() != null) {
-            for (String plantName : controller.getUser().getPlantProgress().getUnlockedPlantNames()) {
+        if (session.isConveyorBeltActive() && matchUser() != null) {
+            for (String plantName : matchUser().getPlantProgress().getUnlockedPlantNames()) {
                 preloadPlantPam(plantName);
             }
+        }
+        if (!session.getVases().isEmpty()) {
+            preload(VaseSync.BROWN_PAM);
+            preload(VaseSync.GREEN_PAM);
+            preload(VaseSync.GARGANTUAR_PAM);
+            for (String smashImage : VaseSync.SMASH_IMAGES) {
+                assets.region(smashImage);
+            }
+        }
+        if (vaseBreaker != null && vaseBreaker.getStage() != null) {
+            MiniGameStageConfig stage = vaseBreaker.getStage();
+            if (stage.getPlantSeedPool() != null) {
+                for (String plantName : stage.getPlantSeedPool()) {
+                    preloadPlantPam(plantName);
+                }
+            }
+            if (stage.getZombiePool() != null) {
+                for (String alias : stage.getZombiePool()) {
+                    preload(catalog.zombiePath(alias));
+                }
+            }
+            preload(catalog.zombiePath("ZombieGargantuar"));
         }
         preload(PlantClips.ICE_BLOCK_PATH);
         preload(SunSync.SUN_PATH);
@@ -655,5 +738,45 @@ public final class GamePlayScreen extends MenuScreen {
             case BIG_WAVE_BEACH -> "768/FULL/MOWERS/MOWER_BEACH/MOWER_BEACH.PAM";
             case DARK_AGES -> "768/FULL/MOWERS/MOWER_DARK/MOWER_DARK.PAM";
         };
+    }
+
+    private GameSession matchSession() {
+        if (vaseBreaker != null) {
+            return vaseBreaker.session();
+        }
+        return controller == null ? null : controller.session();
+    }
+
+    private User matchUser() {
+        if (vaseBreaker != null) {
+            return vaseBreaker.getUser();
+        }
+        return controller == null ? null : controller.getUser();
+    }
+
+    private static boolean hasGroundPacket(GameSession session, String plantName) {
+        if (session == null || plantName == null || plantName.isBlank()) {
+            return false;
+        }
+        for (GroundSeedPacket packet : session.getGroundSeedPackets()) {
+            if (packet != null && plantName.equals(packet.plantName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private LawnActionHost lawnHost() {
+        if (vaseBreaker != null) {
+            return new ControllerLawnHost(vaseBreaker);
+        }
+        return new ControllerLawnHost(controller);
+    }
+
+    private ControllerTicker matchTicker() {
+        if (vaseBreaker != null) {
+            return new ControllerTicker(vaseBreaker);
+        }
+        return new ControllerTicker(controller);
     }
 }

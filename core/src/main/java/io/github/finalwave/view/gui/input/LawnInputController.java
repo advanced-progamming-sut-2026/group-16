@@ -12,10 +12,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.Scaling;
-import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.item.Sun;
+import io.github.finalwave.model.minigame.GroundSeedPacket;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.assets.LawnAssetIds;
@@ -31,7 +31,7 @@ import java.util.function.BooleanSupplier;
 public final class LawnInputController implements Disposable {
     private static final ToolMode.None NONE = new ToolMode.None();
 
-    private final GamePlayController controller;
+    private final LawnActionHost host;
     private final LawnLayout layout;
     private final BattlefieldGroup battlefield;
     private final GameAssets assets;
@@ -45,14 +45,14 @@ public final class LawnInputController implements Disposable {
     private ToolMode mode = NONE;
     private InputListener listener;
 
-    public LawnInputController(GamePlayController controller,
+    public LawnInputController(LawnActionHost host,
                                LawnLayout layout,
                                BattlefieldGroup battlefield,
                                GameAssets assets,
                                EntityAnimationCatalog catalog,
                                Group cursorLayer,
                                BooleanSupplier blocked) {
-        this.controller = controller;
+        this.host = host;
         this.layout = layout;
         this.battlefield = battlefield;
         this.assets = assets;
@@ -125,7 +125,7 @@ public final class LawnInputController implements Disposable {
         int row = layout.rowAt(cursor.y);
         setMode(NONE);
         if (col >= 0 && row >= 0) {
-            controller.feedAt(col, row);
+            host.feedAt(col, row);
         }
     }
 
@@ -206,29 +206,42 @@ public final class LawnInputController implements Disposable {
         if (tryCollect(col, row)) {
             return true;
         }
+        GameSession session = host.session();
+        GroundSeedPacket packet = session == null ? null : session.getGroundSeedPacketAt(col, row);
         if (mode instanceof ToolMode.Seed seed) {
-            controller.plantAt(seed.plantName(), col, row);
+            if (packet != null && !seed.plantName().equals(packet.plantName())) {
+                toggleSeed(packet.plantName());
+                return true;
+            }
+            host.plantSeed(seed.plantName(), col, row);
             return true;
         }
         if (mode instanceof ToolMode.Shovel) {
-            controller.shovelAt(col, row);
+            host.shovelAt(col, row);
             return true;
         }
         if (mode instanceof ToolMode.PlantFood) {
-            controller.feedAt(col, row);
+            host.feedAt(col, row);
+            return true;
+        }
+        if (session != null && session.getVaseAt(col, row) != null) {
+            return host.smashVase(col, row);
+        }
+        if (packet != null) {
+            toggleSeed(packet.plantName());
             return true;
         }
         return false;
     }
 
     private boolean tryCollect(int col, int row) {
-        GameSession session = controller.session();
+        GameSession session = host.session();
         if (session == null) {
             return false;
         }
         for (Sun sun : session.getSunItems()) {
             if (sun != null && !sun.isExpired() && sun.getCol() == col && sun.getRow() == row) {
-                return controller.collectSunAt(col, row);
+                return host.collectSunAt(col, row);
             }
         }
         return false;
@@ -270,7 +283,7 @@ public final class LawnInputController implements Disposable {
         if (blocked != null && blocked.getAsBoolean()) {
             return true;
         }
-        GameSession session = controller == null ? null : controller.session();
+        GameSession session = host == null ? null : host.session();
         return session == null || session.getMatchResult() != MatchResult.IN_PROGRESS;
     }
 }

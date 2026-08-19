@@ -1,0 +1,72 @@
+package io.github.finalwave.view.gui.input;
+
+import io.github.finalwave.controller.GamePlayController;
+import io.github.finalwave.controller.VaseBreakerController;
+import io.github.finalwave.model.game.GameSession;
+
+
+public final class ControllerLawnHost implements LawnActionHost {
+    private final GamePlayController gamePlay;
+    private final VaseBreakerController vaseBreaker;
+
+    public ControllerLawnHost(GamePlayController gamePlay) {
+        this.gamePlay = gamePlay;
+        this.vaseBreaker = null;
+    }
+
+    public ControllerLawnHost(VaseBreakerController vaseBreaker) {
+        this.gamePlay = null;
+        this.vaseBreaker = vaseBreaker;
+    }
+
+    @Override
+    public GameSession session() {
+        if (vaseBreaker != null) {
+            return vaseBreaker.session();
+        }
+        return gamePlay == null ? null : gamePlay.session();
+    }
+
+    @Override
+    public void plantSeed(String plantName, int col, int row) {
+        if (vaseBreaker != null) {
+            vaseBreaker.plantSeed(plantName, col, row);
+            return;
+        }
+        if (gamePlay != null) {
+            gamePlay.plantAt(plantName, col, row);
+        }
+    }
+
+    @Override
+    public boolean smashVase(int col, int row) {
+        if (vaseBreaker != null) {
+            return vaseBreaker.smashVase(col, row);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean collectSunAt(int col, int row) {
+        if (vaseBreaker != null) {
+            return vaseBreaker.collectSunAt(col, row);
+        }
+        return gamePlay != null && gamePlay.collectSunAt(col, row);
+    }
+
+    @Override
+    public boolean shovelAt(int col, int row) {
+        if (vaseBreaker != null) {
+            return vaseBreaker.shovelAt(col, row);
+        }
+        return gamePlay != null && gamePlay.shovelAt(col, row);
+    }
+
+    @Override
+    public boolean feedAt(int col, int row) {
+        if (vaseBreaker != null) {
+            return vaseBreaker.feedAt(col, row);
+        }
+        return gamePlay != null && gamePlay.feedAt(col, row);
+    }
+}

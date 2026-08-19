@@ -8,6 +8,7 @@ import io.github.finalwave.controller.GreenhouseController;
 import io.github.finalwave.controller.LeaderboardController;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
+import io.github.finalwave.controller.MiniGameHubController;
 import io.github.finalwave.controller.NavigationBinder;
 import io.github.finalwave.controller.NewsController;
 import io.github.finalwave.controller.PlantSelectionController;
@@ -16,6 +17,7 @@ import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.SettingController;
 import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.TravelLogController;
+import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.view.gui.AdventureViewGui;
 import io.github.finalwave.view.gui.AuthViewGui;
@@ -26,12 +28,14 @@ import io.github.finalwave.view.gui.GameViewGui;
 import io.github.finalwave.view.gui.GreenhouseViewGui;
 import io.github.finalwave.view.gui.LeaderboardViewGui;
 import io.github.finalwave.view.gui.MainMenuViewGui;
+import io.github.finalwave.view.gui.MiniGameHubViewGui;
 import io.github.finalwave.view.gui.NewsViewGui;
 import io.github.finalwave.view.gui.PlantSelectionViewGui;
 import io.github.finalwave.view.gui.ProfileViewGui;
 import io.github.finalwave.view.gui.SettingViewGui;
 import io.github.finalwave.view.gui.ShopViewGui;
 import io.github.finalwave.view.gui.TravelLogViewGui;
+import io.github.finalwave.view.gui.VaseBreakerViewGui;
 import io.github.finalwave.view.gui.screen.ScreenRouter;
 
 public final class GuiNavigationBinder implements NavigationBinder {
@@ -50,6 +54,8 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final TravelLogViewGui travelLogView;
     private final PlantSelectionViewGui plantSelectionView;
     private final GamePlayViewGui gamePlayView;
+    private final MiniGameHubViewGui miniGameHubView;
+    private final VaseBreakerViewGui vaseBreakerView;
     private final ComingSoonViewGui comingSoonView;
 
     public GuiNavigationBinder(ScreenRouter router) {
@@ -68,6 +74,8 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.travelLogView = new TravelLogViewGui(router);
         this.plantSelectionView = new PlantSelectionViewGui(router);
         this.gamePlayView = new GamePlayViewGui(router);
+        this.miniGameHubView = new MiniGameHubViewGui(router);
+        this.vaseBreakerView = new VaseBreakerViewGui(router);
         this.comingSoonView = new ComingSoonViewGui(router);
     }
 
@@ -112,6 +120,12 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof GamePlayController gamePlayController) {
             gamePlayView.bindController(gamePlayController);
             newController.setView(gamePlayView);
+        } else if (newController instanceof MiniGameHubController miniGameHubController) {
+            miniGameHubView.bindController(miniGameHubController);
+            newController.setView(miniGameHubView);
+        } else if (newController instanceof VaseBreakerController vaseBreakerController) {
+            vaseBreakerView.bindController(vaseBreakerController);
+            newController.setView(vaseBreakerView);
         } else if (newController instanceof RegistrationController
                 || newController instanceof LoginController) {
             authView.bindController(newController);

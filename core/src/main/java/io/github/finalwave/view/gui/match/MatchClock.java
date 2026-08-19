@@ -1,6 +1,5 @@
 package io.github.finalwave.view.gui.match;
 
-import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.user.User;
@@ -11,7 +10,7 @@ public final class MatchClock {
     private static final float MAX_FRAME_DELTA = 0.05f;
     private static final int MAX_TICKS_PER_FRAME = 1;
 
-    private final GamePlayController controller;
+    private final MatchTicker ticker;
     private final User user;
     private float accumulator;
     private float tickDuration = 1f / GameSession.TICKS_PER_SECOND;
@@ -19,8 +18,8 @@ public final class MatchClock {
     private boolean resultShowing;
     private boolean frozenActors = true;
 
-    public MatchClock(GamePlayController controller, User user) {
-        this.controller = controller;
+    public MatchClock(MatchTicker ticker, User user) {
+        this.ticker = ticker;
         this.user = user;
     }
 
@@ -39,7 +38,7 @@ public final class MatchClock {
         accumulator += Math.min(MAX_FRAME_DELTA, Math.max(0f, deltaSeconds));
         int steps = 0;
         while (accumulator >= tickDuration && steps < MAX_TICKS_PER_FRAME) {
-            controller.advance(1);
+            ticker.advance(1);
             accumulator -= tickDuration;
             steps++;
             if (shouldFreeze()) {
@@ -89,9 +88,9 @@ public final class MatchClock {
         if (paused || resultShowing) {
             return true;
         }
-        if (controller == null || controller.session() == null) {
+        if (ticker == null || ticker.session() == null) {
             return true;
         }
-        return controller.session().getMatchResult() != MatchResult.IN_PROGRESS;
+        return ticker.session().getMatchResult() != MatchResult.IN_PROGRESS;
     }
 }

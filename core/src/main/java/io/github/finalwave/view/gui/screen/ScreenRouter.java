@@ -12,6 +12,7 @@ import io.github.finalwave.controller.GreenhouseController;
 import io.github.finalwave.controller.LeaderboardController;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
+import io.github.finalwave.controller.MiniGameHubController;
 import io.github.finalwave.controller.NewsController;
 import io.github.finalwave.controller.PlantSelectionController;
 import io.github.finalwave.controller.ProfileController;
@@ -19,6 +20,7 @@ import io.github.finalwave.controller.RegistrationController;
 import io.github.finalwave.controller.SettingController;
 import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.TravelLogController;
+import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.leaderboard.LeaderboardEntry;
@@ -48,6 +50,7 @@ public final class ScreenRouter {
     private TravelLogScreen travelLogScreen;
     private PlantSelectionScreen plantSelectionScreen;
     private GamePlayScreen gamePlayScreen;
+    private MiniGameHubScreen miniGameHubScreen;
     private ComingSoonScreen comingSoonScreen;
 
     public ScreenRouter(PvzGame game) {
@@ -69,7 +72,9 @@ public final class ScreenRouter {
                 || controller instanceof AdventureController
                 || controller instanceof TravelLogController
                 || controller instanceof PlantSelectionController
-                || controller instanceof GamePlayController;
+                || controller instanceof GamePlayController
+                || controller instanceof MiniGameHubController
+                || controller instanceof VaseBreakerController;
     }
 
     public boolean supportsDestination(MainMenuController.Destination destination) {
@@ -112,6 +117,10 @@ public final class ScreenRouter {
             showPlantSelection(plantSelectionController);
         } else if (controller instanceof GamePlayController gamePlayController) {
             showGamePlay(gamePlayController);
+        } else if (controller instanceof MiniGameHubController miniGameHubController) {
+            showMiniGameHub(miniGameHubController);
+        } else if (controller instanceof VaseBreakerController vaseBreakerController) {
+            showGamePlay(vaseBreakerController);
         } else {
             Gdx.app.log(TAG, "No GUI screen registered for " + controller.getClass().getSimpleName());
         }
@@ -235,6 +244,28 @@ public final class ScreenRouter {
         }
         gamePlayScreen.bind(controller);
         setScreen(gamePlayScreen);
+    }
+
+    public void showGamePlay(VaseBreakerController controller) {
+        if (gamePlayScreen == null) {
+            gamePlayScreen = new GamePlayScreen(game);
+        }
+        gamePlayScreen.bind(controller);
+        setScreen(gamePlayScreen);
+    }
+
+    public void showMiniGameHub(MiniGameHubController controller) {
+        if (miniGameHubScreen == null) {
+            miniGameHubScreen = new MiniGameHubScreen(game);
+        }
+        miniGameHubScreen.bind(controller);
+        setScreen(miniGameHubScreen);
+    }
+
+    public void refreshMiniGameHub() {
+        if (miniGameHubScreen != null) {
+            miniGameHubScreen.refresh();
+        }
     }
 
     public void showComingSoon(Runnable onBack, String title) {
@@ -465,6 +496,9 @@ public final class ScreenRouter {
         }
         if (gamePlayScreen != null) {
             gamePlayScreen.dispose();
+        }
+        if (miniGameHubScreen != null) {
+            miniGameHubScreen.dispose();
         }
         if (comingSoonScreen != null) {
             comingSoonScreen.dispose();
