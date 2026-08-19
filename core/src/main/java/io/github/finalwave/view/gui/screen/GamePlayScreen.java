@@ -44,6 +44,7 @@ import io.github.finalwave.view.gui.render.BattlefieldGroup;
 import io.github.finalwave.view.gui.render.ChapterBackground;
 import io.github.finalwave.view.gui.render.LawnGridOverlay;
 import io.github.finalwave.view.gui.render.LawnLayout;
+import io.github.finalwave.view.gui.render.clip.GraveClips;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
@@ -627,6 +628,9 @@ public final class GamePlayScreen extends MenuScreen {
         preload(PlantClips.ICE_BLOCK_PATH);
         preload(SunSync.SUN_PATH);
         preload(mowerPath(ChapterId.fromName(session.getChapterId())));
+        for (String gravePath : GraveClips.preloadPaths(ChapterId.fromName(session.getChapterId()))) {
+            preload(gravePath);
+        }
         if (session.getWaveManager() != null) {
             for (String alias : session.getWaveManager().getZombiePool()) {
                 preload(catalog.zombiePath(alias));

@@ -12,6 +12,7 @@ import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
+import io.github.finalwave.view.gui.render.sync.GraveSync;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
@@ -42,6 +43,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private SunSync sunSync;
     private MowerSync mowerSync;
     private ProtectTileSync protectTileSync;
+    private GraveSync graveSync;
     private DeadLineSync deadLineSync;
     private Consumer<Sun> sunCollector;
 
@@ -76,6 +78,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             sunSync = null;
             mowerSync = null;
             protectTileSync = null;
+            graveSync = null;
             deadLineSync = null;
             return;
         }
@@ -85,6 +88,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
         mowerSync = new MowerSync(assets, layout, mowerLayer);
         protectTileSync = new ProtectTileSync(layout, environmentLayer);
+        graveSync = new GraveSync(assets, layout, environmentLayer);
         deadLineSync = new DeadLineSync(assets, layout, deadlineLayer);
     }
 
@@ -102,6 +106,10 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (protectTileSync != null) {
             protectTileSync.sync(session);
+        }
+        if (graveSync != null) {
+            graveSync.sync(session);
+            sortByRow(environmentLayer, BattlefieldGroup::sortKey);
         }
         if (deadLineSync != null) {
             deadLineSync.sync(session);
@@ -179,6 +187,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (protectTileSync != null) {
             protectTileSync.clear();
+        }
+        if (graveSync != null) {
+            graveSync.clear();
         }
         if (deadLineSync != null) {
             deadLineSync.clear();
