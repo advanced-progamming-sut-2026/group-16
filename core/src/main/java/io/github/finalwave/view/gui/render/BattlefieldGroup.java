@@ -13,11 +13,13 @@ import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.GraveSync;
+import io.github.finalwave.view.gui.render.sync.GroundSeedPacketSync;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
+import io.github.finalwave.view.gui.render.sync.VaseSync;
 import io.github.finalwave.view.gui.render.sync.ZombieSync;
 import io.github.finalwave.view.gui.widget.PamActor;
 
@@ -31,6 +33,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private final Group highlightLayer = new Group();
     private final Group mowerLayer = new Group();
     private final Group plantLayer = new Group();
+    private final Group packetLayer = new Group();
     private final Group deadlineLayer = new Group();
     private final Group zombieLayer = new Group();
     private final Group projectileLayer = new Group();
@@ -45,6 +48,8 @@ public final class BattlefieldGroup extends WidgetGroup {
     private ProtectTileSync protectTileSync;
     private GraveSync graveSync;
     private DeadLineSync deadLineSync;
+    private VaseSync vaseSync;
+    private GroundSeedPacketSync packetSync;
     private Consumer<Sun> sunCollector;
 
     public BattlefieldGroup() {
@@ -54,6 +59,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         highlightLayer.setTouchable(Touchable.disabled);
         mowerLayer.setTouchable(Touchable.disabled);
         plantLayer.setTouchable(Touchable.disabled);
+        packetLayer.setTouchable(Touchable.disabled);
         deadlineLayer.setTouchable(Touchable.disabled);
         zombieLayer.setTouchable(Touchable.disabled);
         projectileLayer.setTouchable(Touchable.disabled);
@@ -62,6 +68,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         addActor(highlightLayer);
         addActor(mowerLayer);
         addActor(plantLayer);
+        addActor(packetLayer);
         addActor(deadlineLayer);
         addActor(zombieLayer);
         addActor(projectileLayer);
@@ -80,6 +87,8 @@ public final class BattlefieldGroup extends WidgetGroup {
             protectTileSync = null;
             graveSync = null;
             deadLineSync = null;
+            vaseSync = null;
+            packetSync = null;
             return;
         }
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
@@ -90,6 +99,8 @@ public final class BattlefieldGroup extends WidgetGroup {
         protectTileSync = new ProtectTileSync(layout, environmentLayer);
         graveSync = new GraveSync(assets, layout, environmentLayer);
         deadLineSync = new DeadLineSync(assets, layout, deadlineLayer);
+        vaseSync = new VaseSync(assets, layout, environmentLayer);
+        packetSync = new GroundSeedPacketSync(assets, layout, packetLayer);
     }
 
     public void setSunCollector(Consumer<Sun> sunCollector) {
@@ -110,6 +121,12 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (graveSync != null) {
             graveSync.sync(session);
             sortByRow(environmentLayer, BattlefieldGroup::sortKey);
+        }
+        if (vaseSync != null) {
+            vaseSync.sync(session);
+        }
+        if (packetSync != null) {
+            packetSync.sync(session);
         }
         if (deadLineSync != null) {
             deadLineSync.sync(session);
@@ -194,10 +211,17 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (deadLineSync != null) {
             deadLineSync.clear();
         }
+        if (vaseSync != null) {
+            vaseSync.clear();
+        }
+        if (packetSync != null) {
+            packetSync.clear();
+        }
         environmentLayer.clearChildren();
         highlightLayer.clearChildren();
         mowerLayer.clearChildren();
         plantLayer.clearChildren();
+        packetLayer.clearChildren();
         deadlineLayer.clearChildren();
         zombieLayer.clearChildren();
         projectileLayer.clearChildren();
@@ -219,6 +243,10 @@ public final class BattlefieldGroup extends WidgetGroup {
 
     public Group plantLayer() {
         return plantLayer;
+    }
+
+    public Group packetLayer() {
+        return packetLayer;
     }
 
     public Group zombieLayer() {

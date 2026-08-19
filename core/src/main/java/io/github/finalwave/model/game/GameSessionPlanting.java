@@ -110,11 +110,35 @@ final class GameSessionPlanting {
         return null;
     }
 
+    GroundSeedPacket getGroundSeedPacketByName(String plantName) {
+        if (plantName == null || plantName.isBlank()) {
+            return null;
+        }
+        for (GroundSeedPacket packet : groundSeedPackets) {
+            if (plantName.equals(packet.plantName())) {
+                return packet;
+            }
+        }
+        return null;
+    }
+
     PlantPlacementResult plantFromSeedPacket(int col, int row) {
         GroundSeedPacket packet = getGroundSeedPacketAt(col, row);
         if (packet == null) {
             return PlantPlacementResult.NO_SEED_PACKET;
         }
+        return placeFromSeedPacket(packet, col, row);
+    }
+
+    PlantPlacementResult plantFromSeedPacket(String plantName, int col, int row) {
+        GroundSeedPacket packet = getGroundSeedPacketByName(plantName);
+        if (packet == null) {
+            return PlantPlacementResult.NO_SEED_PACKET;
+        }
+        return placeFromSeedPacket(packet, col, row);
+    }
+
+    private PlantPlacementResult placeFromSeedPacket(GroundSeedPacket packet, int col, int row) {
         PlantDefinition definition = session.getPlantRegistry().getDefinition(packet.plantName());
         if (definition == null) {
             return PlantPlacementResult.UNKNOWN_PLANT;

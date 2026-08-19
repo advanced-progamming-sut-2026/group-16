@@ -136,7 +136,11 @@ public class TravelLogController extends ViewController {
             getTravelLogView().displayError(id.getDisplayName() + " is locked.");
             return;
         }
-        getTravelLogView().displayMessage(id.getDisplayName() + " is coming soon.");
+        if (id != MiniGameId.VASE_BREAKER) {
+            getTravelLogView().displayMessage(id.getDisplayName() + " is coming soon.");
+            return;
+        }
+        navigator.push(new MiniGameHubController(user, userDatabase, id));
     }
 
     @Override

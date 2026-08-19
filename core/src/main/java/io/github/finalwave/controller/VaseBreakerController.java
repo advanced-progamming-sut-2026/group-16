@@ -28,6 +28,7 @@ public class VaseBreakerController extends ViewController implements MatchListen
     private final MiniGameStageConfig stage;
     private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
+    private boolean deferMatchExit;
 
     public VaseBreakerController(User user,
                                  UserDatabase userDatabase,
@@ -80,15 +81,7 @@ public class VaseBreakerController extends ViewController implements MatchListen
     }
 
     private void handleSmashVase(String x, String y) {
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        if (col < 0 || row < 0) {
-            getViewApi().errorInvalidLocation(col, row);
-            return;
-        }
-        if (!session.smashVase(col, row)) {
-            getViewApi().errorNoVaseAt(col, row);
-        }
+        smashVase(parseCoord(x), parseCoord(y));
     }
 
     private void handlePlantSeed(String x, String y) {
@@ -116,12 +109,7 @@ public class VaseBreakerController extends ViewController implements MatchListen
             getViewApi().errorInvalidTickCount();
             return;
         }
-        if (ticks < 0) {
-            getViewApi().errorNegativeTickCount();
-            return;
-        }
-        session.advanceTicks(ticks);
-        getViewApi().showAdvanceTime(ticks);
+        advance(ticks);
     }
 
     private void maybeReturnAfterMatch() {
@@ -129,18 +117,20 @@ public class VaseBreakerController extends ViewController implements MatchListen
             return;
         }
         MatchResult result = session.getMatchResult();
+        if (result != MatchResult.WON && result != MatchResult.LOST) {
+            return;
+        }
+        finishedHandled = true;
+        recordFinishedGame();
         if (result == MatchResult.WON) {
-            finishedHandled = true;
-            recordFinishedGame();
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
-            navigator.pop();
-        } else if (result == MatchResult.LOST) {
-            finishedHandled = true;
-            recordFinishedGame();
-            navigator.pop();
         }
+        if (deferMatchExit) {
+            return;
+        }
+        navigator.pop();
     }
 
     private void recordFinishedGame() {
@@ -160,8 +150,16 @@ public class VaseBreakerController extends ViewController implements MatchListen
         return (VaseBreakerView) view;
     }
 
+    public GameSession session() {
+        return session;
+    }
+
     public GameSession getSession() {
         return session;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     public MiniGameStageConfig getStage() {
@@ -170,6 +168,81 @@ public class VaseBreakerController extends ViewController implements MatchListen
 
     public VaseBreakerMode getMode() {
         return mode;
+    }
+
+    public void setDeferMatchExit(boolean deferMatchExit) {
+        this.deferMatchExit = deferMatchExit;
+    }
+
+    public void confirmMatchExit() {
+        navigator.pop();
+    }
+
+    public void restartMatch() {
+        navigator.pop();
+    }
+
+    public void advance(int ticks) {
+        if (ticks < 0) {
+            getViewApi().errorNegativeTickCount();
+            return;
+        }
+        session.advanceTicks(ticks);
+        getViewApi().showAdvanceTime(ticks);
+        maybeReturnAfterMatch();
+    }
+
+    public boolean smashVase(int col, int row) {
+        if (col < 0 || row < 0) {
+            getViewApi().errorInvalidLocation(col, row);
+            return false;
+        }
+        if (!session.smashVase(col, row)) {
+            getViewApi().errorNoVaseAt(col, row);
+            return false;
+        }
+        maybeReturnAfterMatch();
+        return true;
+    }
+
+    public PlantPlacementResult plantFromPacket(String plantName, int col, int row) {
+        if (plantName == null || plantName.isBlank()) {
+            getViewApi().errorNoSeedPacketAt(col, row);
+            return PlantPlacementResult.NO_SEED_PACKET;
+        }
+        if (col < 0 || row < 0) {
+            getViewApi().errorInvalidLocation(col, row);
+            return PlantPlacementResult.OUT_OF_BOUNDS;
+        }
+        PlantPlacementResult result = session.plantFromSeedPacket(plantName, col, row);
+        switch (result) {
+            case SUCCESS -> {
+            }
+            case NO_SEED_PACKET -> getViewApi().errorNoSeedPacketAt(col, row);
+            case OUT_OF_BOUNDS -> getViewApi().errorInvalidLocation(col, row);
+            default -> getViewApi().errorCannotPlantHere(col, row);
+        }
+        maybeReturnAfterMatch();
+        return result;
+    }
+
+    public void plantSeed(String plantName, int col, int row) {
+        plantFromPacket(plantName, col, row);
+    }
+
+    public boolean collectSunAt(int col, int row) {
+        if (col < 0 || row < 0 || session == null) {
+            return false;
+        }
+        return session.collectSunAt(col, row);
+    }
+
+    public boolean shovelAt(int col, int row) {
+        return false;
+    }
+
+    public boolean feedAt(int col, int row) {
+        return false;
     }
 
     @Override

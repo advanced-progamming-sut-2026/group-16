@@ -18,6 +18,7 @@ import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.minigame.MiniGameHubView;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -27,16 +28,32 @@ public class MiniGameHubController extends ViewController {
 
     private final User user;
     private final UserDatabase userDatabase;
+    private final MiniGameId preselected;
     private MiniGameId selectedGame;
 
     public MiniGameHubController(User user,
                                  UserDatabase userDatabase) {
+        this(user, userDatabase, null);
+    }
+
+    public MiniGameHubController(User user,
+                                 UserDatabase userDatabase,
+                                 MiniGameId preselected) {
         this.user = user;
         this.userDatabase = userDatabase;
+        this.preselected = preselected;
+        if (preselected != null && user.getUnlockedMinigames().contains(preselected.getKey())) {
+            this.selectedGame = preselected;
+        }
     }
 
     @Override
     public void displayMenu() {
+        if (selectedGame != null) {
+            getHubView().showEnteredGame(selectedGame);
+            handleShowStages();
+            return;
+        }
         getHubView().showCurrentMenu();
         handleShowGames();
     }
@@ -62,7 +79,7 @@ public class MiniGameHubController extends ViewController {
     }
 
     private void handleMenuExit() {
-        if (selectedGame != null) {
+        if (selectedGame != null && preselected == null) {
             selectedGame = null;
             getHubView().showCurrentMenu();
             handleShowGames();
@@ -111,29 +128,12 @@ public class MiniGameHubController extends ViewController {
             getHubView().errorNoGameSelected();
             return;
         }
-        List<MiniGameStageConfig> stages = MiniGameRegistry.getInstance().getStages(selectedGame);
-        int maxStage = stages.size();
-        int playable = user.getMiniGameProgress().highestPlayableStage(selectedGame, maxStage);
         List<String> lines = new ArrayList<>();
-        for (MiniGameStageConfig stage : stages) {
-            boolean completed = user.getMiniGameProgress()
-                    .isStageCompleted(selectedGame, stage.getStageIndex());
-            String status = completed ? "DONE"
-                    : stage.getStageIndex() <= playable ? "OPEN"
+        for (StageInfo stage : selectedStages()) {
+            String status = stage.completed() ? "DONE"
+                    : stage.playable() ? "OPEN"
                     : "LOCKED";
-            String stageInfo;
-            if (selectedGame == MiniGameId.WALNUT_BOWLING) {
-                stageInfo = "waves=" + stage.getWaveCount() + " redLine=" + stage.getRedLineColumn();
-            } else if (selectedGame == MiniGameId.I_ZOMBIE) {
-                stageInfo = "sun=" + stage.getStartingSun() + " redLine=" + stage.getRedLineColumn();
-            } else if (selectedGame == MiniGameId.BEGHOULED) {
-                stageInfo = "matchTarget=" + stage.getMatchTarget();
-            } else if (selectedGame == MiniGameId.ZOMBOTANY) {
-                stageInfo = "waves=" + stage.getWaveCount() + " sun=" + stage.getStartingSun();
-            } else {
-                stageInfo = "pots=" + stage.getPotCount();
-            }
-            lines.add("Stage " + stage.getStageIndex() + " | " + stageInfo + " | " + status);
+            lines.add("Stage " + stage.index() + " | " + stage.detail() + " | " + status);
         }
         getHubView().showStages(selectedGame, lines);
     }
@@ -230,27 +230,85 @@ public class MiniGameHubController extends ViewController {
     }
 
     static ZombieRegistry loadZombieRegistry() {
-        try {
-            ZombieRegistry registry = new ZombieRegistry();
-            registry.loadFromJson("src/main/resources/zombies.json");
-            registry.loadArmorFromJson("src/main/resources/ArmorTypeData.json");
-            return registry;
-        } catch (IOException e) {
-            throw new RuntimeException("Could not load zombie registry", e);
-        }
+        return PlantSelectionController.loadZombieRegistry();
     }
 
     static ZombieRegistry loadZombotanyZombieRegistry() {
-        try {
-            ZombieRegistry registry = loadZombieRegistry();
-            registry.loadFromJson("src/main/resources/zombotany-zombies.json");
-            return registry;
+        ZombieRegistry registry = loadZombieRegistry();
+        try (InputStream extra = MiniGameHubController.class.getClassLoader()
+                .getResourceAsStream("zombotany-zombies.json")) {
+            if (extra == null) {
+                throw new IllegalStateException("zombotany-zombies.json is missing from application resources");
+            }
+            registry.loadFromJson(extra);
         } catch (IOException e) {
-            throw new RuntimeException("Could not load zombotany zombie registry", e);
+            throw new IllegalStateException("Could not load zombotany zombie registry", e);
         }
+        return registry;
     }
 
     private MiniGameHubView getHubView() {
         return (MiniGameHubView) view;
+    }
+
+    public void back() {
+        handleMenuExit();
+    }
+
+    public void startStage(int stageIndex) {
+        handleStartStage(String.valueOf(stageIndex));
+    }
+
+    public MiniGameId selectedGame() {
+        return selectedGame;
+    }
+
+    public List<StageInfo> selectedStages() {
+        if (selectedGame == null) {
+            return List.of();
+        }
+        List<MiniGameStageConfig> stages = MiniGameRegistry.getInstance().getStages(selectedGame);
+        int maxStage = stages.size();
+        int playable = user.getMiniGameProgress().highestPlayableStage(selectedGame, maxStage);
+        List<StageInfo> rows = new ArrayList<>();
+        for (MiniGameStageConfig stage : stages) {
+            boolean completed = user.getMiniGameProgress()
+                    .isStageCompleted(selectedGame, stage.getStageIndex());
+            boolean open = stage.getStageIndex() <= playable;
+            rows.add(new StageInfo(
+                    stage.getStageIndex(),
+                    stageDetail(stage),
+                    completed,
+                    open,
+                    stage.isImplemented()));
+        }
+        return rows;
+    }
+
+    private String stageDetail(MiniGameStageConfig stage) {
+        if (selectedGame == MiniGameId.WALNUT_BOWLING) {
+            return "waves=" + stage.getWaveCount() + " redLine=" + stage.getRedLineColumn();
+        }
+        if (selectedGame == MiniGameId.I_ZOMBIE) {
+            return "sun=" + stage.getStartingSun() + " redLine=" + stage.getRedLineColumn();
+        }
+        if (selectedGame == MiniGameId.BEGHOULED) {
+            return "matchTarget=" + stage.getMatchTarget();
+        }
+        if (selectedGame == MiniGameId.ZOMBOTANY) {
+            return "waves=" + stage.getWaveCount() + " sun=" + stage.getStartingSun();
+        }
+        return "pots=" + stage.getPotCount();
+    }
+
+    public record StageInfo(
+            int index,
+            String detail,
+            boolean completed,
+            boolean playable,
+            boolean implemented) {
+        public boolean locked() {
+            return !playable;
+        }
     }
 }
