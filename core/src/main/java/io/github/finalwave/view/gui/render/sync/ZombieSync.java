@@ -91,7 +91,7 @@ public final class ZombieSync {
     }
 
     private PamActor spawn(Zombie zombie) {
-        PamActor actor = new PamActor(assets.pamPlayer());
+        PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.ZOMBIE_ANCHOR_Y);
         layer.addActor(actor);

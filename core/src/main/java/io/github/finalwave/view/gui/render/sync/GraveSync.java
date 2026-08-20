@@ -79,7 +79,7 @@ public final class GraveSync {
     }
 
     private PamActor spawn() {
-        PamActor actor = new PamActor(assets.pamPlayer());
+        PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.GRAVE_ANCHOR_Y);
         layer.addActor(actor);

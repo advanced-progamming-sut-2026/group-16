@@ -8,6 +8,9 @@ public final class PlantClips {
     public static final String ICE_BLOCK_PATH =
             "768/FULL/EFFECTS/FROSTBITE_ICE_BLOCK_PLANT/FROSTBITE_ICE_BLOCK_PLANT.PAM";
     public static final String ICE_BLOCK_CLIP = "freeze_idle";
+    public static final String OCTOPUS_PATH =
+            "768/FULL/ZOMBIE/ZOMBIE_BEACH_OCTOPUS/ZOMBIE_BEACH_OCTOPUS.PAM";
+    public static final String OCTOPUS_CLIP = "idle";
 
     private final EntityAnimationCatalog catalog;
 

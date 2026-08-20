@@ -7,6 +7,7 @@ import io.github.finalwave.model.game.board.tile.NormalTile;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCovering;
 import io.github.finalwave.model.game.entity.plant.PlantSpecialModifiers;
+import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.GameContext;
@@ -106,8 +107,7 @@ public final class ProjectileSystem {
                     projectile.decrementLifetime();
                     continue;
                 }
-                if (context != null && projectile.getProfile().trajectory()
-                        != ProjectileProfile.Trajectory.ARCING
+                if (context != null && !passesObstacles(projectile)
                         && hitBoardObject(projectile, context)) {
                     iterator.remove();
                     continue;
@@ -184,8 +184,7 @@ public final class ProjectileSystem {
         } else {
             projectile.setX(projectile.getX() + speed);
         }
-        if (projectile.getProfile().trajectory() == ProjectileProfile.Trajectory.ARCING
-                || projectile.isFromZombie()) {
+        if (passesObstacles(projectile) || projectile.isFromZombie()) {
             return;
         }
         int col = (int) Math.floor(projectile.getX());
@@ -295,7 +294,8 @@ public final class ProjectileSystem {
             zombie.applyPoison(50, 5 + poisonBonus);
             zombie.takeDirectDamage(damage);
         } else if (projectile.getEffect() == ProjectileEffect.ICE
-                || projectile.getEffect() == ProjectileEffect.SNOWBALL) {
+                || projectile.getEffect() == ProjectileEffect.SNOWBALL
+                || projectile.getEffect() == ProjectileEffect.WINTER_MELON) {
             boolean immune = context != null && context.areZombiesImmuneToChill();
             if (!immune) {
                 int chillExt = projectile.getSource() == null ? 0
@@ -307,41 +307,93 @@ public final class ProjectileSystem {
         } else if (projectile.getEffect() == ProjectileEffect.BUTTER) {
             zombie.applyFreeze(20);
             zombie.takeDamage(damage);
+        } else if (projectile.getEffect() == ProjectileEffect.PEPPER) {
+            zombie.clearColdStatuses();
+            zombie.takeDamage(damage);
         } else {
             zombie.takeDamage(damage);
         }
-        if (projectile.getEffect() == ProjectileEffect.FIRE) {
+        if (projectile.getEffect() == ProjectileEffect.FIRE
+                || projectile.getEffect() == ProjectileEffect.PEPPER) {
             int warmRadius = projectile.getSource() == null ? 0
                     : (int) projectile.getSource().getStats()
                     .specialModifier(PlantSpecialModifiers.WARM_RADIUS_EXT);
             meltIceNear(board, zombie.getRow(), (int) zombie.getX(), warmRadius, context);
         }
         String killer = projectile.getSource() == null ? null : projectile.getSource().getName();
-        applySplash(projectile, zombie, zombies, onZombieKilled, killer);
+        applySplash(projectile, zombie, board, zombies, onZombieKilled, killer, context);
         if (zombie.isDead()) {
             onZombieKilled.accept(zombie, killer, projectile.getId());
         }
     }
 
-    private void applySplash(Projectile projectile, Zombie primary, List<Zombie> zombies,
-                             ProjectileKillCallback onZombieKilled, String killer) {
-        Plant source = projectile.getSource();
-        if (source == null || !source.getStats().hasSpecialModifier(PlantSpecialModifiers.SPLASH_DAMAGE_BUFF)) {
+    private void applySplash(Projectile projectile, Zombie primary, GameBoard board, List<Zombie> zombies,
+                             ProjectileKillCallback onZombieKilled, String killer, GameContext context) {
+        if (!shouldSplash(projectile)) {
             return;
         }
-        int splashDamage = (int) source.getStats().specialModifier(PlantSpecialModifiers.SPLASH_DAMAGE_BUFF);
+        int splashDamage = splashDamage(projectile);
+        boolean winter = projectile.getEffect() == ProjectileEffect.WINTER_MELON;
+        boolean pepper = projectile.getEffect() == ProjectileEffect.PEPPER;
+        boolean immune = context != null && context.areZombiesImmuneToChill();
         for (Zombie other : zombies) {
             if (other.isDead() || other == primary) {
                 continue;
             }
             if (Math.abs(other.getRow() - primary.getRow()) <= 1
                     && Math.abs(other.getX() - primary.getX()) <= 1.0) {
+                if (winter && !immune) {
+                    other.applyChill(30);
+                }
+                if (pepper) {
+                    other.clearColdStatuses();
+                }
                 other.takeDamage(splashDamage);
                 if (other.isDead()) {
                     onZombieKilled.accept(other, killer, projectile.getId());
                 }
             }
         }
+        if (pepper) {
+            meltIceNear(board, primary.getRow(), (int) primary.getX(), 0, context);
+        }
+    }
+
+    private static boolean shouldSplash(Projectile projectile) {
+        ProjectileEffect effect = projectile.getEffect();
+        if (effect == ProjectileEffect.MELON
+                || effect == ProjectileEffect.WINTER_MELON
+                || effect == ProjectileEffect.PEPPER) {
+            return true;
+        }
+        Plant source = projectile.getSource();
+        return source != null && source.hasTag(PlantTag.AOE);
+    }
+
+    private static int splashDamage(Projectile projectile) {
+        Plant source = projectile.getSource();
+        if (source != null && source.getStats().hasSpecialModifier(PlantSpecialModifiers.SPLASH_DAMAGE_BUFF)) {
+            int bonus = (int) source.getStats().specialModifier(PlantSpecialModifiers.SPLASH_DAMAGE_BUFF);
+            if (bonus > 0) {
+                return bonus;
+            }
+        }
+        return projectile.getDamage();
+    }
+
+    private static boolean passesObstacles(Projectile projectile) {
+        if (projectile.getProfile() != null) {
+            if (projectile.getProfile().trajectory() == ProjectileProfile.Trajectory.ARCING) {
+                return true;
+            }
+            if (projectile.getProfile().piercing()) {
+                return true;
+            }
+        }
+        ProjectileEffect effect = projectile.getEffect();
+        return effect == ProjectileEffect.FUME
+                || effect == ProjectileEffect.SPIKE
+                || effect == ProjectileEffect.PUFF;
     }
 
     private void meltIceNear(GameBoard board, int row, int col, int bonusRadius,

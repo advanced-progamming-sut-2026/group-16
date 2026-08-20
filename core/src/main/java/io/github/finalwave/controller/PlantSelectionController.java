@@ -79,7 +79,7 @@ public class PlantSelectionController extends ViewController {
     }
 
     public boolean isOwned(String name) {
-        return name != null && user.getPlantProgress().isOwned(name);
+        return collectionService.canSelectPlant(user, name);
     }
 
     public boolean isRestricted(String name) {
@@ -178,7 +178,7 @@ public class PlantSelectionController extends ViewController {
     }
 
     protected void handleShowAvailablePlants() {
-        List<String> available = user.getPlantProgress().getUnlockedPlantNames();
+        List<String> available = collectionService.selectablePlantNames(user);
         if (level.getType() == LevelType.PLANT_WHAT_YOU_GET) {
             available = available.stream()
                     .filter(name -> !isSunProducer(name))
@@ -196,7 +196,7 @@ public class PlantSelectionController extends ViewController {
             getViewApi().errorSunProducerBanned(type);
             return;
         }
-        if (!user.getPlantProgress().isOwned(type)) {
+        if (!isOwned(type)) {
             getViewApi().errorPlantLocked(type);
             return;
         }

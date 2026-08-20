@@ -162,6 +162,103 @@ class ProjectileSystemTest {
     }
 
     @Test
+    void namedProjectileEffectsAreDistinct() {
+        Plant pepper = plantFactory.createBaseLevel(
+                registry.getDefinition("Pepper-pult"), 1, 2);
+        Plant melon = plantFactory.createBaseLevel(
+                registry.getDefinition("Melon-pult"), 1, 2);
+        Plant winterMelon = plantFactory.createBaseLevel(
+                registry.getDefinition("Winter Melon"), 1, 2);
+        Plant cactus = plantFactory.createBaseLevel(
+                registry.getDefinition("Cactus"), 1, 2);
+        Plant puff = plantFactory.createBaseLevel(
+                registry.getDefinition("Puff-shroom"), 1, 2);
+
+        assertEquals(ProjectileEffect.PEPPER, pepper.projectileEffect());
+        assertNotEquals(ProjectileEffect.FIRE, pepper.projectileEffect());
+        assertEquals(ProjectileEffect.MELON, melon.projectileEffect());
+        assertNotEquals(ProjectileEffect.GENERIC, melon.projectileEffect());
+        assertEquals(ProjectileEffect.WINTER_MELON, winterMelon.projectileEffect());
+        assertEquals(ProjectileEffect.SPIKE, cactus.projectileEffect());
+        assertEquals(ProjectileEffect.PUFF, puff.projectileEffect());
+    }
+
+    @Test
+    void puffPassesGraveWithoutDestroyingIt() {
+        Plant puff = plantFactory.createBaseLevel(
+                registry.getDefinition("Puff-shroom"), 1, 1);
+        GraveTile grave = new GraveTile();
+        board.setTile(3, 1, grave);
+        Zombie zombie = new Zombie.Builder("behind-grave")
+                .maxHealth(100).position(5, 1).build();
+        system.spawnFromPlant(puff, 20, 1, ProjectileProfile.straight());
+
+        for (int i = 0; i < 20; i++) {
+            system.tick(board, List.of(zombie), z -> {});
+        }
+
+        assertTrue(board.getTile(3, 1).isGrave());
+        assertEquals(GraveTile.MAX_HEALTH, grave.getHealth());
+        assertTrue(zombie.getHealth() < 100);
+    }
+
+    @Test
+    void piercingProjectileDoesNotDestroyGrave() {
+        Plant cactus = plantFactory.createBaseLevel(
+                registry.getDefinition("Cactus"), 1, 1);
+        GraveTile grave = new GraveTile();
+        board.setTile(3, 1, grave);
+        Zombie zombie = new Zombie.Builder("behind-grave")
+                .maxHealth(100).position(5, 1).build();
+        system.spawnFromPlant(cactus, 30, 1, ProjectileProfile.piercingProfile());
+
+        for (int i = 0; i < 20; i++) {
+            system.tick(board, List.of(zombie), z -> {});
+        }
+
+        assertTrue(board.getTile(3, 1).isGrave());
+        assertEquals(GraveTile.MAX_HEALTH, grave.getHealth());
+        assertTrue(zombie.getHealth() < 100);
+    }
+
+    @Test
+    void melonSplashDamagesNeighbor() {
+        Plant melon = plantFactory.createBaseLevel(
+                registry.getDefinition("Melon-pult"), 1, 2);
+        Zombie primary = new Zombie.Builder("primary")
+                .maxHealth(500).position(2.0, 2).build();
+        Zombie neighbor = new Zombie.Builder("neighbor")
+                .maxHealth(500).position(2.0, 3).build();
+        system.spawnFromPlant(melon, 80, 1, ProjectileProfile.arcing());
+
+        for (int i = 0; i < 10; i++) {
+            system.tick(board, List.of(primary, neighbor), z -> {});
+        }
+
+        assertTrue(primary.getHealth() < 500);
+        assertTrue(neighbor.getHealth() < 500);
+        assertEquals(primary.getHealth(), neighbor.getHealth());
+    }
+
+    @Test
+    void pepperSplashDamagesNeighborWithoutFireMultiplier() {
+        Plant pepper = plantFactory.createBaseLevel(
+                registry.getDefinition("Pepper-pult"), 1, 2);
+        Zombie primary = new Zombie.Builder("primary")
+                .maxHealth(500).position(2.0, 2).build();
+        Zombie neighbor = new Zombie.Builder("neighbor")
+                .maxHealth(500).position(2.0, 3).build();
+        system.spawnFromPlant(pepper, 50, 1, ProjectileProfile.arcing());
+
+        for (int i = 0; i < 10; i++) {
+            system.tick(board, List.of(primary, neighbor), z -> {});
+        }
+
+        assertEquals(450, primary.getHealth());
+        assertEquals(450, neighbor.getHealth());
+    }
+
+    @Test
     void butterProjectileImmobilizesZombie() {
         Plant plant = plantFactory.createBaseLevel(
                 registry.getDefinition("Kernel-pult"), 1, 2);
