@@ -19,6 +19,7 @@ import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.TravelLogController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.ViewController;
+import io.github.finalwave.controller.WalnutBowlingController;
 import io.github.finalwave.view.gui.AdventureViewGui;
 import io.github.finalwave.view.gui.AuthViewGui;
 import io.github.finalwave.view.gui.CollectionViewGui;
@@ -36,6 +37,7 @@ import io.github.finalwave.view.gui.SettingViewGui;
 import io.github.finalwave.view.gui.ShopViewGui;
 import io.github.finalwave.view.gui.TravelLogViewGui;
 import io.github.finalwave.view.gui.VaseBreakerViewGui;
+import io.github.finalwave.view.gui.WalnutBowlingViewGui;
 import io.github.finalwave.view.gui.screen.ScreenRouter;
 
 public final class GuiNavigationBinder implements NavigationBinder {
@@ -56,6 +58,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final GamePlayViewGui gamePlayView;
     private final MiniGameHubViewGui miniGameHubView;
     private final VaseBreakerViewGui vaseBreakerView;
+    private final WalnutBowlingViewGui walnutBowlingView;
     private final ComingSoonViewGui comingSoonView;
 
     public GuiNavigationBinder(ScreenRouter router) {
@@ -76,6 +79,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.gamePlayView = new GamePlayViewGui(router);
         this.miniGameHubView = new MiniGameHubViewGui(router);
         this.vaseBreakerView = new VaseBreakerViewGui(router);
+        this.walnutBowlingView = new WalnutBowlingViewGui(router);
         this.comingSoonView = new ComingSoonViewGui(router);
     }
 
@@ -126,6 +130,9 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof VaseBreakerController vaseBreakerController) {
             vaseBreakerView.bindController(vaseBreakerController);
             newController.setView(vaseBreakerView);
+        } else if (newController instanceof WalnutBowlingController walnutBowlingController) {
+            walnutBowlingView.bindController(walnutBowlingController);
+            newController.setView(walnutBowlingView);
         } else if (newController instanceof RegistrationController
                 || newController instanceof LoginController) {
             authView.bindController(newController);

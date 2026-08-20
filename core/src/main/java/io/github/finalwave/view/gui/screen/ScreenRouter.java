@@ -22,6 +22,7 @@ import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.TravelLogController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.ViewController;
+import io.github.finalwave.controller.WalnutBowlingController;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.leaderboard.LeaderboardEntry;
 import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
@@ -74,7 +75,8 @@ public final class ScreenRouter {
                 || controller instanceof PlantSelectionController
                 || controller instanceof GamePlayController
                 || controller instanceof MiniGameHubController
-                || controller instanceof VaseBreakerController;
+                || controller instanceof VaseBreakerController
+                || controller instanceof WalnutBowlingController;
     }
 
     public boolean supportsDestination(MainMenuController.Destination destination) {
@@ -121,6 +123,8 @@ public final class ScreenRouter {
             showMiniGameHub(miniGameHubController);
         } else if (controller instanceof VaseBreakerController vaseBreakerController) {
             showGamePlay(vaseBreakerController);
+        } else if (controller instanceof WalnutBowlingController walnutBowlingController) {
+            showGamePlay(walnutBowlingController);
         } else {
             Gdx.app.log(TAG, "No GUI screen registered for " + controller.getClass().getSimpleName());
         }
@@ -247,6 +251,14 @@ public final class ScreenRouter {
     }
 
     public void showGamePlay(VaseBreakerController controller) {
+        if (gamePlayScreen == null) {
+            gamePlayScreen = new GamePlayScreen(game);
+        }
+        gamePlayScreen.bind(controller);
+        setScreen(gamePlayScreen);
+    }
+
+    public void showGamePlay(WalnutBowlingController controller) {
         if (gamePlayScreen == null) {
             gamePlayScreen = new GamePlayScreen(game);
         }

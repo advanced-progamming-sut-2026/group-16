@@ -8,7 +8,7 @@ public final class PlantPacketIds {
             Map.entry(normalize("Mega Gatling Pea"), "IMAGE_UI_PACKETS_MEGAGATLING"),
             Map.entry(normalize("Cherry Bomb"), "IMAGE_UI_PACKETS_CHERRY_BOMB"),
             Map.entry(normalize("Goo Peashooter"), "IMAGE_UI_PACKETS_PEASHOOTER"),
-            Map.entry(normalize("Giant Wall-nut"), "IMAGE_UI_PACKETS_WALLNUT")
+            Map.entry(normalize("Giant Wall-nut"), "IMAGE_UI_PACKETS_TALLNUT")
     );
 
     private PlantPacketIds() {
