@@ -50,7 +50,7 @@ public final class ProjectileSync {
             return;
         }
         List<Projectile> live = new ArrayList<>(session.getProjectileSystem().getProjectiles());
-        projectiles.sync(live, this::spawn, this::update, this::despawn);
+        projectiles.sync(live, this::spawn, this::update, this::onHit);
     }
 
     public void clear() {
@@ -65,6 +65,7 @@ public final class ProjectileSync {
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, 0.5f);
         layer.addActor(actor);
+        assets.audio().playThrow();
         effects.put(actor, projectile.getEffect());
         if (isArcing(projectile)) {
             double launchX = projectile.getX();
@@ -91,7 +92,8 @@ public final class ProjectileSync {
         effects.put(actor, projectile.getEffect());
     }
 
-    private void despawn(PamActor actor) {
+    private void onHit(PamActor actor) {
+        assets.audio().playHit();
         spawnSplat(actor);
         removeOnly(actor);
     }

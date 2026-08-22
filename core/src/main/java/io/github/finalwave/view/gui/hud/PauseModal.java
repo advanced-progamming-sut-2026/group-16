@@ -81,11 +81,11 @@ public final class PauseModal {
         Table panel = new Table();
         panel.setBackground(StoreChrome.panel());
         panel.pad(48f, 52f, 92f, 52f);
-        panel.add(volumeRow(assets, skin, "Music", GameAudioSettings.musicVolume(), GameAudioSettings::setMusicVolume))
+        panel.add(volumeRow(assets, skin, "Music", GameAudioSettings.musicVolume(), assets.audio()::setMusicVolume))
                 .growX()
                 .padBottom(26f)
                 .row();
-        panel.add(volumeRow(assets, skin, "Sound FX", GameAudioSettings.sfxVolume(), GameAudioSettings::setSfxVolume))
+        panel.add(volumeRow(assets, skin, "Sound FX", GameAudioSettings.sfxVolume(), assets.audio()::setSfxVolume))
                 .growX();
         panel.setSize(PANEL_WIDTH, PANEL_HEIGHT);
         panel.setPosition(0f, 0f);

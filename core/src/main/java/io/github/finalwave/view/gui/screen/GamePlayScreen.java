@@ -158,6 +158,11 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     @Override
+    protected void ensureMusic() {
+        assets.audio().playBattle();
+    }
+
+    @Override
     protected void buildUi() {
         setBackground(null);
         contentLayer.clearChildren();
