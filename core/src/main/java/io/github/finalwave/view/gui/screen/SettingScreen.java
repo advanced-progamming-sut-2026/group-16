@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.SettingController;
 import io.github.finalwave.model.user.User;
+import io.github.finalwave.view.gui.audio.GameAudioSettings;
 import io.github.finalwave.view.gui.widget.PanelLabels;
 import io.github.finalwave.view.gui.widget.PvzButtons;
 import io.github.finalwave.view.gui.widget.ThemedCheckBox;
@@ -27,6 +28,10 @@ public final class SettingScreen extends MenuScreen {
     private Label speedValue;
     private CheckBox gridCheck;
     private CheckBox debugCheck;
+    private Slider musicSlider;
+    private Label musicValue;
+    private Slider sfxSlider;
+    private Label sfxValue;
     private boolean applyingForm;
 
     public SettingScreen(PvzGame game) {
@@ -91,7 +96,17 @@ public final class SettingScreen extends MenuScreen {
                 controller.setDebugMode(debugCheck.isChecked());
             }
         });
-        panel.add(debugCheck).left().height(48).padBottom(28).row();
+        panel.add(debugCheck).left().height(48).padBottom(22).row();
+
+        musicSlider = addDiscreteSlider(panel, skin, "Music", 0, GameAudioSettings.MAX, volume -> {
+            assets.audio().setMusicVolume(volume);
+        });
+        musicValue = (Label) musicSlider.getUserObject();
+
+        sfxSlider = addDiscreteSlider(panel, skin, "Sound FX", 0, GameAudioSettings.MAX, volume -> {
+            assets.audio().setSfxVolume(volume);
+        });
+        sfxValue = (Label) sfxSlider.getUserObject();
 
         TextButton backBtn = PvzButtons.textButton("Back", skin, "green_small", () -> {
             if (controller != null) {
@@ -121,6 +136,8 @@ public final class SettingScreen extends MenuScreen {
         if (debugCheck != null) {
             debugCheck.setChecked(user.isDebugMode());
         }
+        setSliderValue(musicSlider, musicValue, GameAudioSettings.musicVolume());
+        setSliderValue(sfxSlider, sfxValue, GameAudioSettings.sfxVolume());
         applyingForm = false;
     }
 

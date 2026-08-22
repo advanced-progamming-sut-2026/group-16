@@ -138,6 +138,11 @@ public abstract class MenuScreen extends ScreenAdapter {
             }
         }
         buildUi();
+        ensureMusic();
+    }
+
+    protected void ensureMusic() {
+        assets.audio().playMenu();
     }
 
     protected abstract void buildUi();
