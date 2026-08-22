@@ -48,6 +48,7 @@ public final class ZombieSync {
     private final List<PamActor> deathActors = new ArrayList<>();
     private final Set<Armor> thrownArmor = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<Armor, String> lastArmorLayers = new IdentityHashMap<>();
+    private GameSession session;
     private float tickFraction;
 
     public ZombieSync(GameAssets assets, LawnLayout layout, ZombieClips clips, Group layer) {
@@ -62,6 +63,7 @@ public final class ZombieSync {
     }
 
     public void sync(GameSession session, float tickFraction) {
+        this.session = session;
         this.tickFraction = Math.max(0f, Math.min(1f, tickFraction));
         if (session == null) {
             return;
@@ -88,6 +90,7 @@ public final class ZombieSync {
             actor.remove();
         }
         deathActors.clear();
+        session = null;
     }
 
     private PamActor spawn(Zombie zombie) {
@@ -106,7 +109,7 @@ public final class ZombieSync {
         EntityAnimationCatalog.ClipSpec clip = ZombieVisualState.clip(zombie, clips);
         actor.setClip(clip.path(), clip.clip(), LawnLayout.ZOMBIE_SCALE, true);
         actor.setFlipX(zombie.isMovingRight() || zombie.isHypnotized());
-        actor.setTint(ZombieVisualState.tint(zombie));
+        actor.setTint(ZombieVisualState.tint(zombie, session));
         actor.setVisibility(ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(),
                 ZombieVisualState.armorVisibility(zombie, clips)));
         actor.setUserObject(zombie.getRow() * 8);
