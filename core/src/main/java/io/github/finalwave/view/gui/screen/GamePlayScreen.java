@@ -16,7 +16,9 @@ import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
+import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.ChapterId;
+import io.github.finalwave.model.adventure.ChapterRules;
 import io.github.finalwave.model.collection.CollectionService;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
@@ -31,6 +33,8 @@ import io.github.finalwave.view.gui.hud.AlertBanner;
 import io.github.finalwave.view.gui.hud.LevelObjectiveBanner;
 import io.github.finalwave.view.gui.hud.MatchResultModal;
 import io.github.finalwave.view.gui.hud.NpcDialogBox;
+import io.github.finalwave.view.gui.hud.NpcDialogLine;
+import io.github.finalwave.view.gui.hud.NpcDialogScript;
 import io.github.finalwave.view.gui.hud.PauseButton;
 import io.github.finalwave.view.gui.hud.PauseModal;
 import io.github.finalwave.view.gui.hud.PlantFoodCounter;
@@ -63,6 +67,7 @@ import io.github.finalwave.view.gui.render.sync.SunSync;
 import io.github.finalwave.view.gui.render.sync.VaseSync;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
@@ -137,6 +142,12 @@ public final class GamePlayScreen extends MenuScreen {
         if (objectiveBanner != null) {
             objectiveBanner.reset();
         }
+        if (alertBanner != null) {
+            alertBanner.reset();
+        }
+        if (npcDialog != null) {
+            npcDialog.hide();
+        }
         if (user == null && session == null) {
             return;
         }
@@ -189,9 +200,7 @@ public final class GamePlayScreen extends MenuScreen {
             }
         });
         buildHud();
-        if (objectiveBanner != null && controller != null && vaseBreaker == null && walnutBowling == null) {
-            objectiveBanner.showOnce(controller.chapter(), controller.level());
-        }
+        startIntroDialog();
     }
 
     @Override
@@ -249,6 +258,28 @@ public final class GamePlayScreen extends MenuScreen {
         if (message != null && !message.isBlank()) {
             toastMessage(message);
         }
+    }
+
+    public void showWaveAlert(int waveNumber, boolean finalWave) {
+        if (alertBanner == null) {
+            return;
+        }
+        if (finalWave) {
+            alertBanner.show("A huge wave of zombies is approaching!");
+        } else if (waveNumber > 1) {
+            alertBanner.show("A huge wave of zombies is approaching!");
+        }
+        enqueueChapterAlerts();
+    }
+
+    public void playStartChant(Runnable onFinished) {
+        if (alertBanner == null) {
+            if (onFinished != null) {
+                onFinished.run();
+            }
+            return;
+        }
+        alertBanner.showSequence(List.of("READY", "SET", "PLANT!"), onFinished);
     }
 
     public void showPauseModal() {
@@ -368,6 +399,12 @@ public final class GamePlayScreen extends MenuScreen {
         }
         pauseModal.dismiss();
         resultModal.dismiss();
+        if (objectiveBanner != null) {
+            objectiveBanner.dismiss();
+        }
+        if (alertBanner != null) {
+            alertBanner.reset();
+        }
         if (battlefield != null) {
             battlefield.clearBattlefield();
         }
@@ -443,18 +480,18 @@ public final class GamePlayScreen extends MenuScreen {
             alertBanner.remove();
         }
         if (objectiveBanner != null) {
-            objectiveBanner.remove();
+            objectiveBanner.dismiss();
         }
         if (npcDialog != null) {
             npcDialog.remove();
         }
         alertBanner = new AlertBanner(assets.skin());
-        objectiveBanner = new LevelObjectiveBanner(assets.skin());
-        npcDialog = new NpcDialogBox(assets.skin());
-        toastLayer.addActor(alertBanner);
-        toastLayer.addActor(objectiveBanner);
-        toastLayer.addActor(npcDialog);
-        npcDialog.setPosition(640f, 24f);
+        if (objectiveBanner == null) {
+            objectiveBanner = new LevelObjectiveBanner();
+        }
+        npcDialog = new NpcDialogBox(assets);
+        stage.addActor(alertBanner);
+        stage.addActor(npcDialog);
     }
 
     private Table meterBlock() {
@@ -465,6 +502,84 @@ public final class GamePlayScreen extends MenuScreen {
         title.setFontScale(0.62f);
         block.add(title).padTop(2f);
         return block;
+    }
+
+    private void startIntroDialog() {
+        if (npcDialog == null || controller == null || vaseBreaker != null || walnutBowling != null) {
+            showObjectiveIfNeeded();
+            return;
+        }
+        List<NpcDialogLine> script = NpcDialogScript.forLevel(controller.chapter(), controller.level());
+        if (script.isEmpty()) {
+            showObjectiveIfNeeded();
+            return;
+        }
+        assets.pamPlayer().loadAsync(LawnAssetIds.CRAZY_DAVE_PAM, () -> {
+        });
+        assets.pamPlayer().loadAsync(LawnAssetIds.PENNY_PAM, () -> {
+        });
+        if (clock != null) {
+            clock.setPaused(true);
+        }
+        npcDialog.setOnFinished(this::showObjectiveIfNeeded);
+        npcDialog.show(script);
+    }
+
+    private void showObjectiveIfNeeded() {
+        if (objectiveBanner == null || controller == null || vaseBreaker != null || walnutBowling != null) {
+            resumeAfterIntro();
+            return;
+        }
+        if (clock != null) {
+            clock.setPaused(true);
+        }
+        objectiveBanner.show(
+                stage,
+                viewport,
+                assets,
+                controller.level(),
+                this::afterObjectives);
+    }
+
+    private void afterObjectives() {
+        if (shouldPlayStartChant()) {
+            if (clock != null) {
+                clock.setPaused(true);
+            }
+            playStartChant(this::resumeAfterIntro);
+            return;
+        }
+        resumeAfterIntro();
+    }
+
+    private boolean shouldPlayStartChant() {
+        if (controller == null || vaseBreaker != null || walnutBowling != null) {
+            return false;
+        }
+        GameSession session = controller.session();
+        return session == null || !session.isPrepPhaseActive();
+    }
+
+    private void enqueueChapterAlerts() {
+        if (alertBanner == null || controller == null || controller.chapter() == null) {
+            return;
+        }
+        ChapterConfig chapter = controller.chapter();
+        ChapterRules rules = chapter.getRules();
+        if (rules.hasNecromancyTiles() && rules.hasGravesOnWaveStart()) {
+            alertBanner.show("The graves stir with necromancy!");
+        }
+        if (rules.hasLowBeachEmerge()) {
+            alertBanner.show("Zombies emerge from the low beach!");
+        }
+    }
+
+    private void resumeAfterIntro() {
+        if (clock != null && !resultShown && !pauseModal.isShowing()
+                && (npcDialog == null || !npcDialog.isShowing())
+                && (objectiveBanner == null || !objectiveBanner.isShowing())) {
+            clock.setPaused(false);
+        }
     }
 
     private String levelCaption() {
@@ -540,7 +655,9 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void togglePause() {
-        if (resultShown || resultModal.isShowing() || matchFinished()) {
+        if (resultShown || resultModal.isShowing() || matchFinished()
+                || (npcDialog != null && npcDialog.isShowing())
+                || (objectiveBanner != null && objectiveBanner.isShowing())) {
             return;
         }
         if (pauseModal.isShowing()) {
@@ -562,7 +679,8 @@ public final class GamePlayScreen extends MenuScreen {
 
     private void resumeMatch() {
         pauseModal.dismiss();
-        if (clock != null && !resultShown) {
+        if (clock != null && !resultShown && (npcDialog == null || !npcDialog.isShowing())
+                && (objectiveBanner == null || !objectiveBanner.isShowing())) {
             clock.setPaused(false);
         }
     }
@@ -637,6 +755,8 @@ public final class GamePlayScreen extends MenuScreen {
     private boolean inputBlocked() {
         return resultShown
                 || pauseModal.isShowing()
+                || (npcDialog != null && npcDialog.isShowing())
+                || (objectiveBanner != null && objectiveBanner.isShowing())
                 || (clock != null && clock.isPaused())
                 || matchFinished();
     }
@@ -705,6 +825,12 @@ public final class GamePlayScreen extends MenuScreen {
         if (session.isPrepPhaseActive()) {
             assets.region(LawnAssetIds.PURPLE_BUTTON);
             assets.region(LawnAssetIds.PURPLE_BUTTON_DOWN);
+        }
+        if (controller != null
+                && !NpcDialogScript.forLevel(controller.chapter(), controller.level()).isEmpty()) {
+            assets.region(LawnAssetIds.SPEECH_BUBBLE);
+            assets.pamPlayer().loadSync(LawnAssetIds.CRAZY_DAVE_PAM);
+            assets.pamPlayer().loadSync(LawnAssetIds.PENNY_PAM);
         }
         if (session.isDeadLineActive()) {
             assets.pamPlayer().loadSync(DeadLineSync.PAM_PATH);

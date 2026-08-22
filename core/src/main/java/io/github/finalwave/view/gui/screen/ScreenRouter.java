@@ -317,6 +317,18 @@ public final class ScreenRouter {
         }
     }
 
+    public void showGamePlayWaveAlert(int waveNumber, boolean finalWave) {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.showWaveAlert(waveNumber, finalWave);
+        }
+    }
+
+    public void playGamePlayStartChant() {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.playStartChant(null);
+        }
+    }
+
     public void showGamePlayPauseModal() {
         if (gamePlayScreen != null) {
             gamePlayScreen.showPauseModal();

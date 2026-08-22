@@ -59,6 +59,12 @@ public final class LawnAssetIds {
     public static final String CHALLENGE_FAILED = "IMAGE_UI_HUD_INGAME_CHALLENGE_FAILED";
     public static final String PURPLE_BUTTON = "IMAGE_UI_GENERIC_PURPLEBUTTON";
     public static final String PURPLE_BUTTON_DOWN = "IMAGE_UI_GENERIC_PURPLEBUTTON_DOWN";
+    public static final String DIALOG_INNER = "IMAGE_UI_DIALOG_ASSET_INNER_BKGD";
+    public static final String CRAZY_DAVE_PAM = "768/INITIAL/CRAZYDAVE/CRAZYDAVE/CRAZYDAVE.PAM";
+    public static final String PENNY_PAM = "768/INITIAL/WINNIE/WINNIE/WINNIE.PAM";
+    public static final String SPEECH_BUBBLE = "IMAGE_STORE_SPEECHBUBBLE2";
+    public static final String SPEAK_CLIP = "anim_blahblah";
+    public static final String IDLE_CLIP = "anim_idle";
 
     public static final String[] BOOT_PRELOAD = {
             EGYPT_MAIN,
@@ -99,7 +105,8 @@ public final class LawnAssetIds {
             CHALLENGE_SUCCESS,
             CHALLENGE_FAILED,
             PURPLE_BUTTON,
-            PURPLE_BUTTON_DOWN
+            PURPLE_BUTTON_DOWN,
+            DIALOG_INNER
     };
 
     private LawnAssetIds() {
