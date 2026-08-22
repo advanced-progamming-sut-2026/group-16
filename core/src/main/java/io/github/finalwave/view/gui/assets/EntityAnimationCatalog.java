@@ -31,7 +31,7 @@ public final class EntityAnimationCatalog {
             normalize("Rotobaga"), "ROTORUTABAGA",
             normalize("Mega Gatling Pea"), "MEGAGATLING",
             normalize("Phat Beet"), "PHATBEETS",
-            normalize("Giant Wall-nut"), "WALLNUT"
+            normalize("Giant Wall-nut"), "TALLNUT"
     );
 
     private static final Map<String, String> ZOMBIE_PATHS = zombiePaths();

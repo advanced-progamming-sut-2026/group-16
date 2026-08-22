@@ -28,6 +28,7 @@ public class WalnutBowlingController extends ViewController implements MatchList
     private final MiniGameStageConfig stage;
     private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
+    private boolean deferMatchExit;
 
     public WalnutBowlingController(User user,
                                    UserDatabase userDatabase,
@@ -75,23 +76,7 @@ public class WalnutBowlingController extends ViewController implements MatchList
     }
 
     private void handlePlantNut(String plantType, String x, String y) {
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        if (col < 0 || row < 0) {
-            getViewApi().errorInvalidLocation(col, row);
-            return;
-        }
-        PlantPlacementResult result = session.tryPlantBowlingNut(plantType.trim(), col, row);
-        switch (result) {
-            case SUCCESS -> {
-            }
-            case BEYOND_PLANTING_LINE -> getViewApi().errorBeyondPlantingLine(
-                    col, row, session.getWalnutBowlingRedLineColumn());
-            case NOT_ON_CONVEYOR_BELT -> getViewApi().errorPlantNotOnConveyorBelt(plantType);
-            case UNKNOWN_PLANT -> getViewApi().errorUnknownPlant(plantType);
-            case OUT_OF_BOUNDS -> getViewApi().errorInvalidLocation(col, row);
-            default -> getViewApi().errorCannotPlantHere(col, row);
-        }
+        plantSeed(plantType, parseCoord(x), parseCoord(y));
     }
 
     private void handleAdvanceTime(String count) {
@@ -102,12 +87,7 @@ public class WalnutBowlingController extends ViewController implements MatchList
             getViewApi().errorInvalidTickCount();
             return;
         }
-        if (ticks < 0) {
-            getViewApi().errorNegativeTickCount();
-            return;
-        }
-        session.advanceTicks(ticks);
-        getViewApi().showAdvanceTime(ticks);
+        advance(ticks);
     }
 
     private void maybeReturnAfterMatch() {
@@ -115,18 +95,20 @@ public class WalnutBowlingController extends ViewController implements MatchList
             return;
         }
         MatchResult result = session.getMatchResult();
+        if (result != MatchResult.WON && result != MatchResult.LOST) {
+            return;
+        }
+        finishedHandled = true;
+        recordFinishedGame();
         if (result == MatchResult.WON) {
-            finishedHandled = true;
-            recordFinishedGame();
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
-            navigator.pop();
-        } else if (result == MatchResult.LOST) {
-            finishedHandled = true;
-            recordFinishedGame();
-            navigator.pop();
         }
+        if (deferMatchExit) {
+            return;
+        }
+        navigator.pop();
     }
 
     private void recordFinishedGame() {
@@ -146,8 +128,16 @@ public class WalnutBowlingController extends ViewController implements MatchList
         return (WalnutBowlingView) view;
     }
 
+    public GameSession session() {
+        return session;
+    }
+
     public GameSession getSession() {
         return session;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     public MiniGameStageConfig getStage() {
@@ -156,6 +146,52 @@ public class WalnutBowlingController extends ViewController implements MatchList
 
     public WalnutBowlingMode getMode() {
         return mode;
+    }
+
+    public void setDeferMatchExit(boolean deferMatchExit) {
+        this.deferMatchExit = deferMatchExit;
+    }
+
+    public void confirmMatchExit() {
+        navigator.pop();
+    }
+
+    public void restartMatch() {
+        navigator.pop();
+    }
+
+    public void advance(int ticks) {
+        if (ticks < 0) {
+            getViewApi().errorNegativeTickCount();
+            return;
+        }
+        session.advanceTicks(ticks);
+        getViewApi().showAdvanceTime(ticks);
+        maybeReturnAfterMatch();
+    }
+
+    public PlantPlacementResult plantSeed(String plantName, int col, int row) {
+        if (plantName == null || plantName.isBlank()) {
+            getViewApi().errorUnknownPlant(plantName);
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        if (col < 0 || row < 0) {
+            getViewApi().errorInvalidLocation(col, row);
+            return PlantPlacementResult.OUT_OF_BOUNDS;
+        }
+        PlantPlacementResult result = session.tryPlantBowlingNut(plantName.trim(), col, row);
+        switch (result) {
+            case SUCCESS -> {
+            }
+            case BEYOND_PLANTING_LINE -> getViewApi().errorBeyondPlantingLine(
+                    col, row, session.getWalnutBowlingRedLineColumn());
+            case NOT_ON_CONVEYOR_BELT -> getViewApi().errorPlantNotOnConveyorBelt(plantName);
+            case UNKNOWN_PLANT -> getViewApi().errorUnknownPlant(plantName);
+            case OUT_OF_BOUNDS -> getViewApi().errorInvalidLocation(col, row);
+            default -> getViewApi().errorCannotPlantHere(col, row);
+        }
+        maybeReturnAfterMatch();
+        return result;
     }
 
     @Override

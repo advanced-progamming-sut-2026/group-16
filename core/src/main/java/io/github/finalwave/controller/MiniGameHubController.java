@@ -42,7 +42,7 @@ public class MiniGameHubController extends ViewController {
         this.user = user;
         this.userDatabase = userDatabase;
         this.preselected = preselected;
-        if (preselected != null && user.getUnlockedMinigames().contains(preselected.getKey())) {
+        if (preselected != null && minigameUnlocked(preselected)) {
             this.selectedGame = preselected;
         }
     }
@@ -91,7 +91,7 @@ public class MiniGameHubController extends ViewController {
     private void handleShowGames() {
         List<String> lines = new ArrayList<>();
         for (MiniGameId id : MiniGameRegistry.getInstance().getAllMiniGames()) {
-            boolean unlocked = user.getUnlockedMinigames().contains(id.getKey());
+            boolean unlocked = minigameUnlocked(id);
             List<MiniGameStageConfig> stages = MiniGameRegistry.getInstance().getStages(id);
             boolean implemented = stages.stream().anyMatch(MiniGameStageConfig::isImplemented);
             String status = !unlocked ? "LOCKED"
@@ -108,7 +108,7 @@ public class MiniGameHubController extends ViewController {
             getHubView().errorUnknownGame(name);
             return;
         }
-        if (!user.getUnlockedMinigames().contains(id.getKey())) {
+        if (!minigameUnlocked(id)) {
             getHubView().errorGameLocked(id.getDisplayName());
             return;
         }
@@ -156,7 +156,7 @@ public class MiniGameHubController extends ViewController {
             return;
         }
         List<MiniGameStageConfig> stages = MiniGameRegistry.getInstance().getStages(selectedGame);
-        if (!user.getMiniGameProgress().isStagePlayable(selectedGame, stageIndex, stages.size())) {
+        if (!stageOpen(selectedGame, stageIndex, stages.size())) {
             getHubView().errorStageLocked(stageIndex);
             return;
         }
@@ -269,12 +269,11 @@ public class MiniGameHubController extends ViewController {
         }
         List<MiniGameStageConfig> stages = MiniGameRegistry.getInstance().getStages(selectedGame);
         int maxStage = stages.size();
-        int playable = user.getMiniGameProgress().highestPlayableStage(selectedGame, maxStage);
         List<StageInfo> rows = new ArrayList<>();
         for (MiniGameStageConfig stage : stages) {
             boolean completed = user.getMiniGameProgress()
                     .isStageCompleted(selectedGame, stage.getStageIndex());
-            boolean open = stage.getStageIndex() <= playable;
+            boolean open = stageOpen(selectedGame, stage.getStageIndex(), maxStage);
             rows.add(new StageInfo(
                     stage.getStageIndex(),
                     stageDetail(stage),
@@ -283,6 +282,14 @@ public class MiniGameHubController extends ViewController {
                     stage.isImplemented()));
         }
         return rows;
+    }
+
+    private boolean minigameUnlocked(MiniGameId id) {
+        return user.isDebugMode() || user.getUnlockedMinigames().contains(id.getKey());
+    }
+
+    private boolean stageOpen(MiniGameId id, int stageIndex, int maxStage) {
+        return user.isDebugMode() || user.getMiniGameProgress().isStagePlayable(id, stageIndex, maxStage);
     }
 
     private String stageDetail(MiniGameStageConfig stage) {

@@ -11,6 +11,8 @@ import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
+import io.github.finalwave.view.gui.render.sync.BowlingLineSync;
+import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.GraveSync;
 import io.github.finalwave.view.gui.render.sync.GroundSeedPacketSync;
@@ -50,6 +52,8 @@ public final class BattlefieldGroup extends WidgetGroup {
     private DeadLineSync deadLineSync;
     private VaseSync vaseSync;
     private GroundSeedPacketSync packetSync;
+    private BowlingNutSync bowlingNutSync;
+    private BowlingLineSync bowlingLineSync;
     private Consumer<Sun> sunCollector;
 
     public BattlefieldGroup() {
@@ -89,6 +93,8 @@ public final class BattlefieldGroup extends WidgetGroup {
             deadLineSync = null;
             vaseSync = null;
             packetSync = null;
+            bowlingNutSync = null;
+            bowlingLineSync = null;
             return;
         }
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
@@ -101,6 +107,8 @@ public final class BattlefieldGroup extends WidgetGroup {
         deadLineSync = new DeadLineSync(assets, layout, deadlineLayer);
         vaseSync = new VaseSync(assets, layout, environmentLayer);
         packetSync = new GroundSeedPacketSync(assets, layout, packetLayer);
+        bowlingNutSync = new BowlingNutSync(assets, layout, plantLayer);
+        bowlingLineSync = new BowlingLineSync(layout, highlightLayer);
     }
 
     public void setSunCollector(Consumer<Sun> sunCollector) {
@@ -128,11 +136,19 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (packetSync != null) {
             packetSync.sync(session);
         }
+        if (bowlingLineSync != null) {
+            bowlingLineSync.sync(session);
+        }
         if (deadLineSync != null) {
             deadLineSync.sync(session);
         }
         if (plantSync != null) {
             plantSync.sync(session);
+        }
+        if (bowlingNutSync != null) {
+            bowlingNutSync.sync(session, tickFraction);
+        }
+        if (plantSync != null || bowlingNutSync != null) {
             sortByRow(plantLayer, BattlefieldGroup::sortKey);
         }
         if (zombieSync != null) {
@@ -216,6 +232,12 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (packetSync != null) {
             packetSync.clear();
+        }
+        if (bowlingNutSync != null) {
+            bowlingNutSync.clear();
+        }
+        if (bowlingLineSync != null) {
+            bowlingLineSync.clear();
         }
         environmentLayer.clearChildren();
         highlightLayer.clearChildren();

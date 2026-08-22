@@ -15,6 +15,7 @@ import io.github.finalwave.model.shop.ShopOffer;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
 import io.github.finalwave.view.gui.assets.PlantAnimationCatalog;
+import io.github.finalwave.view.gui.assets.PlantPacketIds;
 
 
 public final class ShopItemCard extends Stack {
@@ -158,6 +159,10 @@ public final class ShopItemCard extends Stack {
     public static String packetImageId(GameAssets assets, String plantName) {
         if (plantName == null || plantName.isBlank()) {
             return MenuAssetIds.SEED_PACKET_MULTI;
+        }
+        String mapped = PlantPacketIds.imageId(plantName);
+        if (knownImage(assets, mapped)) {
+            return mapped;
         }
         String id = MenuAssetIds.SEED_PACKET_PREFIX + plantName.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
         return knownImage(assets, id) ? id : MenuAssetIds.SEED_PACKET_MULTI;

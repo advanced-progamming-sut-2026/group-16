@@ -36,6 +36,7 @@ public final class VaseBreakerStagePath extends Group {
 
     public VaseBreakerStagePath(GameAssets assets,
                                 Skin skin,
+                                ChapterId chapter,
                                 List<MiniGameHubController.StageInfo> stages,
                                 Set<Integer> seenCompleted,
                                 Set<Integer> seenUnlocked,
@@ -44,6 +45,7 @@ public final class VaseBreakerStagePath extends Group {
         if (assets == null || stages == null || stages.isEmpty()) {
             return;
         }
+        ChapterId islandChapter = chapter == null ? ChapterId.ANCIENT_EGYPT : chapter;
         for (String pam : AdventureAssetIds.nodePams()) {
             assets.pamPlayer().loadAsync(pam, () -> {
             });
@@ -51,7 +53,7 @@ public final class VaseBreakerStagePath extends Group {
         int currentIndex = firstOpenIncomplete(stages);
         int count = Math.min(stages.size(), NODE_X.length);
         for (int i = 0; i < count; i++) {
-            addActor(island(assets, layoutFor(assets, i)));
+            addActor(island(assets, layoutFor(assets, islandChapter, i)));
         }
         for (int i = 0; i < count - 1; i++) {
             addActor(connector(assets, i, stages.get(i).completed()));
@@ -67,7 +69,7 @@ public final class VaseBreakerStagePath extends Group {
                     && !stage.completed()
                     && seenUnlocked != null
                     && !seenUnlocked.contains(stage.index());
-            addActor(node(assets, skin, layoutFor(assets, i), stage, unlocked, current,
+            addActor(node(assets, skin, layoutFor(assets, islandChapter, i), stage, unlocked, current,
                     playComplete, playUnlock, seenCompleted, seenUnlocked, onStage));
         }
     }
@@ -81,9 +83,9 @@ public final class VaseBreakerStagePath extends Group {
         return stages.getLast().index();
     }
 
-    private static SlotLayout layoutFor(GameAssets assets, int slot) {
+    private static SlotLayout layoutFor(GameAssets assets, ChapterId chapter, int slot) {
         int index = Math.min(slot, NODE_X.length - 1);
-        String islandId = AdventureAssetIds.levelIsland(ChapterId.ANCIENT_EGYPT, index, false);
+        String islandId = AdventureAssetIds.levelIsland(chapter, index, false);
         float[] size = islandSize(assets, islandId);
         float cx = NODE_X[index] + NODE / 2f;
         float cy = NODE_Y[index] + NODE / 2f;

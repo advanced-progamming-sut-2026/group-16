@@ -15,6 +15,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.VaseBreakerController;
+import io.github.finalwave.controller.WalnutBowlingController;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
@@ -52,6 +53,7 @@ import io.github.finalwave.view.gui.render.LawnGridOverlay;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.GraveClips;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
+import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
@@ -68,6 +70,7 @@ public final class GamePlayScreen extends MenuScreen {
 
     private GamePlayController controller;
     private VaseBreakerController vaseBreaker;
+    private WalnutBowlingController walnutBowling;
     private MatchClock clock;
     private LawnLayout layout;
     private ChapterBackground chapterBackground;
@@ -99,13 +102,23 @@ public final class GamePlayScreen extends MenuScreen {
     public void bind(GamePlayController controller) {
         this.controller = controller;
         this.vaseBreaker = null;
+        this.walnutBowling = null;
         bindMatch(controller == null ? null : controller.getUser(), controller == null ? null : controller.session());
     }
 
     public void bind(VaseBreakerController vaseBreaker) {
         this.controller = null;
         this.vaseBreaker = vaseBreaker;
+        this.walnutBowling = null;
         bindMatch(vaseBreaker == null ? null : vaseBreaker.getUser(), vaseBreaker == null ? null : vaseBreaker.session());
+    }
+
+    public void bind(WalnutBowlingController walnutBowling) {
+        this.controller = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = walnutBowling;
+        bindMatch(walnutBowling == null ? null : walnutBowling.getUser(),
+                walnutBowling == null ? null : walnutBowling.session());
     }
 
     private void bindMatch(User user, GameSession session) {
@@ -168,7 +181,7 @@ public final class GamePlayScreen extends MenuScreen {
             }
         });
         buildHud();
-        if (objectiveBanner != null && controller != null && vaseBreaker == null) {
+        if (objectiveBanner != null && controller != null && vaseBreaker == null && walnutBowling == null) {
             objectiveBanner.showOnce(controller.chapter(), controller.level());
         }
     }
@@ -249,7 +262,7 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     public void refreshHud() {
-        if (controller == null && vaseBreaker == null) {
+        if (controller == null && vaseBreaker == null && walnutBowling == null) {
             return;
         }
         User user = matchUser();
@@ -267,22 +280,29 @@ public final class GamePlayScreen extends MenuScreen {
             plantFoodCounter.setCount(session.getPlantFoodCount());
         }
         boolean vaseMode = vaseBreaker != null;
+        boolean bowlingMode = walnutBowling != null;
+        boolean hideAdventureHud = vaseMode || bowlingMode;
         if (sunCounter != null) {
-            sunCounter.setVisible(!vaseMode);
+            sunCounter.setVisible(!hideAdventureHud);
         }
         if (plantFoodCounter != null) {
-            plantFoodCounter.setVisible(!vaseMode);
+            plantFoodCounter.setVisible(!hideAdventureHud);
         }
         if (waveMeter != null) {
             waveMeter.setVisible(!vaseMode);
         }
         if (seedBank != null && session != null) {
-            if (vaseMode) {
+            if (hideAdventureHud) {
                 seedBank.setVisible(false);
             } else {
                 seedBank.refresh(session, user, controller == null ? Set.of() : controller.boostedPlants(),
                         input == null ? null : input.mode());
             }
+        }
+        if (bowlingMode && session != null && input != null
+                && input.mode() instanceof ToolMode.Seed seed
+                && !session.getConveyorBeltPlants().contains(seed.plantName())) {
+            input.setMode(new ToolMode.None());
         }
         if (vaseMode && session != null) {
             if (input != null && input.mode() instanceof ToolMode.Seed seed
@@ -376,10 +396,10 @@ public final class GamePlayScreen extends MenuScreen {
         waveMeter = new WaveProgressMeter(assets);
         speedButton = new SpeedButton(assets, this::onSpeed);
         Actor pause = PauseButton.create(assets, this::togglePause);
-        Actor shovel = vaseBreaker == null ? ShovelButton.create(assets, this::onShovel) : null;
+        Actor shovel = hideAdventureTools() ? null : ShovelButton.create(assets, this::onShovel);
 
         hudTop = new Table();
-        if (vaseBreaker == null) {
+        if (!hideAdventureTools()) {
             hudTop.add(sunCounter).padLeft(sunPad()).padTop(10f);
         }
         hudTop.add(startWaveButton).padLeft(8f).padTop(10f);
@@ -394,14 +414,14 @@ public final class GamePlayScreen extends MenuScreen {
 
         Table mid = new Table();
         mid.setTouchable(Touchable.childrenOnly);
-        if (vaseBreaker == null) {
+        if (!hideAdventureTools()) {
             mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
         }
         mid.add().expand();
         hudLayer.add(mid).grow().row();
 
         hudBottom = new Table();
-        if (vaseBreaker == null) {
+        if (!hideAdventureTools()) {
             hudBottom.add(plantFoodCounter).left().padLeft(plantFoodPad()).padBottom(18f);
         }
         hudBottom.add().expandX();
@@ -443,6 +463,10 @@ public final class GamePlayScreen extends MenuScreen {
         if (vaseBreaker != null && vaseBreaker.getStage() != null) {
             MiniGameStageConfig stage = vaseBreaker.getStage();
             return "Vasebreaker - Stage " + stage.getStageIndex();
+        }
+        if (walnutBowling != null && walnutBowling.getStage() != null) {
+            MiniGameStageConfig stage = walnutBowling.getStage();
+            return "Wallnut Bowling - Stage " + stage.getStageIndex();
         }
         if (controller == null || controller.chapter() == null || controller.level() == null) {
             return "";
@@ -540,6 +564,10 @@ public final class GamePlayScreen extends MenuScreen {
             vaseBreaker.confirmMatchExit();
             return;
         }
+        if (walnutBowling != null) {
+            walnutBowling.confirmMatchExit();
+            return;
+        }
         if (controller != null) {
             controller.confirmMatchExit();
         }
@@ -548,6 +576,10 @@ public final class GamePlayScreen extends MenuScreen {
     private void restartMatch() {
         if (vaseBreaker != null) {
             vaseBreaker.restartMatch();
+            return;
+        }
+        if (walnutBowling != null) {
+            walnutBowling.restartMatch();
             return;
         }
         if (controller != null) {
@@ -686,6 +718,11 @@ public final class GamePlayScreen extends MenuScreen {
                 preloadPlantPam(plantName);
             }
         }
+        if (session.isWalnutBowlingActive()) {
+            preload(BowlingNutSync.WALLNUT_PAM);
+            preload(BowlingNutSync.EXPLODEONUT_PAM);
+            preload(BowlingNutSync.TALLNUT_PAM);
+        }
         if (!session.getVases().isEmpty()) {
             preload(VaseSync.BROWN_PAM);
             preload(VaseSync.GREEN_PAM);
@@ -744,12 +781,18 @@ public final class GamePlayScreen extends MenuScreen {
         if (vaseBreaker != null) {
             return vaseBreaker.session();
         }
+        if (walnutBowling != null) {
+            return walnutBowling.session();
+        }
         return controller == null ? null : controller.session();
     }
 
     private User matchUser() {
         if (vaseBreaker != null) {
             return vaseBreaker.getUser();
+        }
+        if (walnutBowling != null) {
+            return walnutBowling.getUser();
         }
         return controller == null ? null : controller.getUser();
     }
@@ -766,9 +809,16 @@ public final class GamePlayScreen extends MenuScreen {
         return false;
     }
 
+    private boolean hideAdventureTools() {
+        return vaseBreaker != null || walnutBowling != null;
+    }
+
     private LawnActionHost lawnHost() {
         if (vaseBreaker != null) {
             return new ControllerLawnHost(vaseBreaker);
+        }
+        if (walnutBowling != null) {
+            return new ControllerLawnHost(walnutBowling);
         }
         return new ControllerLawnHost(controller);
     }
@@ -776,6 +826,9 @@ public final class GamePlayScreen extends MenuScreen {
     private ControllerTicker matchTicker() {
         if (vaseBreaker != null) {
             return new ControllerTicker(vaseBreaker);
+        }
+        if (walnutBowling != null) {
+            return new ControllerTicker(walnutBowling);
         }
         return new ControllerTicker(controller);
     }

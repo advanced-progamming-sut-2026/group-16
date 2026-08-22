@@ -14,7 +14,6 @@ import java.util.Random;
 public final class BowlingNutSystem {
 
     public static final double SPEED = 0.2;
-    public static final double GIANT_PUSH_DISTANCE = 1.0;
     public static final int CHERRY_BOMB_DAMAGE = 1800;
     public static final double CHERRY_BOMB_RADIUS = 1.5;
     public static final String NORMAL_ZOMBIE_ALIAS = "ZombieDefault";
@@ -66,11 +65,17 @@ public final class BowlingNutSystem {
                 continue;
             }
 
-            reflectRowBoundary(nut, rows);
+            if (nut.getType() != BowlingNutType.GIANT) {
+                reflectRowBoundary(nut, rows);
+            }
 
-            Zombie hit = findCollidingZombie(session, nut);
-            if (hit != null) {
-                handleZombieCollision(session, context, listener, nut, hit);
+            if (nut.getType() == BowlingNutType.GIANT) {
+                squashRow(session, listener, nut);
+            } else {
+                Zombie hit = findCollidingZombie(session, nut);
+                if (hit != null) {
+                    handleZombieCollision(session, context, listener, nut, hit);
+                }
             }
 
             if (nut.getX() < 0 || nut.getX() >= cols) {
@@ -82,6 +87,10 @@ public final class BowlingNutSystem {
     }
 
     private void moveNut(BowlingNut nut, int rows) {
+        if (nut.getType() == BowlingNutType.GIANT) {
+            nut.setX(nut.getX() + SPEED);
+            return;
+        }
         double dx = Math.cos(nut.getAngleRadians()) * SPEED;
         double dy = Math.sin(nut.getAngleRadians()) * SPEED;
         nut.setX(nut.getX() + dx);
@@ -126,7 +135,7 @@ public final class BowlingNutSystem {
         switch (nut.getType()) {
             case STANDARD -> handleStandardHit(session, listener, nut, zombie);
             case EXPLOSIVE -> handleExplosiveHit(session, context, listener, nut, zombie);
-            case GIANT -> handleGiantHit(listener, nut, zombie);
+            case GIANT -> squashZombie(session, listener, nut, zombie);
         }
     }
 
@@ -170,10 +179,24 @@ public final class BowlingNutSystem {
         }
     }
 
-    private void handleGiantHit(MatchListener listener, BowlingNut nut, Zombie zombie) {
-        zombie.moveRight(GIANT_PUSH_DISTANCE);
+    private void squashRow(GameSession session, MatchListener listener, BowlingNut nut) {
+        for (Zombie zombie : session.getZombies()) {
+            if (!zombie.isAlive()) {
+                continue;
+            }
+            if (Math.abs(zombie.getRow() - nut.getRow()) > 0.5) {
+                continue;
+            }
+            if (Math.abs(zombie.getX() - nut.getX()) <= 0.5) {
+                squashZombie(session, listener, nut, zombie);
+            }
+        }
+    }
+
+    private void squashZombie(GameSession session, MatchListener listener, BowlingNut nut, Zombie zombie) {
+        zombie.takeDirectDamage(zombie.getHealth() + 99999);
+        session.handleZombieKilled(zombie);
         nut.incrementZombieHitCount();
-        nudgePastCollision(nut);
         if (listener != null) {
             listener.onBowlingNutHit(nut.getType(), zombie.getType(), nut.getX(), nut.getRow());
         }

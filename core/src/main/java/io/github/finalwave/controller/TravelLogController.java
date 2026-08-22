@@ -63,7 +63,7 @@ public class TravelLogController extends ViewController {
                     implemented = true;
                 }
             }
-            boolean unlocked = user.getUnlockedMinigames().contains(id.getKey());
+            boolean unlocked = minigameUnlocked(id);
             entries.add(new MiniGameLogEntry(
                     id,
                     id.getDisplayName(),
@@ -132,11 +132,11 @@ public class TravelLogController extends ViewController {
             getTravelLogView().errorUnknownPage("minigames");
             return;
         }
-        if (!user.getUnlockedMinigames().contains(id.getKey())) {
+        if (!minigameUnlocked(id)) {
             getTravelLogView().displayError(id.getDisplayName() + " is locked.");
             return;
         }
-        if (id != MiniGameId.VASE_BREAKER) {
+        if (id != MiniGameId.VASE_BREAKER && id != MiniGameId.WALNUT_BOWLING) {
             getTravelLogView().displayMessage(id.getDisplayName() + " is coming soon.");
             return;
         }
@@ -296,6 +296,10 @@ public class TravelLogController extends ViewController {
             case "epic", "epic challenge", "epic-challenge" -> Quest.Category.EPIC_CHALLENGE;
             default -> null;
         };
+    }
+
+    private boolean minigameUnlocked(MiniGameId id) {
+        return user.isDebugMode() || user.getUnlockedMinigames().contains(id.getKey());
     }
 
     private static String flavorFor(MiniGameId id) {

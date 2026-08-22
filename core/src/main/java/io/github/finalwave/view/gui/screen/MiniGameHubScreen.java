@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.MiniGameHubController;
+import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.minigame.MiniGameId;
 import io.github.finalwave.view.gui.assets.AdventureAssetIds;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
@@ -41,7 +42,7 @@ public final class MiniGameHubScreen extends MenuScreen {
     protected void buildUi() {
         contentLayer.clearChildren();
         modalLayer.clearChildren();
-        if (vaseBreakerSelected()) {
+        if (usesStagePath()) {
             setBackground(assets.region(AdventureAssetIds.MAP_BACKGROUND));
             buildPathHud();
             refreshPath();
@@ -53,7 +54,7 @@ public final class MiniGameHubScreen extends MenuScreen {
     }
 
     public void refresh() {
-        if (vaseBreakerSelected()) {
+        if (usesStagePath()) {
             refreshPath();
             return;
         }
@@ -72,6 +73,7 @@ public final class MiniGameHubScreen extends MenuScreen {
         VaseBreakerStagePath path = new VaseBreakerStagePath(
                 assets,
                 assets.skin(),
+                pathChapter(),
                 controller.selectedStages(),
                 seenCompleted,
                 seenUnlocked,
@@ -164,8 +166,19 @@ public final class MiniGameHubScreen extends MenuScreen {
         }
     }
 
-    private boolean vaseBreakerSelected() {
-        return controller != null && controller.selectedGame() == MiniGameId.VASE_BREAKER;
+    private boolean usesStagePath() {
+        if (controller == null) {
+            return false;
+        }
+        MiniGameId id = controller.selectedGame();
+        return id == MiniGameId.VASE_BREAKER || id == MiniGameId.WALNUT_BOWLING;
+    }
+
+    private ChapterId pathChapter() {
+        if (controller != null && controller.selectedGame() == MiniGameId.WALNUT_BOWLING) {
+            return ChapterId.BIG_WAVE_BEACH;
+        }
+        return ChapterId.ANCIENT_EGYPT;
     }
 
     private String heading() {

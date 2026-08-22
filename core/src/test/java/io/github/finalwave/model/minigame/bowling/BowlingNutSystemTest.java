@@ -64,15 +64,26 @@ class BowlingNutSystemTest {
     }
 
     @Test
-    void giantNutPushesZombieForward() {
+    void giantNutSquashesZombiesInItsRow() {
         GameSession session = newSession();
-        Zombie zombie = session.spawnZombieOfType("ZombieDefault", 0, 3.0);
-        double xBefore = zombie.getX();
+        Zombie onLane = session.spawnZombieOfType("ZombieDefault", 0, 3.0);
+        Zombie packed = session.spawnZombieOfType("ZombieDefault", 0, 4.5);
+        Zombie otherRow = session.spawnZombieOfType("ZombieDefault", 1, 3.0);
+        BowlingNut nut = new BowlingNut(BowlingNutType.GIANT, 2.5, 0);
+        session.getBowlingNutSystem().spawn(nut);
 
-        session.getBowlingNutSystem().spawn(new BowlingNut(BowlingNutType.GIANT, 2.5, 0));
         session.advanceTicks(1);
 
-        assertTrue(zombie.getX() > xBefore);
+        assertTrue(onLane.isDead());
+        assertTrue(otherRow.isAlive());
+        assertEquals(0.0, nut.getRow(), 0.001);
+        assertFalse(session.getBowlingNutSystem().getNuts().isEmpty());
+
+        session.advanceTicks(15);
+
+        assertTrue(packed.isDead());
+        assertTrue(otherRow.isAlive());
+        assertEquals(0.0, nut.getRow(), 0.001);
         assertFalse(session.getBowlingNutSystem().getNuts().isEmpty());
     }
 
