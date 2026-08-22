@@ -1,52 +1,147 @@
 package io.github.finalwave.view.gui.hud;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
 import com.badlogic.gdx.utils.Align;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
 
-public final class AlertBanner extends Table {
-    private static final float WIDTH = 720f;
-    private static final float DURATION = 3.4f;
+
+public final class AlertBanner extends WidgetGroup {
+    private static final Color BANNER_RED = new Color(0.86f, 0.07f, 0.07f, 1f);
+    private static final float TEXT_WIDTH = 1500f;
+    private static final float WORD_SCALE = 1.28f;
+    private static final float LINE_SCALE = 0.78f;
+    private static final float POP_IN = 0.12f;
+    private static final float SETTLE = 0.10f;
+    private static final float HOLD_WORD = 0.58f;
+    private static final float HOLD_LINE = 1.55f;
+    private static final float HOLD_PLANT = 0.95f;
+    private static final float FADE_OUT = 0.18f;
+    private static final float GAP = 0.08f;
 
     private final Label label;
+    private final Deque<String> queue = new ArrayDeque<>();
+    private boolean playing;
+    private Runnable onQueueEmpty;
 
     public AlertBanner(Skin skin) {
         setFillParent(true);
-        top();
-        padTop(28f);
         setVisible(false);
-        label = new Label("", skin, "medium");
+        setTouchable(Touchable.disabled);
+        label = new Label("", skin, styleName(skin));
         label.setAlignment(Align.center);
-        label.setColor(Color.WHITE);
+        label.setColor(BANNER_RED);
         label.setWrap(true);
-        Table banner = new Table(skin);
-        banner.setColor(0.72f, 0.12f, 0.12f, 0.92f);
-        if (skin.has("bundle_reward_multiplier", Label.LabelStyle.class)
-                && skin.get("bundle_reward_multiplier", Label.LabelStyle.class).background != null) {
-            banner.setBackground(skin.get("bundle_reward_multiplier", Label.LabelStyle.class).background);
-        }
-        banner.pad(14f, 28f, 14f, 28f);
-        banner.add(label).width(WIDTH - 56f);
-        add(banner).width(WIDTH);
+        label.setOrigin(Align.center);
+        Table table = new Table();
+        table.setFillParent(true);
+        table.center();
+        table.add(label).width(TEXT_WIDTH);
+        addActor(table);
     }
 
     public void show(String message) {
+        enqueue(message, null);
+    }
+
+    public void showSequence(List<String> messages, Runnable onFinished) {
+        if (messages == null || messages.isEmpty()) {
+            if (onFinished != null) {
+                onFinished.run();
+            }
+            return;
+        }
+        onQueueEmpty = onFinished;
+        for (String message : messages) {
+            if (message != null && !message.isBlank()) {
+                queue.addLast(message);
+            }
+        }
+        if (!playing) {
+            playNext();
+        }
+    }
+
+    public void reset() {
+        queue.clear();
+        onQueueEmpty = null;
+        playing = false;
+        label.clearActions();
+        label.getColor().a = 0f;
+        setVisible(false);
+    }
+
+    private void enqueue(String message, Runnable onFinished) {
         if (message == null || message.isBlank()) {
             return;
         }
-        label.setText(message);
+        if (onFinished != null) {
+            onQueueEmpty = onFinished;
+        }
+        queue.addLast(message);
+        if (!playing) {
+            playNext();
+        }
+    }
+
+    private void playNext() {
+        if (queue.isEmpty()) {
+            playing = false;
+            setVisible(false);
+            Runnable finished = onQueueEmpty;
+            onQueueEmpty = null;
+            if (finished != null) {
+                finished.run();
+            }
+            return;
+        }
+        playing = true;
         setVisible(true);
-        clearActions();
-        getColor().a = 0f;
-        addAction(Actions.sequence(
-                Actions.fadeIn(0.15f),
-                Actions.delay(DURATION),
-                Actions.fadeOut(0.25f),
-                Actions.run(() -> setVisible(false))
+        toFront();
+        String text = queue.removeFirst();
+        boolean word = text.length() <= 8;
+        float hold = "PLANT!".equals(text) ? HOLD_PLANT : (word ? HOLD_WORD : HOLD_LINE);
+        float scale = word ? WORD_SCALE : LINE_SCALE;
+        label.setText(text);
+        label.setFontScale(scale);
+        label.pack();
+        label.setWidth(TEXT_WIDTH);
+        label.invalidate();
+        label.validate();
+        label.setOrigin(label.getWidth() * 0.5f, label.getHeight() * 0.5f);
+        label.setScale(0.42f);
+        label.getColor().a = 0f;
+        label.clearActions();
+        label.addAction(Actions.sequence(
+                Actions.parallel(
+                        Actions.fadeIn(POP_IN),
+                        Actions.scaleTo(1.18f, 1.18f, POP_IN, Interpolation.sineOut)),
+                Actions.scaleTo(1f, 1f, SETTLE, Interpolation.sine),
+                Actions.delay(hold),
+                Actions.parallel(
+                        Actions.fadeOut(FADE_OUT),
+                        Actions.scaleTo(1.08f, 1.08f, FADE_OUT, Interpolation.sineIn)),
+                Actions.delay(GAP),
+                Actions.run(this::playNext)
         ));
+    }
+
+    private static String styleName(Skin skin) {
+        if (skin.has("big_outline", Label.LabelStyle.class)) {
+            return "big_outline";
+        }
+        if (skin.has("big", Label.LabelStyle.class)) {
+            return "big";
+        }
+        return "medium";
     }
 }

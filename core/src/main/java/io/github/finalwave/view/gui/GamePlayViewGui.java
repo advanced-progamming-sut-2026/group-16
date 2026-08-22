@@ -95,12 +95,12 @@ public final class GamePlayViewGui extends GuiViewBase implements
 
     @Override
     public void showWaveStarted(int waveNumber) {
-        router.showGamePlayAlert("Wave " + waveNumber);
+        router.showGamePlayWaveAlert(waveNumber, false);
     }
 
     @Override
     public void showFinalWave() {
-        router.showGamePlayAlert("A huge wave of zombies is approaching!");
+        router.showGamePlayWaveAlert(0, true);
     }
 
     @Override
@@ -388,7 +388,7 @@ public final class GamePlayViewGui extends GuiViewBase implements
     @Override
     public void showWavesStartedFromPrep() {
         router.refreshGamePlayHud();
-        playToast("Zombie waves started.");
+        router.playGamePlayStartChant();
     }
 
     @Override
