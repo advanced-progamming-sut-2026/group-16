@@ -8,6 +8,14 @@ public enum ProjectileEffect {
     BUTTER,
     SNOWBALL,
     LASER,
+    CABBAGE,
+    KERNEL,
+    MELON,
+    WINTER_MELON,
+    PEPPER,
+    FUME,
+    SPIKE,
+    PUFF,
     GENERIC;
 
     public static ProjectileEffect fromString(String type) {
@@ -22,6 +30,14 @@ public enum ProjectileEffect {
             case "poison" -> POISON;
             case "butter" -> BUTTER;
             case "laser" -> LASER;
+            case "cabbage" -> CABBAGE;
+            case "kernel", "corn" -> KERNEL;
+            case "melon" -> MELON;
+            case "wintermelon", "winter_melon" -> WINTER_MELON;
+            case "pepper" -> PEPPER;
+            case "fume" -> FUME;
+            case "spike", "cactus" -> SPIKE;
+            case "puff" -> PUFF;
             default -> GENERIC;
         };
     }

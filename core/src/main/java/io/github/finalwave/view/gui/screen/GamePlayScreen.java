@@ -17,6 +17,7 @@ import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
 import io.github.finalwave.model.adventure.ChapterId;
+import io.github.finalwave.model.collection.CollectionService;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.game.SeedPlacement;
@@ -53,6 +54,8 @@ import io.github.finalwave.view.gui.render.LawnGridOverlay;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.GraveClips;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
+import io.github.finalwave.view.gui.render.clip.ProjectileClips;
+import io.github.finalwave.view.gui.render.sync.ArcadeObstacleSync;
 import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
@@ -714,7 +717,8 @@ public final class GamePlayScreen extends MenuScreen {
             preloadPlantPam(placement.getPlantName());
         }
         if (session.isConveyorBeltActive() && matchUser() != null) {
-            for (String plantName : matchUser().getPlantProgress().getUnlockedPlantNames()) {
+            for (String plantName : CollectionService.selectablePlantNames(
+                    matchUser(), session.getPlantRegistry())) {
                 preloadPlantPam(plantName);
             }
         }
@@ -745,7 +749,12 @@ public final class GamePlayScreen extends MenuScreen {
             }
             preload(catalog.zombiePath("ZombieGargantuar"));
         }
+        for (String splatPath : new ProjectileClips().splatPaths()) {
+            preload(splatPath);
+        }
         preload(PlantClips.ICE_BLOCK_PATH);
+        preload(PlantClips.OCTOPUS_PATH);
+        preload(ArcadeObstacleSync.PAM_PATH);
         preload(SunSync.SUN_PATH);
         preload(mowerPath(ChapterId.fromName(session.getChapterId())));
         for (String gravePath : GraveClips.preloadPaths(ChapterId.fromName(session.getChapterId()))) {

@@ -31,8 +31,10 @@ public final class PlantSync {
     private final Group layer;
     private final ActorRegistry<Plant, PamActor> plants = new ActorRegistry<>();
     private final ActorRegistry<Plant, PamActor> iceBlocks = new ActorRegistry<>();
+    private final ActorRegistry<PlantCovering, PamActor> octopi = new ActorRegistry<>();
     private final HitFlashTracker<Plant> plantHits = new HitFlashTracker<>();
     private final HitFlashTracker<Plant> iceHits = new HitFlashTracker<>();
+    private final HitFlashTracker<PlantCovering> octopusHits = new HitFlashTracker<>();
     private final PlantShotTracker shots = new PlantShotTracker();
 
     public PlantSync(GameAssets assets, LawnLayout layout, PlantClips clips, Group layer) {
@@ -62,23 +64,28 @@ public final class PlantSync {
                 ? List.of()
                 : session.getProjectileSystem().getProjectiles();
         shots.observe(projectiles);
+        List<PlantCovering> octopusCoverings = liveOctopi(session);
         plants.sync(live, this::spawnPlant, (plant, actor) -> updatePlant(plant, actor, board, session), PamActor::remove);
         iceBlocks.sync(frozen, this::spawnIce, (plant, actor) -> updateIce(plant, actor, session), PamActor::remove);
+        octopi.sync(octopusCoverings, this::spawnOctopus, this::updateOctopus, PamActor::remove);
         plantHits.retain(live);
         iceHits.retain(frozen);
+        octopusHits.retain(octopusCoverings);
         shots.retain(live, projectiles);
     }
 
     public void clear() {
         plants.clear(PamActor::remove);
         iceBlocks.clear(PamActor::remove);
+        octopi.clear(PamActor::remove);
         plantHits.clear();
         iceHits.clear();
+        octopusHits.clear();
         shots.clear();
     }
 
     private PamActor spawnPlant(Plant plant) {
-        PamActor actor = new PamActor(assets.pamPlayer());
+        PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
         layer.addActor(actor);
@@ -86,7 +93,7 @@ public final class PlantSync {
     }
 
     private PamActor spawnIce(Plant plant) {
-        PamActor actor = new PamActor(assets.pamPlayer());
+        PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
         actor.setClip(PlantClips.ICE_BLOCK_PATH, PlantClips.ICE_BLOCK_CLIP, LawnLayout.ICE_BLOCK_SCALE, true);
@@ -127,6 +134,39 @@ public final class PlantSync {
         actor.setClip(PlantClips.ICE_BLOCK_PATH, PlantClips.ICE_BLOCK_CLIP, LawnLayout.ICE_BLOCK_SCALE, true);
         actor.setUserObject(sortKey(plant, null, 2));
         iceHits.observe(plant, iceHealth(plant, session), actor);
+    }
+
+    private PamActor spawnOctopus(PlantCovering covering) {
+        PamActor actor = assets.pamActor();
+        actor.setTouchable(Touchable.disabled);
+        actor.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
+        actor.setClip(PlantClips.OCTOPUS_PATH, PlantClips.OCTOPUS_CLIP, LawnLayout.PLANT_SCALE, true);
+        layer.addActor(actor);
+        return actor;
+    }
+
+    private void updateOctopus(PlantCovering covering, PamActor actor) {
+        Plant plant = covering.getCoveredPlant();
+        Vector2 center = layout.cellCenter(plant.getCol(), plant.getRow());
+        actor.setSize(layout.tileWidth(), layout.tileHeight());
+        actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
+        actor.setClip(PlantClips.OCTOPUS_PATH, PlantClips.OCTOPUS_CLIP, LawnLayout.PLANT_SCALE, true);
+        actor.setUserObject(sortKey(plant, null, 3));
+        octopusHits.observe(covering, covering.getHealth(), actor);
+    }
+
+    private static List<PlantCovering> liveOctopi(GameSession session) {
+        List<PlantCovering> live = new ArrayList<>();
+        for (PlantCovering covering : session.getPlantCoverings()) {
+            if (covering != null
+                    && covering.isAlive()
+                    && covering.getType() == PlantCovering.Type.OCTOPUS
+                    && covering.getCoveredPlant() != null
+                    && covering.getCoveredPlant().isAlive()) {
+                live.add(covering);
+            }
+        }
+        return live;
     }
 
     private static int iceHealth(Plant plant, GameSession session) {

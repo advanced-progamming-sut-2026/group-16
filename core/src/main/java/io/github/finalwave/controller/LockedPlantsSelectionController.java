@@ -2,6 +2,7 @@ package io.github.finalwave.controller;
 
 import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.LevelConfig;
+import io.github.finalwave.model.collection.CollectionService;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.LockedPlantsRules;
 import io.github.finalwave.model.game.mode.AdventureMode;
@@ -49,7 +50,7 @@ public final class LockedPlantsSelectionController extends PlantSelectionControl
     @Override
     protected void handleShowAvailablePlants() {
         List<String> selectable = new ArrayList<>(rules.selectableFrom(
-                user.getPlantProgress().getUnlockedPlantNames()));
+                CollectionService.selectablePlantNames(user, plantRegistry)));
         selectable.sort(String::compareToIgnoreCase);
         getLockedPlantsView().showAvailablePlants(selectable);
     }
@@ -60,7 +61,7 @@ public final class LockedPlantsSelectionController extends PlantSelectionControl
             getLockedPlantsView().errorPlantNotFound(type);
             return;
         }
-        if (!user.getPlantProgress().isOwned(type)) {
+        if (!isOwned(type)) {
             getLockedPlantsView().errorPlantLocked(type);
             return;
         }

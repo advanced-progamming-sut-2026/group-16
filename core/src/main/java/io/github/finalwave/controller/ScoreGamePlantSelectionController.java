@@ -1,6 +1,7 @@
 package io.github.finalwave.controller;
 
 import io.github.finalwave.model.App;
+import io.github.finalwave.model.collection.CollectionService;
 import io.github.finalwave.model.command.PlantSelectionMenuCommands;
 import io.github.finalwave.model.definition.PlantRegistry;
 import io.github.finalwave.model.definition.ZombieRegistry;
@@ -72,7 +73,7 @@ public class ScoreGamePlantSelectionController extends ViewController {
                                 .map(def -> def.getName())
                                 .toList());
                 case SHOW_AVAILABLE_PLANTS -> getViewApi().showAvailablePlants(
-                        user.getPlantProgress().getUnlockedPlantNames());
+                        CollectionService.selectablePlantNames(user, plantRegistry));
                 case ADD_PLANT -> handleAddPlant(matcher.group("type").trim());
                 case REMOVE_PLANT -> handleRemovePlant(matcher.group("type").trim());
                 case BOOST_PLANT -> handleBoostPlant(matcher.group("type").trim());
@@ -88,7 +89,7 @@ public class ScoreGamePlantSelectionController extends ViewController {
             getViewApi().errorPlantNotFound(type);
             return;
         }
-        if (!user.getPlantProgress().isOwned(type)) {
+        if (!CollectionService.canSelectPlant(user, type, plantRegistry)) {
             getViewApi().errorPlantLocked(type);
             return;
         }

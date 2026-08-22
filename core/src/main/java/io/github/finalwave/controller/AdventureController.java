@@ -4,6 +4,7 @@ import io.github.finalwave.model.App;
 import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.LevelConfig;
 import io.github.finalwave.model.adventure.LevelType;
+import io.github.finalwave.model.collection.CollectionService;
 import io.github.finalwave.model.command.AdventureMenuCommands;
 import io.github.finalwave.model.definition.PlantRegistry;
 import io.github.finalwave.model.definition.ZombieRegistry;
@@ -143,7 +144,7 @@ public class AdventureController extends ViewController {
                     level,
                     chapter.getId(),
                     plantRegistry,
-                    user.getPlantProgress().getUnlockedPlantNames(),
+                    CollectionService.selectablePlantNames(user, plantRegistry),
                     new Random());
             LockedPlantsSelectionController selection = new LockedPlantsSelectionController(
                     user, userDatabase, chapter, level, rules);
@@ -165,7 +166,7 @@ public class AdventureController extends ViewController {
         tracker.registerOn(session.getEventBus());
         tracker.beginSession(session);
         session.attachQuestTracker(tracker);
-        List<String> availablePlants = user.getPlantProgress().getUnlockedPlantNames();
+        List<String> availablePlants = CollectionService.selectablePlantNames(user, plantRegistry);
         ConveyBeltLevelController gameplay = new ConveyBeltLevelController(
                 user, userDatabase, mode, session, chapter, level, Set.of(), availablePlants);
         navigator.push(gameplay);

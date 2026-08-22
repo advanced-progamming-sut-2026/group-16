@@ -222,6 +222,21 @@ class CollectionServiceTest {
     }
 
     @Test
+    void debugModeMakesEveryPlantSelectable() {
+        assertFalse(service.canSelectPlant(user, "Cherry Bomb"));
+        assertFalse(service.selectablePlantNames(user).contains("Cherry Bomb"));
+        user.setDebugMode(true);
+        var names = service.selectablePlantNames(user);
+        assertTrue(names.contains("Cherry Bomb"));
+        assertTrue(names.contains("Melon-pult"));
+        assertTrue(service.canSelectPlant(user, "Cherry Bomb"));
+        assertFalse(service.canSelectPlant(user, "Fake Plant"));
+        assertFalse(user.getPlantProgress().isOwned("Cherry Bomb"));
+        user.setDebugMode(false);
+        assertFalse(service.canSelectPlant(user, "Cherry Bomb"));
+    }
+
+    @Test
     void isKnownPlantAndZombieLookup() {
         assertTrue(service.isKnownPlant("Peashooter"));
         assertFalse(service.isKnownPlant("Fake Plant"));

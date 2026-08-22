@@ -181,6 +181,23 @@ public final class Plant extends Entity {
     }
 
     public ProjectileEffect projectileEffect() {
+        String name = getName();
+        if (name != null) {
+            ProjectileEffect named = switch (name) {
+                case "Pepper-pult" -> ProjectileEffect.PEPPER;
+                case "Melon-pult" -> ProjectileEffect.MELON;
+                case "Winter Melon" -> ProjectileEffect.WINTER_MELON;
+                case "Cabbage-pult" -> ProjectileEffect.CABBAGE;
+                case "Kernel-pult" -> ProjectileEffect.KERNEL;
+                case "Fume-shroom" -> ProjectileEffect.FUME;
+                case "Cactus" -> ProjectileEffect.SPIKE;
+                case "Puff-shroom" -> ProjectileEffect.PUFF;
+                default -> null;
+            };
+            if (named != null) {
+                return named;
+            }
+        }
         if (hasTag(PlantTag.FIRE)) {
             return ProjectileEffect.FIRE;
         }

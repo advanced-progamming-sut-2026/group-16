@@ -14,6 +14,7 @@ import io.github.finalwave.model.game.entity.Vase;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.ActorRegistry;
 import io.github.finalwave.view.gui.render.LawnLayout;
+import io.github.finalwave.view.gui.widget.HitFlashTracker;
 import io.github.finalwave.view.gui.widget.PamActor;
 
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ public final class VaseSync {
     private final LawnLayout layout;
     private final Group layer;
     private final ActorRegistry<Vase, PamActor> vases = new ActorRegistry<>();
+    private final HitFlashTracker<Vase> hits = new HitFlashTracker<>();
     private final Map<PamActor, Vase.Content> contents = new IdentityHashMap<>();
 
     public VaseSync(GameAssets assets, LawnLayout layout, Group layer) {
@@ -74,10 +76,12 @@ public final class VaseSync {
             }
         }
         vases.sync(live, this::spawn, this::update, this::smash);
+        hits.retain(live);
     }
 
     public void clear() {
         contents.clear();
+        hits.clear();
         vases.clear(actor -> {
             actor.clearActions();
             actor.remove();
@@ -85,7 +89,7 @@ public final class VaseSync {
     }
 
     private PamActor spawn(Vase vase) {
-        PamActor actor = new PamActor(assets.pamPlayer());
+        PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.VASE_ANCHOR_Y);
         contents.put(actor, vase.getContent());
@@ -100,6 +104,7 @@ public final class VaseSync {
         actor.setClip(pamPath(vase), IDLE_CLIP, LawnLayout.VASE_SCALE, true);
         actor.setUserObject(vase.getRow());
         contents.put(actor, vase.getContent());
+        hits.observe(vase, vase.getHealth(), actor);
     }
 
     private void smash(PamActor actor) {

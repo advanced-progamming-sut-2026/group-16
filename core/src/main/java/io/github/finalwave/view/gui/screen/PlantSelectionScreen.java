@@ -282,7 +282,7 @@ public final class PlantSelectionScreen extends MenuScreen {
         float value = detail.maxLevel() ? 1f : Math.min(1f, detail.seedPackets() / (float) needed);
         String text = detail.maxLevel() ? "MAX" : detail.seedPackets() + " / " + needed;
         UpgradeSeedBar bar = new UpgradeSeedBar(assets.skin());
-        bar.bind(detail.owned() ? value : 0f, detail.owned() ? text : "LOCKED");
+        bar.bind(selectable(detail) ? value : 0f, selectable(detail) ? text : "LOCKED");
         return bar;
     }
 
@@ -307,7 +307,7 @@ public final class PlantSelectionScreen extends MenuScreen {
         stats.setFontScale(0.9f);
         stats.setAlignment(Align.topLeft);
         column.add(stats).growX().top().row();
-        if (detail.owned()) {
+        if (selectable(detail)) {
             column.add(actionButtons(skin, detail)).expand().bottom().right();
         }
         return column;
@@ -315,7 +315,7 @@ public final class PlantSelectionScreen extends MenuScreen {
 
     private Table actionButtons(Skin skin, CollectionPlantDetail detail) {
         Table buttons = new Table();
-        if (!detail.maxLevel()) {
+        if (detail.owned() && !detail.maxLevel()) {
             buttons.add(upgradeButton(skin, detail)).size(UPGRADE_BUTTON_WIDTH, ACTION_HEIGHT).padRight(12f);
         }
         buttons.add(boostButton(skin, detail)).size(BOOST_BUTTON_WIDTH, ACTION_HEIGHT);
@@ -389,7 +389,11 @@ public final class PlantSelectionScreen extends MenuScreen {
             card.bind(entry);
             PlantDefinition definition = controller.plantRegistry().getDefinition(entry.name());
             card.setCost(definition == null ? 0 : definition.getCost());
-            card.setLocked(!entry.owned());
+            boolean selectable = controller.isOwned(entry.name());
+            card.setLocked(!selectable);
+            if (selectable && !entry.owned()) {
+                card.setLevel(1);
+            }
             card.setBoosted(controller.isBoosted(entry.name()));
             card.setDisabled(controller.selectedPlants().contains(entry.name()));
             card.setOnClick(() -> onPlantClicked(entry.name()));
@@ -447,6 +451,10 @@ public final class PlantSelectionScreen extends MenuScreen {
             return null;
         }
         return controller.plantDetail(focusedPlant);
+    }
+
+    private boolean selectable(CollectionPlantDetail detail) {
+        return detail != null && controller != null && controller.isOwned(detail.name());
     }
 
     private static String titleStyle(Skin skin) {

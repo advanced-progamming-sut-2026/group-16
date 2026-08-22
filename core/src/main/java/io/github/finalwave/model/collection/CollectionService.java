@@ -295,6 +295,38 @@ public final class CollectionService {
         return user.isDebugMode() || user.getUnlockedZombies().contains(zombieName);
     }
 
+    public List<String> selectablePlantNames(User user) {
+        return selectablePlantNames(user, plantRegistry);
+    }
+
+    public boolean canSelectPlant(User user, String plantName) {
+        return canSelectPlant(user, plantName, plantRegistry);
+    }
+
+    public static List<String> selectablePlantNames(User user, PlantRegistry registry) {
+        if (user != null && user.isDebugMode() && registry != null) {
+            List<String> names = new ArrayList<>();
+            for (PlantDefinition definition : registry.getAllDefinitions()) {
+                names.add(definition.getName());
+            }
+            return List.copyOf(names);
+        }
+        if (user == null) {
+            return List.of();
+        }
+        return user.getPlantProgress().getUnlockedPlantNames();
+    }
+
+    public static boolean canSelectPlant(User user, String plantName, PlantRegistry registry) {
+        if (plantName == null || plantName.isBlank()) {
+            return false;
+        }
+        if (user != null && user.isDebugMode()) {
+            return registry != null && registry.getDefinition(plantName) != null;
+        }
+        return user != null && user.getPlantProgress().isOwned(plantName);
+    }
+
     private CollectionPlantEntry plantEntry(User user, PlantCollection collection, PlantDefinition definition) {
         String name = definition.getName();
         boolean owned = user.getPlantProgress().isOwned(name);

@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import io.github.finalwave.view.gui.assets.PlantAnimationCatalog;
+import io.github.finalwave.view.gui.render.HitFlashShader;
 import pvz.libpvz.pam.PamPlayer;
 
 import java.util.HashMap;
@@ -14,9 +15,9 @@ import java.util.Objects;
 
 public final class PamActor extends Actor {
     private static final float HIT_FLASH_SECONDS = 0.12f;
-    private static final float HIT_FLASH_STRENGTH = 0.7f;
 
     private final PamPlayer player;
+    private final HitFlashShader hitFlash;
     private final Color tint = new Color(Color.WHITE);
     private final Color oldBatchColor = new Color();
     private final Color drawColor = new Color();
@@ -46,7 +47,12 @@ public final class PamActor extends Actor {
     private float hitFlashRemaining;
 
     public PamActor(PamPlayer player) {
+        this(player, null);
+    }
+
+    public PamActor(PamPlayer player, HitFlashShader hitFlash) {
         this.player = player;
+        this.hitFlash = hitFlash;
     }
 
     public void setClip(PlantAnimationCatalog.ClipSpec spec, float scale) {
@@ -201,14 +207,12 @@ public final class PamActor extends Actor {
         float scaleY = Math.abs(drawScale);
         oldBatchColor.set(batch.getColor());
         drawColor.set(getColor()).mul(tint);
-        if (hitFlashRemaining > 0f) {
-            float flash = hitFlashRemaining / HIT_FLASH_SECONDS * HIT_FLASH_STRENGTH;
-            drawColor.r += (1f - drawColor.r) * flash;
-            drawColor.g += (1f - drawColor.g) * flash;
-            drawColor.b += (1f - drawColor.b) * flash;
-        }
         drawColor.a *= parentAlpha;
         batch.setColor(drawColor);
+        boolean flashing = hitFlashRemaining > 0f && hitFlash != null && hitFlash.isReady();
+        if (flashing) {
+            hitFlash.bind(batch, hitFlashRemaining / HIT_FLASH_SECONDS);
+        }
         Map<String, Boolean> vis = visibilityActive ? visibility : null;
         boolean rotated = getRotation() != 0f;
         boolean scaled = scaleX != 1f || scaleY != 1f;
@@ -252,6 +256,9 @@ public final class PamActor extends Actor {
         } finally {
             if (restoreTransform) {
                 batch.setTransformMatrix(previousTransform);
+            }
+            if (flashing) {
+                hitFlash.unbind(batch);
             }
             batch.setColor(oldBatchColor);
         }

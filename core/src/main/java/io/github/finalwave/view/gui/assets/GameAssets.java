@@ -7,6 +7,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Disposable;
+import io.github.finalwave.view.gui.render.HitFlashShader;
+import io.github.finalwave.view.gui.widget.PamActor;
 import io.github.finalwave.view.gui.widget.StoreChrome;
 import io.github.finalwave.view.gui.widget.TravelLogChrome;
 import pvz.libpvz.pam.PamPlayer;
@@ -23,6 +25,7 @@ public final class GameAssets implements Disposable {
     private final TextureBank textures;
     private final PamPlayer pamPlayer;
     private final Skin skin;
+    private final HitFlashShader hitFlashShader;
     private Texture missingTexture;
     private TextureRegion missingRegion;
 
@@ -31,6 +34,7 @@ public final class GameAssets implements Disposable {
         this.textures = new TextureBank(RESOLUTION, root);
         this.pamPlayer = new PamPlayer(textures, root);
         this.skin = PvzSkin.get();
+        this.hitFlashShader = new HitFlashShader();
     }
 
     public FileHandle root() {
@@ -43,6 +47,14 @@ public final class GameAssets implements Disposable {
 
     public PamPlayer pamPlayer() {
         return pamPlayer;
+    }
+
+    public HitFlashShader hitFlashShader() {
+        return hitFlashShader;
+    }
+
+    public PamActor pamActor() {
+        return new PamActor(pamPlayer, hitFlashShader);
     }
 
     public Skin skin() {
@@ -90,6 +102,7 @@ public final class GameAssets implements Disposable {
     @Override
     public void dispose() {
         textures.dispose();
+        hitFlashShader.dispose();
         StoreChrome.dispose();
         TravelLogChrome.dispose();
         if (missingTexture != null) {
