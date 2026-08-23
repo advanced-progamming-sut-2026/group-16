@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.match;
 
+import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
@@ -10,23 +11,34 @@ public final class ControllerTicker implements MatchTicker {
     private final GamePlayController gamePlay;
     private final VaseBreakerController vaseBreaker;
     private final WalnutBowlingController walnutBowling;
+    private final BeghouledController beghouled;
 
     public ControllerTicker(GamePlayController gamePlay) {
         this.gamePlay = gamePlay;
         this.vaseBreaker = null;
         this.walnutBowling = null;
+        this.beghouled = null;
     }
 
     public ControllerTicker(VaseBreakerController vaseBreaker) {
         this.gamePlay = null;
         this.vaseBreaker = vaseBreaker;
         this.walnutBowling = null;
+        this.beghouled = null;
     }
 
     public ControllerTicker(WalnutBowlingController walnutBowling) {
         this.gamePlay = null;
         this.vaseBreaker = null;
         this.walnutBowling = walnutBowling;
+        this.beghouled = null;
+    }
+
+    public ControllerTicker(BeghouledController beghouled) {
+        this.gamePlay = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.beghouled = beghouled;
     }
 
     @Override
@@ -37,6 +49,10 @@ public final class ControllerTicker implements MatchTicker {
         }
         if (walnutBowling != null) {
             walnutBowling.advance(ticks);
+            return;
+        }
+        if (beghouled != null) {
+            beghouled.advance(ticks);
             return;
         }
         if (gamePlay != null) {
@@ -51,6 +67,9 @@ public final class ControllerTicker implements MatchTicker {
         }
         if (walnutBowling != null) {
             return walnutBowling.session();
+        }
+        if (beghouled != null) {
+            return beghouled.session();
         }
         return gamePlay == null ? null : gamePlay.session();
     }

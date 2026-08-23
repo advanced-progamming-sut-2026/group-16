@@ -5,6 +5,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.AdventureController;
+import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.CollectionController;
 import io.github.finalwave.controller.GameController;
 import io.github.finalwave.controller.GamePlayController;
@@ -76,7 +77,8 @@ public final class ScreenRouter {
                 || controller instanceof GamePlayController
                 || controller instanceof MiniGameHubController
                 || controller instanceof VaseBreakerController
-                || controller instanceof WalnutBowlingController;
+                || controller instanceof WalnutBowlingController
+                || controller instanceof BeghouledController;
     }
 
     public boolean supportsDestination(MainMenuController.Destination destination) {
@@ -125,6 +127,8 @@ public final class ScreenRouter {
             showGamePlay(vaseBreakerController);
         } else if (controller instanceof WalnutBowlingController walnutBowlingController) {
             showGamePlay(walnutBowlingController);
+        } else if (controller instanceof BeghouledController beghouledController) {
+            showGamePlay(beghouledController);
         } else {
             Gdx.app.log(TAG, "No GUI screen registered for " + controller.getClass().getSimpleName());
         }
@@ -259,6 +263,14 @@ public final class ScreenRouter {
     }
 
     public void showGamePlay(WalnutBowlingController controller) {
+        if (gamePlayScreen == null) {
+            gamePlayScreen = new GamePlayScreen(game);
+        }
+        gamePlayScreen.bind(controller);
+        setScreen(gamePlayScreen);
+    }
+
+    public void showGamePlay(BeghouledController controller) {
         if (gamePlayScreen == null) {
             gamePlayScreen = new GamePlayScreen(game);
         }

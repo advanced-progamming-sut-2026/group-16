@@ -8,7 +8,9 @@ import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.item.SunType;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
+import io.github.finalwave.model.minigame.beghouled.BeghouledSwapOutcome;
 import io.github.finalwave.model.minigame.beghouled.BeghouledSwapResult;
+import io.github.finalwave.model.minigame.beghouled.BeghouledUpgradeOutcome;
 import io.github.finalwave.model.minigame.beghouled.BeghouledUpgradeResult;
 import io.github.finalwave.model.minigame.mode.BeghouledMode;
 import io.github.finalwave.model.user.UnlockService;
@@ -28,6 +30,7 @@ public class BeghouledController extends ViewController implements MatchListener
     private final MiniGameStageConfig stage;
     private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
+    private boolean deferMatchExit;
 
     public BeghouledController(User user,
                                UserDatabase userDatabase,
@@ -59,11 +62,11 @@ public class BeghouledController extends ViewController implements MatchListener
                 continue;
             }
             switch (cmd) {
-                case SWAP_PLANTS -> handleSwap(
-                        matcher.group("ax"), matcher.group("ay"),
-                        matcher.group("bx"), matcher.group("by"));
+                case SWAP_PLANTS -> swapPlants(
+                        parseCoord(matcher.group("ax")), parseCoord(matcher.group("ay")),
+                        parseCoord(matcher.group("bx")), parseCoord(matcher.group("by")));
                 case SHOW_UPGRADES -> getViewApi().showUpgrades(stage.getUpgrades());
-                case UPGRADE_PLANT -> handleUpgrade(matcher.group("type"));
+                case UPGRADE_PLANT -> upgradePlant(matcher.group("type"));
                 case ADVANCE_TIME -> handleAdvanceTime(matcher.group("count"));
                 case SHOW_MAP -> getViewApi().showMap(session.renderMap());
                 case ZOMBIES_INFO -> getViewApi().showZombiesInfo(session.getZombies());
@@ -80,14 +83,10 @@ public class BeghouledController extends ViewController implements MatchListener
         getViewApi().errorInvalidCommand();
     }
 
-    private void handleSwap(String ax, String ay, String bx, String by) {
-        int colA = parseCoord(ax);
-        int rowA = parseCoord(ay);
-        int colB = parseCoord(bx);
-        int rowB = parseCoord(by);
+    public BeghouledSwapResult swapPlants(int colA, int rowA, int colB, int rowB) {
         if (colA < 0 || rowA < 0 || colB < 0 || rowB < 0) {
             getViewApi().errorSwapOutOfBounds();
-            return;
+            return BeghouledSwapResult.failure(BeghouledSwapOutcome.OUT_OF_BOUNDS);
         }
         BeghouledSwapResult result = session.trySwapBeghouledPlants(colA, rowA, colB, rowB);
         switch (result.outcome()) {
@@ -103,9 +102,15 @@ public class BeghouledController extends ViewController implements MatchListener
             case MISSING_PLANT -> getViewApi().errorSwapMissingPlant();
             case CRATER_BLOCKED -> getViewApi().errorSwapCraterBlocked();
         }
+        maybeReturnAfterMatch();
+        return result;
     }
 
-    private void handleUpgrade(String plantName) {
+    public BeghouledUpgradeResult upgradePlant(String plantName) {
+        if (plantName == null || plantName.isBlank()) {
+            getViewApi().errorUpgradeUnknown(plantName);
+            return BeghouledUpgradeResult.failure(BeghouledUpgradeOutcome.UNKNOWN_UPGRADE);
+        }
         String type = plantName.trim();
         BeghouledUpgradeResult result = session.tryBeghouledUpgrade(type);
         switch (result.outcome()) {
@@ -122,6 +127,8 @@ public class BeghouledController extends ViewController implements MatchListener
             }
             case NO_PLANTS_OF_TYPE -> getViewApi().errorUpgradeNoPlants(type);
         }
+        maybeReturnAfterMatch();
+        return result;
     }
 
     private void handleAdvanceTime(String count) {
@@ -132,12 +139,7 @@ public class BeghouledController extends ViewController implements MatchListener
             getViewApi().errorInvalidTickCount();
             return;
         }
-        if (ticks < 0) {
-            getViewApi().errorNegativeTickCount();
-            return;
-        }
-        session.advanceTicks(ticks);
-        getViewApi().showAdvanceTime(ticks);
+        advance(ticks);
     }
 
     private void maybeReturnAfterMatch() {
@@ -145,18 +147,20 @@ public class BeghouledController extends ViewController implements MatchListener
             return;
         }
         MatchResult result = session.getMatchResult();
+        if (result != MatchResult.WON && result != MatchResult.LOST) {
+            return;
+        }
+        finishedHandled = true;
+        recordFinishedGame();
         if (result == MatchResult.WON) {
-            finishedHandled = true;
-            recordFinishedGame();
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
-            navigator.pop();
-        } else if (result == MatchResult.LOST) {
-            finishedHandled = true;
-            recordFinishedGame();
-            navigator.pop();
         }
+        if (deferMatchExit) {
+            return;
+        }
+        navigator.pop();
     }
 
     private void recordFinishedGame() {
@@ -176,8 +180,16 @@ public class BeghouledController extends ViewController implements MatchListener
         return (BeghouledView) view;
     }
 
+    public GameSession session() {
+        return session;
+    }
+
     public GameSession getSession() {
         return session;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     public MiniGameStageConfig getStage() {
@@ -186,6 +198,35 @@ public class BeghouledController extends ViewController implements MatchListener
 
     public BeghouledMode getMode() {
         return mode;
+    }
+
+    public void setDeferMatchExit(boolean deferMatchExit) {
+        this.deferMatchExit = deferMatchExit;
+    }
+
+    public void confirmMatchExit() {
+        navigator.pop();
+    }
+
+    public void restartMatch() {
+        navigator.pop();
+    }
+
+    public void advance(int ticks) {
+        if (ticks < 0) {
+            getViewApi().errorNegativeTickCount();
+            return;
+        }
+        session.advanceTicks(ticks);
+        getViewApi().showAdvanceTime(ticks);
+        maybeReturnAfterMatch();
+    }
+
+    public boolean collectSunAt(int col, int row) {
+        if (col < 0 || row < 0 || session == null) {
+            return false;
+        }
+        return session.collectSunAt(col, row);
     }
 
     @Override

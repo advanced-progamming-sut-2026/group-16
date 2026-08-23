@@ -1,6 +1,7 @@
 package io.github.finalwave.view.gui.bind;
 
 import io.github.finalwave.controller.AdventureController;
+import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.CollectionController;
 import io.github.finalwave.controller.GameController;
 import io.github.finalwave.controller.GamePlayController;
@@ -21,6 +22,7 @@ import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.controller.WalnutBowlingController;
 import io.github.finalwave.view.gui.AdventureViewGui;
+import io.github.finalwave.view.gui.BeghouledViewGui;
 import io.github.finalwave.view.gui.AuthViewGui;
 import io.github.finalwave.view.gui.CollectionViewGui;
 import io.github.finalwave.view.gui.ComingSoonViewGui;
@@ -59,6 +61,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final MiniGameHubViewGui miniGameHubView;
     private final VaseBreakerViewGui vaseBreakerView;
     private final WalnutBowlingViewGui walnutBowlingView;
+    private final BeghouledViewGui beghouledView;
     private final ComingSoonViewGui comingSoonView;
 
     public GuiNavigationBinder(ScreenRouter router) {
@@ -80,6 +83,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.miniGameHubView = new MiniGameHubViewGui(router);
         this.vaseBreakerView = new VaseBreakerViewGui(router);
         this.walnutBowlingView = new WalnutBowlingViewGui(router);
+        this.beghouledView = new BeghouledViewGui(router);
         this.comingSoonView = new ComingSoonViewGui(router);
     }
 
@@ -133,6 +137,9 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof WalnutBowlingController walnutBowlingController) {
             walnutBowlingView.bindController(walnutBowlingController);
             newController.setView(walnutBowlingView);
+        } else if (newController instanceof BeghouledController beghouledController) {
+            beghouledView.bindController(beghouledController);
+            newController.setView(beghouledView);
         } else if (newController instanceof RegistrationController
                 || newController instanceof LoginController) {
             authView.bindController(newController);
