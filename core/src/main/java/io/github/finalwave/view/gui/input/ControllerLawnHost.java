@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.input;
 
+import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
@@ -10,23 +11,34 @@ public final class ControllerLawnHost implements LawnActionHost {
     private final GamePlayController gamePlay;
     private final VaseBreakerController vaseBreaker;
     private final WalnutBowlingController walnutBowling;
+    private final BeghouledController beghouled;
 
     public ControllerLawnHost(GamePlayController gamePlay) {
         this.gamePlay = gamePlay;
         this.vaseBreaker = null;
         this.walnutBowling = null;
+        this.beghouled = null;
     }
 
     public ControllerLawnHost(VaseBreakerController vaseBreaker) {
         this.gamePlay = null;
         this.vaseBreaker = vaseBreaker;
         this.walnutBowling = null;
+        this.beghouled = null;
     }
 
     public ControllerLawnHost(WalnutBowlingController walnutBowling) {
         this.gamePlay = null;
         this.vaseBreaker = null;
         this.walnutBowling = walnutBowling;
+        this.beghouled = null;
+    }
+
+    public ControllerLawnHost(BeghouledController beghouled) {
+        this.gamePlay = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.beghouled = beghouled;
     }
 
     @Override
@@ -36,6 +48,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         }
         if (walnutBowling != null) {
             return walnutBowling.session();
+        }
+        if (beghouled != null) {
+            return beghouled.session();
         }
         return gamePlay == null ? null : gamePlay.session();
     }
@@ -48,6 +63,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         }
         if (walnutBowling != null) {
             walnutBowling.plantSeed(plantName, col, row);
+            return;
+        }
+        if (beghouled != null) {
             return;
         }
         if (gamePlay != null) {
@@ -71,6 +89,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         if (walnutBowling != null) {
             return false;
         }
+        if (beghouled != null) {
+            return beghouled.collectSunAt(col, row);
+        }
         return gamePlay != null && gamePlay.collectSunAt(col, row);
     }
 
@@ -79,7 +100,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         if (vaseBreaker != null) {
             return vaseBreaker.shovelAt(col, row);
         }
-        if (walnutBowling != null) {
+        if (walnutBowling != null || beghouled != null) {
             return false;
         }
         return gamePlay != null && gamePlay.shovelAt(col, row);
@@ -90,7 +111,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         if (vaseBreaker != null) {
             return vaseBreaker.feedAt(col, row);
         }
-        if (walnutBowling != null) {
+        if (walnutBowling != null || beghouled != null) {
             return false;
         }
         return gamePlay != null && gamePlay.feedAt(col, row);

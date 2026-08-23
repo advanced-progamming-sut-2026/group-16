@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
+import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
@@ -12,6 +13,7 @@ import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.render.sync.ArcadeObstacleSync;
+import io.github.finalwave.view.gui.render.sync.BeghouledPlantSync;
 import io.github.finalwave.view.gui.render.sync.BowlingLineSync;
 import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
@@ -27,6 +29,7 @@ import io.github.finalwave.view.gui.render.sync.ZombieSync;
 import io.github.finalwave.view.gui.widget.PamActor;
 
 import java.util.Comparator;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 
@@ -56,6 +59,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private BowlingNutSync bowlingNutSync;
     private BowlingLineSync bowlingLineSync;
     private ArcadeObstacleSync arcadeObstacleSync;
+    private BeghouledPlantSync beghouledPlantSync;
     private Consumer<Sun> sunCollector;
 
     public BattlefieldGroup() {
@@ -83,6 +87,10 @@ public final class BattlefieldGroup extends WidgetGroup {
     }
 
     public void bind(GameAssets assets, LawnLayout layout, EntityAnimationCatalog catalog) {
+        if (beghouledPlantSync != null) {
+            beghouledPlantSync.dispose();
+            beghouledPlantSync = null;
+        }
         clearBattlefield();
         if (assets == null || layout == null || catalog == null) {
             plantSync = null;
@@ -113,6 +121,17 @@ public final class BattlefieldGroup extends WidgetGroup {
         bowlingNutSync = new BowlingNutSync(assets, layout, plantLayer);
         bowlingLineSync = new BowlingLineSync(layout, highlightLayer);
         arcadeObstacleSync = new ArcadeObstacleSync(assets, layout, zombieLayer);
+        beghouledPlantSync = new BeghouledPlantSync(assets, layout, new PlantClips(catalog), plantLayer, this);
+    }
+
+    public void setBeghouledController(BeghouledController controller, BooleanSupplier blocked) {
+        if (beghouledPlantSync != null) {
+            beghouledPlantSync.setController(controller, blocked);
+        }
+    }
+
+    public boolean beghouledBusy() {
+        return beghouledPlantSync != null && beghouledPlantSync.isBusy();
     }
 
     public void setSunCollector(Consumer<Sun> sunCollector) {
@@ -146,13 +165,28 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (deadLineSync != null) {
             deadLineSync.sync(session);
         }
-        if (plantSync != null) {
-            plantSync.sync(session);
+        if (session.isBeghouledActive()) {
+            if (plantSync != null) {
+                plantSync.clear();
+            }
+            if (beghouledPlantSync != null) {
+                beghouledPlantSync.sync(session);
+            }
+        } else {
+            if (beghouledPlantSync != null) {
+                beghouledPlantSync.clear();
+            }
+            if (plantSync != null) {
+                plantSync.sync(session);
+            }
         }
         if (bowlingNutSync != null) {
             bowlingNutSync.sync(session, tickFraction);
         }
-        if (plantSync != null || bowlingNutSync != null) {
+        boolean skipPlantSort = session.isBeghouledActive()
+                && beghouledPlantSync != null
+                && beghouledPlantSync.holdsSwapOverlap();
+        if (!skipPlantSort && (plantSync != null || bowlingNutSync != null || beghouledPlantSync != null)) {
             sortByRow(plantLayer, BattlefieldGroup::sortKey);
         }
         if (zombieSync != null) {
@@ -188,6 +222,10 @@ public final class BattlefieldGroup extends WidgetGroup {
         setPlaying(projectileLayer, unitsPlaying);
         setPlaying(sunLayer, unitsPlaying);
         setPlaying(fxLayer, unitsPlaying);
+    }
+
+    public void setPlantLayerPlaying(boolean playing) {
+        setPlaying(plantLayer, playing);
     }
 
     public void setPlaybackSpeed(float playbackSpeed) {
@@ -248,6 +286,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (arcadeObstacleSync != null) {
             arcadeObstacleSync.clear();
+        }
+        if (beghouledPlantSync != null) {
+            beghouledPlantSync.clear();
         }
         environmentLayer.clearChildren();
         highlightLayer.clearChildren();
