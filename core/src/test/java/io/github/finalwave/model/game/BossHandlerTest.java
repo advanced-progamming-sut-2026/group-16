@@ -428,6 +428,131 @@ class BossHandlerTest {
         assertNull(session.getBoard().getPlantAt(4, 2));
     }
 
+    @Test
+    void sharkBiteSendsSeveralSharksAtWaterPlants() {
+        GameSession session = newBossSession(ChapterId.BIG_WAVE_BEACH, new Random(8));
+        BossHandler handler = new BossHandler(ChapterId.BIG_WAVE_BEACH, List.of("Lily Pad"), new Random(8));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        int waterFrom = session.getBoard().getCols() - 3;
+        for (int i = 0; i < 3; i++) {
+            session.addConveyorBeltPlant("Lily Pad");
+            int col = waterFrom + i;
+            assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Lily Pad", col, i, 1));
+        }
+        int plantsBefore = countWaterPlants(session);
+        BossArena arena = new BossArena(session, handler.getBoss(), new Random(8), ChapterId.BIG_WAVE_BEACH);
+        BossAttacks.SharkBite bite = new BossAttacks.SharkBite();
+        bite.start(arena);
+        assertEquals("spawn", handler.getBoss().getPresentationClip());
+        int sharks = 0;
+        for (BossVfx vfx : session.drainBossVfx()) {
+            if (vfx.kind() == BossVfx.Kind.SHARK) {
+                sharks++;
+            }
+        }
+        assertTrue(sharks >= 2);
+        assertTrue(sharks <= plantsBefore);
+        int ticks = 0;
+        while (!bite.tick(arena) && ticks < 50) {
+            ticks++;
+        }
+        assertEquals(plantsBefore - sharks, countWaterPlants(session));
+    }
+
+    @Test
+    void turbinePullsThenClearsOccupiedRows() {
+        GameSession session = newBossSession(ChapterId.BIG_WAVE_BEACH, new Random(18));
+        BossHandler handler = new BossHandler(
+                ChapterId.BIG_WAVE_BEACH, List.of("Peashooter"), new Random(18));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        int[] rows = new BossArena(session, handler.getBoss(), new Random(18), ChapterId.BIG_WAVE_BEACH)
+                .occupiedRows();
+        session.addConveyorBeltPlant("Peashooter");
+        session.addConveyorBeltPlant("Peashooter");
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 2, rows[0], 1));
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 3, rows[1], 1));
+        BossArena arena = new BossArena(session, handler.getBoss(), new Random(18), ChapterId.BIG_WAVE_BEACH);
+        BossAttacks.Vacuum vacuum = new BossAttacks.Vacuum();
+        vacuum.start(arena);
+        assertEquals("suction_on", handler.getBoss().getPresentationClip());
+        int turbineVfx = 0;
+        for (BossVfx vfx : session.drainBossVfx()) {
+            if (vfx.kind() == BossVfx.Kind.VACUUM) {
+                turbineVfx++;
+            }
+        }
+        assertEquals(2, turbineVfx);
+        vacuum.tick(arena);
+        vacuum.tick(arena);
+        var moved = session.getBoard().getPlantAt(3, rows[0]);
+        assertNotNull(moved);
+        int ticks = 2;
+        while (!vacuum.tick(arena) && ticks < 90) {
+            ticks++;
+        }
+        for (int row : rows) {
+            for (var plant : session.getBoard().getAllPlants()) {
+                assertNotEquals(row, plant.getRow());
+            }
+        }
+    }
+
+    @Test
+    void turbinePullsZombiesIntoTheMouth() {
+        GameSession session = newBossSession(ChapterId.BIG_WAVE_BEACH, new Random(19));
+        BossHandler handler = new BossHandler(ChapterId.BIG_WAVE_BEACH, List.of("Lily Pad"), new Random(19));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        BossArena arena = new BossArena(session, handler.getBoss(), new Random(19), ChapterId.BIG_WAVE_BEACH);
+        int row = arena.occupiedRows()[0];
+        Zombie minion = arena.spawnMinion("ZombieDefault", row, 2.5);
+        assertNotNull(minion);
+        double startX = minion.getX();
+        BossAttacks.Vacuum vacuum = new BossAttacks.Vacuum();
+        vacuum.start(arena);
+        vacuum.tick(arena);
+        vacuum.tick(arena);
+        assertTrue(minion.getX() > startX);
+        int ticks = 2;
+        while (!vacuum.tick(arena) && ticks < 90) {
+            ticks++;
+        }
+        assertFalse(minion.isAlive());
+    }
+
+    @Test
+    void beachBossUsesSharkIntroAndIdle() {
+        assertEquals(BossCatalog.BEACH_INTRO_TICKS, BossCatalog.introTicks(ChapterId.BIG_WAVE_BEACH));
+        GameSession session = newBossSession(ChapterId.BIG_WAVE_BEACH, new Random(20));
+        BossHandler handler = new BossHandler(ChapterId.BIG_WAVE_BEACH, List.of("Lily Pad"), new Random(20));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        Zombie boss = handler.getBoss();
+        assertEquals("ZombieBeachZomboss", boss.getType());
+        assertTrue(boss.occupiesRow(boss.getRow()));
+        assertTrue(boss.occupiesRow(boss.getRow() + 1));
+        assertEquals(2, countOccupiedRows(boss, session.getBoard().getRows()));
+    }
+
+    private static int countWaterPlants(GameSession session) {
+        int count = 0;
+        for (var plant : session.getBoard().getAllPlants()) {
+            if (plant == null || !plant.isAlive()) {
+                continue;
+            }
+            var tile = session.getBoard().getTile(plant.getCol(), plant.getRow());
+            if (tile != null && tile.isWater()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     private static int countOccupiedRows(Zombie boss, int rows) {
         int occupied = 0;
         for (int row = 0; row < rows; row++) {

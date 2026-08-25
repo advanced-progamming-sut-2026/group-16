@@ -327,52 +327,74 @@ public final class BossAttacks {
     }
 
     public static final class SharkBite implements BossAttack {
-        private int remaining;
+        private int elapsed;
         private boolean struck;
+        private final List<int[]> cells = new ArrayList<>();
 
         @Override
         public void start(BossArena arena) {
-            remaining = 14;
+            elapsed = 0;
             struck = false;
-            arena.setClip("idle");
+            cells.clear();
+            int shots = BossCatalog.SHARK_MIN + arena.random().nextInt(BossCatalog.SHARK_EXTRA);
+            arena.pickWaterPlantCells(cells, shots);
+            arena.setClip("spawn");
+            for (int[] cell : cells) {
+                arena.emit(BossVfx.Kind.SHARK, cell[0], cell[1]);
+            }
         }
 
         @Override
         public boolean tick(BossArena arena) {
-            remaining--;
-            if (!struck && remaining <= 6) {
+            elapsed++;
+            if (!struck && elapsed >= BossCatalog.SHARK_STRIKE_TICKS) {
                 struck = true;
-                int[] cell = new int[2];
-                if (arena.swallowWaterPlant(cell)) {
-                    arena.emit(BossVfx.Kind.SHARK, cell[0], cell[1]);
+                for (int[] cell : cells) {
+                    arena.swallowPlantAt(cell[0], cell[1]);
                 }
             }
-            return remaining <= 0;
+            return elapsed >= BossCatalog.SHARK_SPAWN_TICKS;
         }
     }
 
     public static final class Vacuum implements BossAttack {
-        private int remaining;
-        private boolean struck;
+        private int elapsed;
+        private boolean looping;
+        private boolean closing;
 
         @Override
         public void start(BossArena arena) {
-            remaining = 16;
-            struck = false;
-            arena.setClip("suction");
+            elapsed = 0;
+            looping = false;
+            closing = false;
+            arena.setClip("suction_on");
+            int[] rows = arena.occupiedRows();
+            for (int row : rows) {
+                arena.emit(BossVfx.Kind.VACUUM, (int) arena.boss().getX(), row);
+            }
         }
 
         @Override
         public boolean tick(BossArena arena) {
-            arena.setClip("suction");
-            remaining--;
-            if (!struck && remaining <= 6) {
-                struck = true;
-                int[] rows = arena.occupiedRows();
-                arena.emit(BossVfx.Kind.VACUUM, (int) arena.boss().getX(), rows[0]);
-                arena.vacuumOccupied();
+            elapsed++;
+            if (!looping && elapsed >= BossCatalog.SUCTION_ON_TICKS) {
+                looping = true;
+                arena.setClip("suction_loop");
             }
-            return remaining <= 0;
+            if (!closing && elapsed >= BossCatalog.SUCTION_ON_TICKS + BossCatalog.SUCTION_LOOP_TICKS) {
+                closing = true;
+                arena.setClip("suction_off");
+            }
+            if (elapsed % BossCatalog.VACUUM_PULL_INTERVAL == 0) {
+                arena.pullOccupiedTowardMouth();
+            }
+            if (elapsed >= BossCatalog.SUCTION_ON_TICKS
+                    + BossCatalog.SUCTION_LOOP_TICKS
+                    + BossCatalog.SUCTION_OFF_TICKS) {
+                arena.vacuumOccupied();
+                return true;
+            }
+            return false;
         }
     }
 
