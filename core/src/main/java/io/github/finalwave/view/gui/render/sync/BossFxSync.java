@@ -32,6 +32,12 @@ public final class BossFxSync {
     private static final float WIND_SCALE = 1.35f;
     private static final float WIND_SECONDS = 2.5f;
     private static final float WIND_WIDTH_TILES = 3.6f;
+    private static final float SHARK_SCALE = 1.25f;
+    private static final float SHARK_SURFACE_SECONDS = 2.0f;
+    private static final float SHARK_ATTACK_SECONDS = 2.13f;
+    private static final float TURBINE_SCALE = 1.4f;
+    private static final float TURBINE_SECONDS = 4.1f;
+    private static final float TURBINE_WIDTH_TILES = 4.2f;
 
     private final GameAssets assets;
     private final LawnLayout layout;
@@ -104,6 +110,14 @@ public final class BossFxSync {
             spawnWind(vfx.row());
             return;
         }
+        if (vfx.kind() == BossVfx.Kind.SHARK) {
+            spawnShark(vfx.col(), vfx.row());
+            return;
+        }
+        if (vfx.kind() == BossVfx.Kind.VACUUM) {
+            spawnTurbine(vfx.row());
+            return;
+        }
         if (vfx.kind() == BossVfx.Kind.MISSILE_EGYPT || vfx.kind() == BossVfx.Kind.MISSILE_ICE) {
             removeLock(vfx.col(), vfx.row());
         }
@@ -139,6 +153,36 @@ public final class BossFxSync {
         layer.addActor(actor);
         actor.addAction(Actions.sequence(
                 Actions.moveTo(endX - actor.getWidth() / 2f, y, WIND_SECONDS, Interpolation.linear),
+                Actions.run(actor::remove)));
+        playing.add(actor);
+    }
+
+    private void spawnShark(int col, int row) {
+        Vector2 center = layout.cellCenter(col, row);
+        PamActor actor = place(center, row);
+        actor.setSize(layout.tileWidth() * 1.25f, layout.tileHeight() * 1.2f);
+        actor.playThen(ZombossClips.SHARK, "idle2", SHARK_SCALE, "attack", false, null);
+        actor.addAction(Actions.sequence(
+                Actions.delay(SHARK_SURFACE_SECONDS + SHARK_ATTACK_SECONDS),
+                Actions.run(actor::remove)));
+    }
+
+    private void spawnTurbine(int row) {
+        Vector2 left = layout.cellCenter(0, row);
+        Vector2 right = layout.cellCenter(Math.max(0, layout.cols() - 1), row);
+        PamActor actor = assets.pamActor();
+        actor.setTouchable(Touchable.disabled);
+        actor.setAnchor(0.5f, 0.5f);
+        actor.setSize(layout.tileWidth() * TURBINE_WIDTH_TILES, layout.tileHeight() * 1.6f);
+        actor.setClip(ZombossClips.TURBINE, "animation", TURBINE_SCALE, true);
+        float y = left.y - actor.getHeight() / 2f;
+        float startX = left.x - layout.tileWidth();
+        float endX = right.x + layout.tileWidth();
+        actor.setPosition(startX - actor.getWidth() / 2f, y);
+        actor.setUserObject(row);
+        layer.addActor(actor);
+        actor.addAction(Actions.sequence(
+                Actions.moveTo(endX - actor.getWidth() / 2f, y, TURBINE_SECONDS, Interpolation.linear),
                 Actions.run(actor::remove)));
         playing.add(actor);
     }

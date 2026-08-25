@@ -34,6 +34,17 @@ public final class BossCatalog {
     public static final int GLACIER_STRIKE_TICKS = 20;
     public static final int GLACIER_TICKS = 63;
     public static final int FROZEN_ZOMBIE_TICKS = 600;
+    public static final int BEACH_INTRO_TICKS = 62;
+    public static final int SHARK_SPAWN_TICKS = 30;
+    public static final int SHARK_STRIKE_TICKS = 20;
+    public static final int SHARK_MIN = 2;
+    public static final int SHARK_EXTRA = 3;
+    public static final int SUCTION_ON_TICKS = 21;
+    public static final int SUCTION_LOOP_TICKS = 20;
+    public static final int SUCTION_OFF_TICKS = 25;
+    public static final int VACUUM_PULL_INTERVAL = 2;
+    public static final double VACUUM_ZOMBIE_STEP = 0.4;
+    public static final double VACUUM_MOUTH_GAP = 1.0;
     public static final int PORTAL_START_TICKS = 23;
     public static final int PORTAL_LOOP_TICKS = 12;
     public static final int PORTAL_END_TICKS = 16;
@@ -68,6 +79,9 @@ public final class BossCatalog {
         }
         if (chapter == ChapterId.FROSTBITE_CAVES) {
             return ICE_INTRO_TICKS;
+        }
+        if (chapter == ChapterId.BIG_WAVE_BEACH) {
+            return BEACH_INTRO_TICKS;
         }
         return INTRO_TICKS;
     }

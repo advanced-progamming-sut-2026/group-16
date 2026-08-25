@@ -95,7 +95,11 @@ public final class ZombossClips {
             case "glacier_4" -> new Sequence(new String[]{"glacier_column_4", "idle"}, null, false);
             case "glacier_5" -> new Sequence(new String[]{"glacier_column_5", "idle"}, null, false);
             case "glacier_6" -> new Sequence(new String[]{"glacier_column_6", "idle"}, null, false);
-            case "suction" -> new Sequence(new String[]{"suction_loop", "suction_on", "idle"}, null, true);
+            case "spawn" -> new Sequence(new String[]{"spawn", "summoning", "idle"}, null, false);
+            case "suction" -> new Sequence(new String[]{"suction_on", "idle"}, new String[]{"suction_loop", "idle"}, true);
+            case "suction_on" -> new Sequence(new String[]{"suction_on", "idle"}, null, false);
+            case "suction_loop" -> new Sequence(new String[]{"suction_loop", "idle"}, null, true);
+            case "suction_off" -> new Sequence(new String[]{"suction_off", "idle"}, null, false);
             case "die" -> new Sequence(new String[]{"die", "die_idle", "idle"}, null, false);
             default -> new Sequence(new String[]{"idle"}, null, true);
         };

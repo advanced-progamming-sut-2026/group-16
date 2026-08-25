@@ -315,6 +315,35 @@ public final class BossArena {
         return spawned;
     }
 
+    public int pickWaterPlantCells(List<int[]> dest, int count) {
+        dest.clear();
+        if (count <= 0) {
+            return 0;
+        }
+        List<int[]> water = new ArrayList<>();
+        Set<String> used = new HashSet<>();
+        for (Plant plant : board().getAllPlants()) {
+            if (!plant.isAlive()) {
+                continue;
+            }
+            Tile tile = board().getTile(plant.getCol(), plant.getRow());
+            if (tile == null || !tile.isWater()) {
+                continue;
+            }
+            if (used.add(key(plant.getCol(), plant.getRow()))) {
+                water.add(new int[]{plant.getCol(), plant.getRow()});
+            }
+        }
+        while (dest.size() < count && !water.isEmpty()) {
+            dest.add(water.remove(random.nextInt(water.size())));
+        }
+        return dest.size();
+    }
+
+    public boolean swallowPlantAt(int col, int row) {
+        return destroyPlantAt(col, row);
+    }
+
     public boolean swallowWaterPlant(int[] cell) {
         List<Plant> water = new ArrayList<>();
         for (Plant plant : board().getAllPlants()) {
@@ -332,9 +361,80 @@ public final class BossArena {
         Plant plant = water.get(random.nextInt(water.size()));
         cell[0] = plant.getCol();
         cell[1] = plant.getRow();
-        plant.takeDamage(plant.getHealth() + 99999);
-        session.removePlantFromBoard(plant);
-        return true;
+        return destroyPlantAt(plant.getCol(), plant.getRow());
+    }
+
+    public void pullOccupiedTowardMouth() {
+        double mouthX = Math.max(0.5, boss.getX() - BossCatalog.VACUUM_MOUTH_GAP);
+        int[] rows = occupiedRows();
+        pullPlantsOnRows(rows, mouthX);
+        pullZombiesOnRows(rows, mouthX);
+    }
+
+    private void pullPlantsOnRows(int[] rows, double mouthX) {
+        List<Plant> targets = new ArrayList<>();
+        for (Plant plant : List.copyOf(board().getAllPlants())) {
+            if (plant.isAlive() && occupiesAny(rows, plant.getRow())) {
+                targets.add(plant);
+            }
+        }
+        targets.sort((left, right) -> {
+            int byCol = Integer.compare(right.getCol(), left.getCol());
+            if (byCol != 0) {
+                return byCol;
+            }
+            return Boolean.compare(left.hasTag(PlantTag.WATER), right.hasTag(PlantTag.WATER));
+        });
+        var context = session.getContext();
+        for (Plant plant : targets) {
+            if (!plant.isAlive()) {
+                continue;
+            }
+            if (plant.getCol() + 0.5 >= mouthX) {
+                destroyPlantAt(plant.getCol(), plant.getRow());
+                continue;
+            }
+            boolean moved = context != null
+                    && context.movePlant(plant, plant.getCol() + 1, plant.getRow());
+            if (!moved) {
+                destroyPlantAt(plant.getCol(), plant.getRow());
+            }
+        }
+    }
+
+    private void pullZombiesOnRows(int[] rows, double mouthX) {
+        for (Zombie zombie : List.copyOf(session.getZombies())) {
+            if (zombie == boss || !zombie.isAlive() || zombie.isBoss()) {
+                continue;
+            }
+            if (!occupiesAnyOccupied(zombie, rows)) {
+                continue;
+            }
+            if (zombie.getX() >= mouthX) {
+                zombie.takeDirectDamage(zombie.getHealth() + 99999);
+                session.handleZombieKilled(zombie);
+            } else {
+                zombie.moveRight(BossCatalog.VACUUM_ZOMBIE_STEP);
+            }
+        }
+    }
+
+    private static boolean occupiesAny(int[] rows, int row) {
+        for (int occupied : rows) {
+            if (occupied == row) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean occupiesAnyOccupied(Zombie zombie, int[] rows) {
+        for (int row : rows) {
+            if (zombie.occupiesRow(row)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void vacuumOccupied() {
