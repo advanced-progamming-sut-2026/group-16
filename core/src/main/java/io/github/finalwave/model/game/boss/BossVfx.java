@@ -7,6 +7,7 @@ public record BossVfx(Kind kind, int col, int row) {
         MISSILE_FLIGHT,
         MISSILE_EGYPT,
         MISSILE_ICE,
+        FIREBALL_FLIGHT,
         FIREBALL,
         SHARK,
         VACUUM,

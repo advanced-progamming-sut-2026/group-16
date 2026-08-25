@@ -22,8 +22,12 @@ public final class BossFxSync {
     private static final float LOCK_SCALE = 1.15f;
     private static final float FLIGHT_SCALE = 1.2f;
     private static final float IMPACT_SCALE = 1.2f;
+    private static final float FIREBALL_FLIGHT_SCALE = 1.35f;
+    private static final float FIREBALL_IMPACT_SCALE = 1.4f;
     private static final float FLIGHT_DELAY = 0.5f;
     private static final float FLIGHT_SECONDS = 1.5f;
+    private static final float FIREBALL_FLIGHT_DELAY = 1.0f;
+    private static final float FIREBALL_FLIGHT_SECONDS = 1.0f;
     private static final float FLIGHT_START_Y = 900f;
 
     private final GameAssets assets;
@@ -81,14 +85,20 @@ public final class BossFxSync {
             return;
         }
         if (vfx.kind() == BossVfx.Kind.MISSILE_FLIGHT) {
-            spawnFlight(path, clip, center, vfx.row());
+            spawnFlight(path, clip, center, vfx.row(), FLIGHT_SCALE, FLIGHT_DELAY, FLIGHT_SECONDS);
+            return;
+        }
+        if (vfx.kind() == BossVfx.Kind.FIREBALL_FLIGHT) {
+            spawnFlight(path, clip, center, vfx.row(),
+                    FIREBALL_FLIGHT_SCALE, FIREBALL_FLIGHT_DELAY, FIREBALL_FLIGHT_SECONDS);
             return;
         }
         if (vfx.kind() == BossVfx.Kind.MISSILE_EGYPT || vfx.kind() == BossVfx.Kind.MISSILE_ICE) {
             removeLock(vfx.col(), vfx.row());
         }
         PamActor actor = place(center, vfx.row());
-        actor.playOnce(path, clip, IMPACT_SCALE, actor::remove);
+        float impactScale = vfx.kind() == BossVfx.Kind.FIREBALL ? FIREBALL_IMPACT_SCALE : IMPACT_SCALE;
+        actor.playOnce(path, clip, impactScale, actor::remove);
     }
 
     private void spawnLock(String path, String clip, Vector2 center, BossVfx vfx) {
@@ -102,15 +112,16 @@ public final class BossFxSync {
         locks.put(key, actor);
     }
 
-    private void spawnFlight(String path, String clip, Vector2 center, int row) {
+    private void spawnFlight(String path, String clip, Vector2 center, int row,
+            float scale, float delay, float seconds) {
         PamActor actor = place(center, row);
-        actor.setClip(path, clip, FLIGHT_SCALE, true);
+        actor.setClip(path, clip, scale, true);
         float x = center.x - actor.getWidth() / 2f;
         float endY = center.y - actor.getHeight() / 2f;
         actor.setPosition(x, endY + FLIGHT_START_Y);
         actor.addAction(Actions.sequence(
-                Actions.delay(FLIGHT_DELAY),
-                Actions.moveTo(x, endY, FLIGHT_SECONDS, Interpolation.sineIn),
+                Actions.delay(delay),
+                Actions.moveTo(x, endY, seconds, Interpolation.sineIn),
                 Actions.run(actor::remove)));
     }
 
@@ -141,7 +152,7 @@ public final class BossFxSync {
         return switch (kind) {
             case LOCK_RETICLE, MISSILE_FLIGHT, MISSILE_EGYPT -> ZombossClips.EGYPT_MISSILE;
             case MISSILE_ICE -> ZombossClips.ICE_MISSILE;
-            case FIREBALL -> ZombossClips.DARK_FIREBALL;
+            case FIREBALL_FLIGHT, FIREBALL -> ZombossClips.DARK_FIREBALL;
             case SHARK -> ZombossClips.SHARK;
             case VACUUM -> ZombossClips.TURBINE;
             case GLACIER -> ZombossClips.GLACIER;
@@ -153,6 +164,7 @@ public final class BossFxSync {
             case LOCK_RETICLE -> "missile_lock_reticle";
             case MISSILE_FLIGHT -> "missile";
             case MISSILE_EGYPT, MISSILE_ICE -> "missile_explosion";
+            case FIREBALL_FLIGHT -> "fall";
             case FIREBALL -> "impact";
             case SHARK -> "attack";
             case VACUUM -> "animation";

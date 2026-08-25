@@ -13,8 +13,10 @@ import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 public final class BossArena {
 
@@ -160,6 +162,76 @@ public final class BossArena {
         } catch (RuntimeException ignored) {
             return null;
         }
+    }
+
+    public void strikeFireball(int col, int row) {
+        destroyPlantAt(col, row);
+        placeFire(col, row);
+        emit(BossVfx.Kind.FIREBALL, col, row);
+        spawnImpAt(col, row);
+    }
+
+    public Zombie spawnImpAt(int col, int row) {
+        double x = Math.min(board().getCols() - 0.5, Math.max(0.5, col + 0.5));
+        String imp = BossCatalog.impAlias(chapter);
+        Zombie spawned = spawnMinion(imp, row, x);
+        if (spawned == null) {
+            spawned = spawnMinion("ZombieImp", row, x);
+        }
+        return spawned;
+    }
+
+    public int scorchOccupiedRows() {
+        int burned = 0;
+        for (int row : occupiedRows()) {
+            destroyPlantsOnRow(row);
+            for (int col = 0; col < board().getCols(); col++) {
+                placeFire(col, row);
+                emit(BossVfx.Kind.FIREBALL, col, row);
+                burned++;
+            }
+        }
+        return burned;
+    }
+
+    public void pickUniqueCells(List<int[]> dest, int count) {
+        dest.clear();
+        if (count <= 0) {
+            return;
+        }
+        Set<String> used = new HashSet<>();
+        List<int[]> plants = new ArrayList<>();
+        for (Plant plant : board().getAllPlants()) {
+            if (plant.isAlive()) {
+                plants.add(new int[]{plant.getCol(), plant.getRow()});
+            }
+        }
+        while (dest.size() < count && !plants.isEmpty()) {
+            int[] picked = plants.remove(random.nextInt(plants.size()));
+            if (used.add(key(picked[0], picked[1]))) {
+                dest.add(picked);
+            }
+        }
+        int attempts = 0;
+        while (dest.size() < count && attempts < 80) {
+            attempts++;
+            int col = random.nextInt(board().getCols());
+            int row = random.nextInt(board().getRows());
+            Tile tile = board().getTile(col, row);
+            if (tile == null || tile.isWater()) {
+                continue;
+            }
+            if (used.add(key(col, row))) {
+                dest.add(new int[]{col, row});
+            }
+        }
+        if (dest.isEmpty()) {
+            dest.add(new int[]{3, occupiedRows()[0]});
+        }
+    }
+
+    private static String key(int col, int row) {
+        return col + "," + row;
     }
 
     public int pickPlantCell(int[] cell) {

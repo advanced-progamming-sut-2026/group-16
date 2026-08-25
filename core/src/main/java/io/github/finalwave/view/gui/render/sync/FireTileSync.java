@@ -70,16 +70,24 @@ public final class FireTileSync {
     private PamActor spawn() {
         PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
-        actor.setAnchor(0.5f, LawnLayout.GRAVE_ANCHOR_Y);
+        actor.setAnchor(0.5f, 0.5f);
+        actor.playThen(
+                ZombossClips.FIRE_TILE,
+                ZombossClips.FIRE_TILE_INTRO_CLIP,
+                LawnLayout.GRAVE_SCALE,
+                ZombossClips.FIRE_TILE_CLIP,
+                true,
+                null);
         layer.addActor(actor);
         return actor;
     }
 
     private void layout(PamActor actor, int col, int row) {
         Vector2 center = layout.cellCenter(col, row);
-        actor.setSize(layout.tileWidth(), layout.tileHeight());
-        actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
-        actor.setClip(ZombossClips.FIRE_TILE, "idle", LawnLayout.GRAVE_SCALE, true);
+        float width = layout.tileWidth() * 1.12f;
+        float height = layout.tileHeight() * 1.12f;
+        actor.setSize(width, height);
+        actor.setPosition(center.x - width / 2f, center.y - height / 2f);
         actor.setUserObject(row);
     }
 
