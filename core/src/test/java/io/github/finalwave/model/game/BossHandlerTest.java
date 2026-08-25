@@ -185,6 +185,74 @@ class BossHandlerTest {
     }
 
     @Test
+    void plantingOnFireTileIsBlocked() {
+        GameSession session = newBossSession(ChapterId.DARK_AGES, new Random(9));
+        BossHandler handler = new BossHandler(ChapterId.DARK_AGES, List.of("Peashooter"), new Random(9));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        session.getBoard().setTile(2, 1, new FireTile());
+        session.addConveyorBeltPlant("Peashooter");
+        assertEquals(PlantPlacementResult.TILE_BLOCKED, session.tryPlant("Peashooter", 2, 1, 1));
+    }
+
+    @Test
+    void fireballBurnsPlantedCellAndSpawnsImpOnIt() {
+        GameSession session = newBossSession(ChapterId.DARK_AGES, new Random(10));
+        BossHandler handler = new BossHandler(ChapterId.DARK_AGES, List.of("Peashooter"), new Random(10));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        session.addConveyorBeltPlant("Peashooter");
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 2, 1, 1));
+        assertNotNull(session.getBoard().getPlantAt(2, 1));
+
+        BossArena arena = new BossArena(session, handler.getBoss(), new Random(10), ChapterId.DARK_AGES);
+        BossAttacks.Fireball fireball = new BossAttacks.Fireball();
+        fireball.start(arena);
+        int ticks = 0;
+        while (!fireball.tick(arena) && ticks < 80) {
+            ticks++;
+        }
+        assertNull(session.getBoard().getPlantAt(2, 1));
+        assertTrue(session.getBoard().getTile(2, 1).isFire());
+        session.addConveyorBeltPlant("Peashooter");
+        assertEquals(PlantPlacementResult.TILE_BLOCKED, session.tryPlant("Peashooter", 2, 1, 1));
+        assertTrue(hasImpOnCell(session, 2, 1));
+    }
+
+    @Test
+    void dragonFireScorchesBothOccupiedRows() {
+        GameSession session = newBossSession(ChapterId.DARK_AGES, new Random(11));
+        BossHandler handler = new BossHandler(
+                ChapterId.DARK_AGES, List.of("Peashooter", "Wall-nut"), new Random(11));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        session.addConveyorBeltPlant("Peashooter");
+        session.addConveyorBeltPlant("Wall-nut");
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 3, 1, 1));
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Wall-nut", 4, 2, 1));
+
+        BossArena arena = new BossArena(session, handler.getBoss(), new Random(11), ChapterId.DARK_AGES);
+        int[] rows = arena.occupiedRows();
+        BossAttacks.DragonFire dragonFire = new BossAttacks.DragonFire();
+        dragonFire.start(arena);
+        int ticks = 0;
+        while (!dragonFire.tick(arena) && ticks < 80) {
+            ticks++;
+        }
+        assertNull(session.getBoard().getPlantAt(3, 1));
+        assertNull(session.getBoard().getPlantAt(4, 2));
+        for (int row : rows) {
+            for (int col = 0; col < session.getBoard().getCols(); col++) {
+                assertTrue(session.getBoard().getTile(col, row).isFire(),
+                        "expected fire at " + col + "," + row);
+            }
+        }
+    }
+
+    @Test
     void freezeColumnPlacesIceAndFrozenZombies() {
         GameSession session = newBossSession(ChapterId.FROSTBITE_CAVES, new Random(7));
         BossHandler handler = new BossHandler(ChapterId.FROSTBITE_CAVES, List.of("Peashooter"), new Random(7));
@@ -213,6 +281,21 @@ class BossHandlerTest {
         int[] cell = new int[2];
         assertTrue(arena.swallowWaterPlant(cell));
         assertNull(session.getBoard().getPlantAt(4, 2));
+    }
+
+    private static boolean hasImpOnCell(GameSession session, int col, int row) {
+        double expectedX = col + 0.5;
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie.isBoss() || !zombie.isAlive()) {
+                continue;
+            }
+            boolean dragon = "ZombieDarkImpDragon".equals(zombie.getType());
+            boolean imp = "ZombieImp".equals(zombie.getType());
+            if ((dragon || imp) && zombie.getRow() == row && Math.abs(zombie.getX() - expectedX) < 0.6) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static int countGraves(GameSession session) {

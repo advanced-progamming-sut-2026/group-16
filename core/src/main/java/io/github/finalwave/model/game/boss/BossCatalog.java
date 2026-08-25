@@ -12,6 +12,7 @@ public final class BossCatalog {
     public static final int MAX_HEALTH = 3600;
     public static final int ROW_SPAN = 2;
     public static final int INTRO_TICKS = 26;
+    public static final int DARK_INTRO_TICKS = 104;
     public static final int IDLE_MIN_TICKS = 40;
     public static final int IDLE_MAX_TICKS = 80;
     public static final int MISSILE_START_TICKS = 33;
@@ -19,6 +20,13 @@ public final class BossCatalog {
     public static final int MISSILE_LAUNCH_TICKS = 18;
     public static final int MISSILE_DELAY_TICKS = 5;
     public static final int MISSILE_FLIGHT_TICKS = 15;
+    public static final int FIRE_BOMB_TICKS = 18;
+    public static final int FIRE_BOMB_LOOP_TICKS = 11;
+    public static final int FIRE_BOMB_END_TICKS = 9;
+    public static final int FIREBALL_FLIGHT_TICKS = 20;
+    public static final int FIRE_ATTACK_TICKS = 18;
+    public static final int FIRE_ATTACK_LOOP_TICKS = 8;
+    public static final int FIRE_ATTACK_END_TICKS = 8;
     public static final int PORTAL_START_TICKS = 23;
     public static final int PORTAL_LOOP_TICKS = 12;
     public static final int PORTAL_END_TICKS = 16;
@@ -45,6 +53,13 @@ public final class BossCatalog {
 
     public static boolean allowsLaneSwitch(ChapterId chapter) {
         return chapter != ChapterId.FROSTBITE_CAVES;
+    }
+
+    public static int introTicks(ChapterId chapter) {
+        if (chapter == ChapterId.DARK_AGES) {
+            return DARK_INTRO_TICKS;
+        }
+        return INTRO_TICKS;
     }
 
     public static List<String> conveyorPlants(ChapterId chapter, Collection<String> available) {
@@ -81,7 +96,7 @@ public final class BossCatalog {
                     "ZombieExplorer", "ZombieTombRaiser");
             case DARK_AGES -> List.of(
                     "ZombieDefault", "ZombieArmor1", "ZombieArmor2",
-                    "ZombieImp", "ZombieDarkJuggler");
+                    "ZombieDarkImpDragon", "ZombieDarkJuggler");
             case BIG_WAVE_BEACH -> List.of(
                     "ZombieDefault", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieImp");
             case FROSTBITE_CAVES -> List.of();

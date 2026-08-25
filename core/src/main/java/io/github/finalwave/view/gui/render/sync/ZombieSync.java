@@ -118,6 +118,9 @@ public final class ZombieSync {
             worldY = layout.worldYForRow(displayY(zombie) + 1);
             actor.setSize(layout.tileWidth() * 1.85f, layout.tileHeight() * 2.0f);
             scale = LawnLayout.ZOMBOSS_SCALE;
+            if ("ZombieDarkZomboss".equals(zombie.getType())) {
+                worldX += layout.tileWidth() * LawnLayout.ZOMBOSS_DARK_OFFSET_X;
+            }
             bossActors.add(actor);
         } else {
             actor.setSize(layout.tileWidth(), layout.tileHeight());

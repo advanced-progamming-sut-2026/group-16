@@ -3,6 +3,7 @@ package io.github.finalwave.model.game.boss;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class BossAttacks {
@@ -194,67 +195,78 @@ public final class BossAttacks {
     }
 
     public static final class Fireball implements BossAttack {
-        private int remaining;
+        private int elapsed;
+        private boolean launched;
         private boolean struck;
+        private boolean closing;
+        private final List<int[]> cells = new ArrayList<>();
 
         @Override
         public void start(BossArena arena) {
-            remaining = 16;
+            elapsed = 0;
+            launched = false;
             struck = false;
-            arena.setClip("missile");
+            closing = false;
+            cells.clear();
+            int shots = 2 + arena.random().nextInt(3);
+            arena.pickUniqueCells(cells, shots);
+            arena.setClip("fire_bomb");
         }
 
         @Override
         public boolean tick(BossArena arena) {
-            arena.setClip("missile");
-            remaining--;
-            if (!struck && remaining <= 7) {
-                struck = true;
-                int shots = 2 + arena.random().nextInt(3);
-                for (int i = 0; i < shots; i++) {
-                    int col = arena.random().nextInt(arena.board().getCols());
-                    int row = arena.random().nextInt(arena.board().getRows());
-                    arena.destroyPlantAt(col, row);
-                    arena.placeFire(col, row);
-                    arena.emit(BossVfx.Kind.FIREBALL, col, row);
-                    String imp = BossCatalog.impAlias(arena.chapter());
-                    if (arena.spawnMinion(imp, row, arena.spawnX()) == null) {
-                        arena.spawnMinion("ZombieImp", row, arena.spawnX());
-                    }
+            elapsed++;
+            if (!launched && elapsed >= BossCatalog.FIRE_BOMB_TICKS) {
+                launched = true;
+                arena.setClip("fire_bomb_loop");
+                for (int[] cell : cells) {
+                    arena.emit(BossVfx.Kind.FIREBALL_FLIGHT, cell[0], cell[1]);
                 }
             }
-            return remaining <= 0;
+            if (!closing && elapsed >= BossCatalog.FIRE_BOMB_TICKS + BossCatalog.FIRE_BOMB_LOOP_TICKS) {
+                closing = true;
+                arena.setClip("fire_bomb_end");
+            }
+            if (!struck && elapsed >= BossCatalog.FIRE_BOMB_TICKS + BossCatalog.FIREBALL_FLIGHT_TICKS) {
+                struck = true;
+                for (int[] cell : cells) {
+                    arena.strikeFireball(cell[0], cell[1]);
+                }
+            }
+            return elapsed >= BossCatalog.FIRE_BOMB_TICKS + BossCatalog.FIREBALL_FLIGHT_TICKS
+                    && elapsed >= BossCatalog.FIRE_BOMB_TICKS
+                    + BossCatalog.FIRE_BOMB_LOOP_TICKS
+                    + BossCatalog.FIRE_BOMB_END_TICKS;
         }
     }
 
     public static final class DragonFire implements BossAttack {
-        private int remaining;
+        private int elapsed;
         private boolean struck;
+        private boolean closing;
 
         @Override
         public void start(BossArena arena) {
-            remaining = 14;
+            elapsed = 0;
             struck = false;
+            closing = false;
             arena.setClip("fire");
         }
 
         @Override
         public boolean tick(BossArena arena) {
-            arena.setClip("fire");
-            remaining--;
-            if (!struck && remaining <= 6) {
+            elapsed++;
+            if (!struck && elapsed >= BossCatalog.FIRE_ATTACK_TICKS) {
                 struck = true;
-                for (int row : arena.occupiedRows()) {
-                    arena.destroyPlantsOnRow(row);
-                    for (int col = 0; col < arena.board().getCols(); col++) {
-                        if (arena.random().nextBoolean()) {
-                            arena.placeFire(col, row);
-                            arena.emit(BossVfx.Kind.FIREBALL, col, row);
-                        }
-                    }
-                }
+                arena.scorchOccupiedRows();
             }
-            return remaining <= 0;
+            if (!closing && elapsed >= BossCatalog.FIRE_ATTACK_TICKS + BossCatalog.FIRE_ATTACK_LOOP_TICKS) {
+                closing = true;
+                arena.setClip("fire_end");
+            }
+            return elapsed >= BossCatalog.FIRE_ATTACK_TICKS
+                    + BossCatalog.FIRE_ATTACK_LOOP_TICKS
+                    + BossCatalog.FIRE_ATTACK_END_TICKS;
         }
     }
 

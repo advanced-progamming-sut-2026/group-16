@@ -958,6 +958,7 @@ public final class GamePlayScreen extends MenuScreen {
             preload(catalog.zombiePath("ZombieDarkZomboss"));
             preload(catalog.zombiePath("ZombieIceageZomboss"));
             preload(catalog.zombiePath("ZombieBeachZomboss"));
+            preload(catalog.zombiePath("ZombieDarkImpDragon"));
             preload(ZombossClips.EGYPT_MISSILE);
             preload(ZombossClips.ICE_MISSILE);
             preload(ZombossClips.DARK_FIREBALL);

@@ -29,6 +29,7 @@ public final class BossHandler implements SpecialLevelHandler {
         this.random = random == null ? new Random() : random;
         this.conveyor = new ConveyBeltHandler(
                 BossCatalog.conveyorPlants(this.chapter, availablePlants), this.random);
+        this.introTicks = BossCatalog.introTicks(this.chapter);
     }
 
     public BossHandler() {
@@ -50,7 +51,7 @@ public final class BossHandler implements SpecialLevelHandler {
         session.activateBoss(BossCatalog.MAX_HEALTH);
         conveyor.onLevelStart(session);
         spawnBoss(session);
-        introTicks = BossCatalog.INTRO_TICKS;
+        introTicks = BossCatalog.introTicks(chapter);
         attack = null;
         lastPhase = 1;
         victoryIssued = false;

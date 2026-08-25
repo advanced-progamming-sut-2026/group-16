@@ -15,7 +15,9 @@ public final class ZombossClips {
     public static final String TURBINE =
             "768/FULL/EFFECTS/ZOMBOSS_TURBINE_WIND/ZOMBOSS_TURBINE_WIND.PAM";
     public static final String FIRE_TILE =
-            "768/INITIAL/EFFECTS/JACKOLANTERN_FIRE_TILE/JACKOLANTERN_FIRE_TILE.PAM";
+            "768/FULL/EFFECTS/SCORCHED_EARTH_TILE/SCORCHED_EARTH_TILE.PAM";
+    public static final String FIRE_TILE_INTRO_CLIP = "animation";
+    public static final String FIRE_TILE_CLIP = "animation2";
     public static final String GLACIER =
             "768/FULL/EFFECTS/ZOMBOSS_GLACIER_BLOCK/ZOMBOSS_GLACIER_BLOCK.PAM";
 
@@ -67,7 +69,17 @@ public final class ZombossClips {
             case "walk_backwards" -> new Sequence(new String[]{"walk_backwards", "idle"}, null, true);
             case "walk_up" -> new Sequence(new String[]{"walk_up", "idle"}, null, true);
             case "walk_down" -> new Sequence(new String[]{"walk_down", "idle"}, null, true);
-            case "fire" -> new Sequence(new String[]{"fire_attack_idle", "fire_attack", "fire_bomb_loop", "idle"}, null, true);
+            case "fire_bomb" -> new Sequence(
+                    new String[]{"fire_bomb", "idle"},
+                    new String[]{"fire_bomb_loop", "idle"},
+                    true);
+            case "fire_bomb_loop" -> new Sequence(new String[]{"fire_bomb_loop", "idle"}, null, true);
+            case "fire_bomb_end" -> new Sequence(new String[]{"fire_bomb_end", "idle"}, null, false);
+            case "fire" -> new Sequence(
+                    new String[]{"fire_attack", "idle"},
+                    new String[]{"fire_attack_idle", "idle"},
+                    true);
+            case "fire_end" -> new Sequence(new String[]{"fire_attack_end", "idle"}, null, false);
             case "wind" -> new Sequence(new String[]{"wind_1", "wind_2", "wind_3", "idle"}, null, true);
             case "glacier" -> new Sequence(new String[]{"glacier_column_1", "glacier_column_3", "idle"}, null, true);
             case "suction" -> new Sequence(new String[]{"suction_loop", "suction_on", "idle"}, null, true);
