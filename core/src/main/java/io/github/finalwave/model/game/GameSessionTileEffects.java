@@ -1,6 +1,7 @@
 package io.github.finalwave.model.game;
 
 import io.github.finalwave.model.game.board.GameBoard;
+import io.github.finalwave.model.game.board.tile.FireTile;
 import io.github.finalwave.model.game.board.tile.GraveTile;
 import io.github.finalwave.model.game.board.tile.IceTile;
 import io.github.finalwave.model.game.board.tile.NormalTile;
@@ -213,6 +214,17 @@ final class GameSessionTileEffects {
         rowEffects.values().forEach(effects ->
                 effects.entrySet().removeIf(entry -> entry.getValue() <= currentTick));
         rowEffects.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+    }
+
+    void tickFireTiles() {
+        GameBoard board = session.getBoard();
+        for (int row = 0; row < board.getRows(); row++) {
+            for (int col = 0; col < board.getCols(); col++) {
+                if (board.getTile(col, row) instanceof FireTile fire && fire.tickExpired()) {
+                    board.setTile(col, row, new NormalTile());
+                }
+            }
+        }
     }
 
     void resetFamilyCooldowns(PlantCategory category) {

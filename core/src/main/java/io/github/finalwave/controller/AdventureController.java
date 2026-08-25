@@ -126,16 +126,12 @@ public class AdventureController extends ViewController {
             getAdventureView().errorLevelLocked(levelIndex);
             return;
         }
-        if (level.getType() == LevelType.BOSS) {
-            getAdventureView().errorBossNotImplemented();
-            return;
-        }
-        if (!level.isPlayableNow()) {
-            getAdventureView().errorSpecialNotImplemented(level.getType().name());
-            return;
-        }
         if (level.getType() == LevelType.CONVEYOR_BELT) {
             startConveyorBeltLevel(chapter, level);
+            return;
+        }
+        if (level.getType() == LevelType.BOSS) {
+            startBossLevel(chapter, level);
             return;
         }
         if (level.getType() == LevelType.LOCKED_PLANTS) {
@@ -168,6 +164,23 @@ public class AdventureController extends ViewController {
         session.attachQuestTracker(tracker);
         List<String> availablePlants = CollectionService.selectablePlantNames(user, plantRegistry);
         ConveyBeltLevelController gameplay = new ConveyBeltLevelController(
+                user, userDatabase, mode, session, chapter, level, Set.of(), availablePlants);
+        navigator.push(gameplay);
+        session.start();
+    }
+
+    private void startBossLevel(ChapterConfig chapter, LevelConfig level) {
+        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombieRegistry = PlantSelectionController.loadZombieRegistry();
+        AdventureMode mode = new AdventureMode(
+                chapter, level, plantRegistry, zombieRegistry, user.getDifficultyLevel(), new Random());
+        GameSession session = mode.createSession();
+        QuestTracker tracker = user.ensureQuestTracker();
+        tracker.registerOn(session.getEventBus());
+        tracker.beginSession(session);
+        session.attachQuestTracker(tracker);
+        List<String> availablePlants = CollectionService.selectablePlantNames(user, plantRegistry);
+        BossLevelController gameplay = new BossLevelController(
                 user, userDatabase, mode, session, chapter, level, Set.of(), availablePlants);
         navigator.push(gameplay);
         session.start();

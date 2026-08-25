@@ -26,6 +26,7 @@ final class GameSessionCombat {
         session.incrementCurrentTick();
         session.getCooldownTracker().tick();
         session.getTileEffects().expireTimedEffects();
+        session.getTileEffects().tickFireTiles();
         session.getTileEffects().tickCoveringsAndObstacles();
         session.getTileEffects().tickAdjacentFireIceMelt();
         tickLivingPlants();
@@ -155,6 +156,7 @@ final class GameSessionCombat {
                     zombieIterator.remove();
                     continue;
                 }
+                zombie.snapshotPose();
                 zombie.onTickUpdate(session.getContext());
                 checkArmedTraps(zombie);
                 if (zombie.isDead()) {
@@ -174,16 +176,17 @@ final class GameSessionCombat {
             return;
         }
         int col = (int) Math.floor(zombie.getX());
-        int row = zombie.getRow();
-        Plant plant = session.getBoard().getGroundPlantAt(col, row);
-        if (plant == null || !plant.isAlive() || !plant.hasTag(PlantTag.TRAP) || !plant.isArmedTrap()) {
-            return;
-        }
-        if (plant.getAbility() instanceof ExplosiveAbility explosive) {
-            explosive.detonate(plant, session.getContext());
-        } else {
-            session.getContext().explode(plant, plant.getStats().damage(), 1.0);
-            plant.consumeInstantly();
+        for (int row : zombie.occupiedRows()) {
+            Plant plant = session.getBoard().getGroundPlantAt(col, row);
+            if (plant == null || !plant.isAlive() || !plant.hasTag(PlantTag.TRAP) || !plant.isArmedTrap()) {
+                continue;
+            }
+            if (plant.getAbility() instanceof ExplosiveAbility explosive) {
+                explosive.detonate(plant, session.getContext());
+            } else {
+                session.getContext().explode(plant, plant.getStats().damage(), 1.0);
+                plant.consumeInstantly();
+            }
         }
     }
 
@@ -322,7 +325,7 @@ final class GameSessionCombat {
             }
             for (Zombie candidate : List.copyOf(session.zombieList())) {
                 if (!candidate.isAlive()
-                        || candidate.getRow() != mower.getRow()
+                        || !candidate.occupiesRow(mower.getRow())
                         || isBossZombie(candidate)
                         || !mower.hits(candidate.getX())) {
                     continue;
@@ -337,6 +340,12 @@ final class GameSessionCombat {
     }
 
     private static boolean isBossZombie(Zombie zombie) {
+        if (zombie == null) {
+            return false;
+        }
+        if (zombie.isBoss()) {
+            return true;
+        }
         String type = zombie.getType();
         return type != null && (type.contains("Gargantuar") || type.contains("King"));
     }
@@ -346,7 +355,8 @@ final class GameSessionCombat {
             return;
         }
         if (session.getSpecialLevelState().isTimedWarActive()
-                || session.getMiniGameState().isBeghouledActive()) {
+                || session.getMiniGameState().isBeghouledActive()
+                || session.getSpecialLevelState().isBossActive()) {
             return;
         }
         if (session.getWaveManager().areAllWavesCleared() && livingZombieCount() == 0) {

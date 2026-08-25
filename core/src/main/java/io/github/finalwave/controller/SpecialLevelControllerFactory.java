@@ -40,6 +40,8 @@ public final class SpecialLevelControllerFactory {
                     user, userDatabase, adventureMode, session, chapter, level, boostedPlants);
             case PLANT_WHAT_YOU_GET -> new PlantWhatYouGetLevelController(
                     user, userDatabase, adventureMode, session, chapter, level, boostedPlants);
+            case BOSS -> new BossLevelController(
+                    user, userDatabase, adventureMode, session, chapter, level, boostedPlants, Set.of());
             default -> throw new IllegalArgumentException("Not a special level type: " + type);
         };
     }

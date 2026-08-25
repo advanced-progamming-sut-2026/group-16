@@ -4,6 +4,7 @@ import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.adventure.LevelConfig;
 import io.github.finalwave.model.adventure.LevelType;
+import io.github.finalwave.model.game.MatchResult;
 
 import java.util.List;
 
@@ -68,6 +69,21 @@ public final class NpcDialogScript {
             return List.of(
                     dave("It's dark out here. Make your own sun, neighbor!"),
                     penny("Graves can hide surprises. Keep an eye on them."));
+        }
+        return List.of();
+    }
+
+    public static List<NpcDialogLine> forBossResult(MatchResult result) {
+        if (result == MatchResult.WON) {
+            return List.of(
+                    dave("That tin can is toast! Extra crispy!"),
+                    penny("Zomboss is down. Collect yourself, then we move on."),
+                    dave("Did I mention I still want my taco?"));
+        }
+        if (result == MatchResult.LOST) {
+            return List.of(
+                    dave("Okay, that robot is rude."),
+                    penny("We can try again. The lawn will be waiting."));
         }
         return List.of();
     }

@@ -5,6 +5,7 @@ import io.github.finalwave.model.definition.ZombieRegistry;
 import io.github.finalwave.model.game.board.BoardGameContext;
 import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.board.PlantPlacementResult;
+import io.github.finalwave.model.game.boss.BossVfx;
 import io.github.finalwave.model.game.entity.Vase;
 import io.github.finalwave.model.game.entity.plant.*;
 import io.github.finalwave.model.game.entity.projectile.ProjectileSystem;
@@ -517,6 +518,38 @@ public final class GameSession {
 
     public void endPrepPhase() {
         specialLevelState.endPrepPhase();
+    }
+
+    public void activateBoss(int maxHealth) {
+        specialLevelState.activateBoss(maxHealth);
+    }
+
+    public boolean isBossActive() {
+        return specialLevelState.isBossActive();
+    }
+
+    public void syncBossHud(int phase, int health, int maxHealth) {
+        specialLevelState.syncBoss(phase, health, maxHealth);
+    }
+
+    public int getBossPhase() {
+        return specialLevelState.getBossPhase();
+    }
+
+    public int getBossHealth() {
+        return specialLevelState.getBossHealth();
+    }
+
+    public int getBossMaxHealth() {
+        return specialLevelState.getBossMaxHealth();
+    }
+
+    public void addBossVfx(BossVfx vfx) {
+        specialLevelState.addBossVfx(vfx);
+    }
+
+    public List<BossVfx> drainBossVfx() {
+        return specialLevelState.drainBossVfx();
     }
 
     public void setSunBalance(int amount) {

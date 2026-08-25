@@ -2,6 +2,7 @@ package io.github.finalwave.view.gui.render.clip;
 
 import io.github.finalwave.model.game.entity.zombie.Armor;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
+import io.github.finalwave.view.gui.widget.PamActor;
 
 import java.util.Map;
 
@@ -21,6 +22,21 @@ public final class ZombieClips {
 
     public EntityAnimationCatalog.ClipSpec idle(String alias) {
         return catalog.zombieClip(alias, "idle", "walk");
+    }
+
+    public EntityAnimationCatalog.ClipSpec boss(String alias, String logical) {
+        return ZombossClips.spec(catalog, alias, logical);
+    }
+
+    public void applyBoss(PamActor actor, String alias, String logical, float scale) {
+        ZombossClips.Sequence sequence = ZombossClips.sequence(logical);
+        EntityAnimationCatalog.ClipSpec first = catalog.zombieClip(alias, sequence.first());
+        if (sequence.follow() == null) {
+            actor.setClip(first.path(), first.clip(), scale, sequence.loop());
+            return;
+        }
+        EntityAnimationCatalog.ClipSpec follow = catalog.zombieClip(alias, sequence.follow());
+        actor.playThen(first.path(), first.clip(), scale, follow.clip(), sequence.loop(), null);
     }
 
     public EntityAnimationCatalog.ClipSpec walk(String alias) {

@@ -269,11 +269,18 @@ public final class ProjectileSystem {
                     || projectile.hasHit(zombie.getId())) {
                 continue;
             }
-            if (zombie.getRow() != projectile.getRow()) {
+            if (!zombie.occupiesRow(projectile.getRow())) {
                 continue;
             }
             double dx = zombie.getX() - projectile.getX();
-            if (Math.abs(dx) <= 0.3) {
+            double reach = zombie.isBoss() ? 1.45 : 0.3;
+            if (projectile.isFromZombie()) {
+                if (Math.abs(dx) <= reach) {
+                    return zombie;
+                }
+                continue;
+            }
+            if (dx >= -0.35 && dx <= reach) {
                 return zombie;
             }
         }

@@ -44,6 +44,11 @@ public final class LawnAssetIds {
     public static final String PROGRESS_FLAG = "IMAGE_UI_HUD_INGAME_PROGRESS_METER_FLAG_DEFAULT";
     public static final String PROGRESS_FLAG_POLE = "IMAGE_UI_HUD_INGAME_PROGRESS_METER_FLAG_POLE";
     public static final String PROGRESS_ZOMBIE_HEAD = "IMAGE_UI_HUD_INGAME_PROGRESS_METER_ZOMBIEHEAD";
+    public static final String ZOMBOSS_METER = "IMAGE_UI_HUD_INGAME_ZOMBOSS_PROGRESS_METER";
+    public static final String ZOMBOSS_FILL = "IMAGE_UI_HUD_INGAME_PROGRESS_METER_ZOMBOSS_FILL";
+    public static final String ZOMBOSS_HEAD = "IMAGE_UI_HUD_INGAME_PROGRESS_METER_ZOMBOSS_HEAD";
+    public static final String ZOMBOSS_NOTCH = "IMAGE_UI_HUD_INGAME_PROGRESS_METER_ZOMBOSS_NOTCH";
+    public static final String ZOMBOSS_SKULL = "IMAGE_UI_HUD_INGAME_ZOMBOSS_HEALTH_METER_SKULL_ICON";
     public static final String PACKET_BG = "IMAGE_UI_PACKETS_MODERNDAY";
     public static final String PACKET_EMPTY = "IMAGE_UI_PACKETS_EMPTY_PACKET";
     public static final String PACKET_LOCK = "IMAGE_UI_CARDS_LOCK_MEDIUM";
@@ -106,7 +111,12 @@ public final class LawnAssetIds {
             CHALLENGE_FAILED,
             PURPLE_BUTTON,
             PURPLE_BUTTON_DOWN,
-            DIALOG_INNER
+            DIALOG_INNER,
+            ZOMBOSS_METER,
+            ZOMBOSS_FILL,
+            ZOMBOSS_HEAD,
+            ZOMBOSS_NOTCH,
+            ZOMBOSS_SKULL
     };
 
     private LawnAssetIds() {

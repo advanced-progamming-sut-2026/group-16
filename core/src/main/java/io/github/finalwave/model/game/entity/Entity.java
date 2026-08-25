@@ -7,6 +7,8 @@ public abstract class Entity {
     private int health;
     private double x;
     private double y;
+    private double previousX;
+    private double previousY;
     private boolean dead;
 
     protected Entity(String id, int maxHealth, double x, double y) {
@@ -21,7 +23,14 @@ public abstract class Entity {
         this.health = maxHealth;
         this.x = x;
         this.y = y;
+        this.previousX = x;
+        this.previousY = y;
         this.dead = false;
+    }
+
+    public final void snapshotPose() {
+        previousX = x;
+        previousY = y;
     }
 
     public void takeDamage(int amount) {
@@ -84,6 +93,14 @@ public abstract class Entity {
 
     public final double getY() {
         return y;
+    }
+
+    public final double getPreviousX() {
+        return previousX;
+    }
+
+    public final double getPreviousY() {
+        return previousY;
     }
 
     protected final void setY(double y) {
