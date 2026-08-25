@@ -265,19 +265,38 @@ public final class BossArena {
     }
 
     public void applyIceWind(int rowCount) {
-        int hits = Math.max(1, Math.min(rowCount, board().getRows()));
-        java.util.Set<Integer> rows = new java.util.HashSet<>();
-        while (rows.size() < hits) {
-            rows.add(random.nextInt(board().getRows()));
+        applyIceWindOnRows(pickAdjacentRows(rowCount), BossCatalog.ICE_WIND_FROST_STACKS);
+    }
+
+    public int[] pickAdjacentRows(int count) {
+        int span = Math.max(1, Math.min(count, board().getRows()));
+        int maxStart = Math.max(0, board().getRows() - span);
+        int start = random.nextInt(maxStart + 1);
+        int[] rows = new int[span];
+        for (int i = 0; i < span; i++) {
+            rows[i] = start + i;
         }
+        return rows;
+    }
+
+    public int applyIceWindOnRows(int[] rows, int stacks) {
+        if (rows == null || rows.length == 0) {
+            return 0;
+        }
+        int times = Math.max(1, stacks);
+        int hit = 0;
         for (int row : rows) {
             for (Plant plant : board().getAllPlants()) {
                 if (plant.getRow() != row || !plant.isAlive() || plant.hasTag(PlantTag.FIRE)) {
                     continue;
                 }
-                session.addPlantFrostStack(plant);
+                for (int i = 0; i < times; i++) {
+                    session.addPlantFrostStack(plant);
+                }
+                hit++;
             }
         }
+        return hit;
     }
 
     public int freezeColumn(int col) {
@@ -289,7 +308,7 @@ public final class BossArena {
             emit(BossVfx.Kind.GLACIER, col, row);
             Zombie frozen = spawnMinion("ZombieDefault", row, x);
             if (frozen != null) {
-                frozen.applyFreeze(80);
+                frozen.applyFreeze(BossCatalog.FROZEN_ZOMBIE_TICKS);
                 spawned++;
             }
         }

@@ -20,6 +20,13 @@ public final class ZombossClips {
     public static final String FIRE_TILE_CLIP = "animation2";
     public static final String GLACIER =
             "768/FULL/EFFECTS/ZOMBOSS_GLACIER_BLOCK/ZOMBOSS_GLACIER_BLOCK.PAM";
+    public static final String CHILL_WIND =
+            "768/FULL/EFFECTS/FROSTBITE_CHILL_WIND/FROSTBITE_CHILL_WIND.PAM";
+    public static final String ICE_BLOCK_ZOMBIE =
+            "768/FULL/EFFECTS/FROSTBITE_ICE_BLOCK_ZOMBIE/FROSTBITE_ICE_BLOCK_ZOMBIE.PAM";
+    public static final String ICE_BLOCK_ZOMBIE_SPAWN =
+            "768/INITIAL/EFFECTS/ICEBLOOM_ICE_BLOCK_ZOMBIE_EFFECT/ICEBLOOM_ICE_BLOCK_ZOMBIE_EFFECT.PAM";
+    public static final String ICE_BLOCK_ZOMBIE_SPAWN_CLIP = "animation";
 
     public record Sequence(String[] first, String[] follow, boolean loop) {
     }
@@ -80,8 +87,14 @@ public final class ZombossClips {
                     new String[]{"fire_attack_idle", "idle"},
                     true);
             case "fire_end" -> new Sequence(new String[]{"fire_attack_end", "idle"}, null, false);
-            case "wind" -> new Sequence(new String[]{"wind_1", "wind_2", "wind_3", "idle"}, null, true);
-            case "glacier" -> new Sequence(new String[]{"glacier_column_1", "glacier_column_3", "idle"}, null, true);
+            case "wind" -> new Sequence(new String[]{"wind_1", "wind_2", "wind_3", "wind_4", "idle"}, null, false);
+            case "glacier" -> new Sequence(new String[]{"glacier_column_1", "idle"}, null, false);
+            case "glacier_1" -> new Sequence(new String[]{"glacier_column_1", "idle"}, null, false);
+            case "glacier_2" -> new Sequence(new String[]{"glacier_column_2", "idle"}, null, false);
+            case "glacier_3" -> new Sequence(new String[]{"glacier_column_3", "idle"}, null, false);
+            case "glacier_4" -> new Sequence(new String[]{"glacier_column_4", "idle"}, null, false);
+            case "glacier_5" -> new Sequence(new String[]{"glacier_column_5", "idle"}, null, false);
+            case "glacier_6" -> new Sequence(new String[]{"glacier_column_6", "idle"}, null, false);
             case "suction" -> new Sequence(new String[]{"suction_loop", "suction_on", "idle"}, null, true);
             case "die" -> new Sequence(new String[]{"die", "die_idle", "idle"}, null, false);
             default -> new Sequence(new String[]{"idle"}, null, true);
