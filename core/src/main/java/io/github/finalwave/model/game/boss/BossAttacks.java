@@ -50,7 +50,7 @@ public final class BossAttacks {
             impactTicks = startTicks + BossCatalog.MISSILE_DELAY_TICKS + BossCatalog.MISSILE_FLIGHT_TICKS;
             arena.pickPlantCell(cell);
             arena.setClip(graves ? "missile" : "slingshot");
-            arena.emit(BossVfx.Kind.LOCK_RETICLE, cell[0], cell[1]);
+            arena.emit(graves ? BossVfx.Kind.LOCK_RETICLE : BossVfx.Kind.LOCK_RETICLE_ICE, cell[0], cell[1]);
         }
 
         @Override
@@ -60,8 +60,10 @@ public final class BossAttacks {
                 launched = true;
                 if (graves) {
                     arena.setClip("missile_launch");
+                    arena.emit(BossVfx.Kind.MISSILE_FLIGHT, cell[0], cell[1]);
+                } else {
+                    arena.emit(BossVfx.Kind.ICE_MISSILE_FLIGHT, cell[0], cell[1]);
                 }
-                arena.emit(BossVfx.Kind.MISSILE_FLIGHT, cell[0], cell[1]);
             }
             if (!struck && elapsed >= impactTicks) {
                 struck = true;
@@ -271,49 +273,56 @@ public final class BossAttacks {
     }
 
     public static final class IceWind implements BossAttack {
-        private int remaining;
+        private int elapsed;
         private boolean struck;
+        private int[] rows = new int[0];
 
         @Override
         public void start(BossArena arena) {
-            remaining = 14;
+            elapsed = 0;
             struck = false;
+            rows = arena.pickAdjacentRows(2);
             arena.setClip("wind");
+            int originCol = Math.max(0, arena.board().getCols() - 1);
+            for (int row : rows) {
+                arena.emit(BossVfx.Kind.ICE_WIND, originCol, row);
+            }
         }
 
         @Override
         public boolean tick(BossArena arena) {
-            arena.setClip("wind");
-            remaining--;
-            if (!struck && remaining <= 6) {
+            elapsed++;
+            if (!struck && elapsed >= BossCatalog.WIND_START_TICKS) {
                 struck = true;
-                arena.applyIceWind(2);
+                arena.applyIceWindOnRows(rows, BossCatalog.ICE_WIND_FROST_STACKS);
             }
-            return remaining <= 0;
+            return elapsed >= BossCatalog.WIND_TICKS;
         }
     }
 
     public static final class FreezeColumn implements BossAttack {
-        private int remaining;
+        private int elapsed;
         private boolean struck;
+        private int column;
 
         @Override
         public void start(BossArena arena) {
-            remaining = 16;
+            elapsed = 0;
             struck = false;
-            arena.setClip("glacier");
+            int cols = arena.board().getCols();
+            column = 1 + arena.random().nextInt(Math.max(1, cols - 3));
+            int clip = Math.min(6, Math.max(1, column));
+            arena.setClip("glacier_" + clip);
         }
 
         @Override
         public boolean tick(BossArena arena) {
-            arena.setClip("glacier");
-            remaining--;
-            if (!struck && remaining <= 6) {
+            elapsed++;
+            if (!struck && elapsed >= BossCatalog.GLACIER_STRIKE_TICKS) {
                 struck = true;
-                int col = 2 + arena.random().nextInt(Math.max(1, arena.board().getCols() - 4));
-                arena.freezeColumn(col);
+                arena.freezeColumn(column);
             }
-            return remaining <= 0;
+            return elapsed >= BossCatalog.GLACIER_TICKS;
         }
     }
 

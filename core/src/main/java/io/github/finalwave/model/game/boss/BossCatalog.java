@@ -16,7 +16,7 @@ public final class BossCatalog {
     public static final int IDLE_MIN_TICKS = 40;
     public static final int IDLE_MAX_TICKS = 80;
     public static final int MISSILE_START_TICKS = 33;
-    public static final int MISSILE_ICE_START_TICKS = 25;
+    public static final int MISSILE_ICE_START_TICKS = 35;
     public static final int MISSILE_LAUNCH_TICKS = 18;
     public static final int MISSILE_DELAY_TICKS = 5;
     public static final int MISSILE_FLIGHT_TICKS = 15;
@@ -27,6 +27,13 @@ public final class BossCatalog {
     public static final int FIRE_ATTACK_TICKS = 18;
     public static final int FIRE_ATTACK_LOOP_TICKS = 8;
     public static final int FIRE_ATTACK_END_TICKS = 8;
+    public static final int ICE_INTRO_TICKS = 47;
+    public static final int WIND_START_TICKS = 10;
+    public static final int WIND_TICKS = 29;
+    public static final int ICE_WIND_FROST_STACKS = 3;
+    public static final int GLACIER_STRIKE_TICKS = 20;
+    public static final int GLACIER_TICKS = 63;
+    public static final int FROZEN_ZOMBIE_TICKS = 600;
     public static final int PORTAL_START_TICKS = 23;
     public static final int PORTAL_LOOP_TICKS = 12;
     public static final int PORTAL_END_TICKS = 16;
@@ -58,6 +65,9 @@ public final class BossCatalog {
     public static int introTicks(ChapterId chapter) {
         if (chapter == ChapterId.DARK_AGES) {
             return DARK_INTRO_TICKS;
+        }
+        if (chapter == ChapterId.FROSTBITE_CAVES) {
+            return ICE_INTRO_TICKS;
         }
         return INTRO_TICKS;
     }

@@ -11,6 +11,7 @@ import io.github.finalwave.model.game.board.tile.IceTile;
 import io.github.finalwave.model.game.boss.BossArena;
 import io.github.finalwave.model.game.boss.BossAttacks;
 import io.github.finalwave.model.game.boss.BossCatalog;
+import io.github.finalwave.model.game.boss.BossVfx;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.mode.AdventureMode;
 import org.junit.jupiter.api.BeforeEach;
@@ -259,12 +260,156 @@ class BossHandlerTest {
         session.setActiveSpecialLevelHandler(handler);
         handler.onLevelStart(session);
         session.start();
+        session.addConveyorBeltPlant("Peashooter");
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 3, 1, 1));
         BossArena arena = new BossArena(session, handler.getBoss(), new Random(7), ChapterId.FROSTBITE_CAVES);
         int spawned = arena.freezeColumn(3);
         assertEquals(session.getBoard().getRows(), spawned);
+        assertNull(session.getBoard().getPlantAt(3, 1));
         for (int row = 0; row < session.getBoard().getRows(); row++) {
             assertTrue(session.getBoard().getTile(3, row) instanceof IceTile);
         }
+        session.addConveyorBeltPlant("Peashooter");
+        assertEquals(PlantPlacementResult.TILE_BLOCKED, session.tryPlant("Peashooter", 3, 1, 1));
+        assertEquals(session.getBoard().getRows(), countFrozenMinionsInColumn(session, 3));
+    }
+
+    @Test
+    void iceMissileDestroysPlantWithoutGraves() {
+        GameSession session = newBossSession(ChapterId.FROSTBITE_CAVES, new Random(12));
+        BossHandler handler = new BossHandler(ChapterId.FROSTBITE_CAVES, List.of("Peashooter"), new Random(12));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        session.addConveyorBeltPlant("Peashooter");
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 2, 1, 1));
+        int gravesBefore = countGraves(session);
+
+        BossArena arena = new BossArena(session, handler.getBoss(), new Random(12), ChapterId.FROSTBITE_CAVES);
+        BossAttacks.Missile missile = new BossAttacks.Missile(false);
+        missile.start(arena);
+        int ticks = 0;
+        while (!missile.tick(arena) && ticks < 90) {
+            ticks++;
+        }
+        assertNull(session.getBoard().getPlantAt(2, 1));
+        assertEquals(gravesBefore, countGraves(session));
+    }
+
+    @Test
+    void iceWindEncasesPlantsOnTwoRowsAndSkipsFire() {
+        GameSession session = newBossSession(ChapterId.FROSTBITE_CAVES, new Random(13));
+        BossHandler handler = new BossHandler(
+                ChapterId.FROSTBITE_CAVES, List.of("Peashooter", "Pepper-pult"), new Random(13));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        session.addConveyorBeltPlant("Peashooter");
+        session.addConveyorBeltPlant("Peashooter");
+        session.addConveyorBeltPlant("Pepper-pult");
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 2, 1, 1));
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 3, 2, 1));
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Pepper-pult", 4, 1, 1));
+
+        BossArena arena = new BossArena(session, handler.getBoss(), new Random(13), ChapterId.FROSTBITE_CAVES);
+        int hit = arena.applyIceWindOnRows(new int[]{1, 2}, BossCatalog.ICE_WIND_FROST_STACKS);
+        assertEquals(2, hit);
+        assertTrue(session.getBoard().getPlantAt(2, 1).getHostileIceStacks(null) >= 3
+                || hasIceCovering(session, session.getBoard().getPlantAt(2, 1)));
+        assertTrue(session.getBoard().getPlantAt(3, 2).getHostileIceStacks(null) >= 3
+                || hasIceCovering(session, session.getBoard().getPlantAt(3, 2)));
+        assertEquals(0, session.getBoard().getPlantAt(4, 1).getHostileIceStacks(null));
+        assertFalse(hasIceCovering(session, session.getBoard().getPlantAt(4, 1)));
+    }
+
+    @Test
+    void iceWindAttackSweepsTwoAdjacentRows() {
+        GameSession session = newBossSession(ChapterId.FROSTBITE_CAVES, new Random(14));
+        BossHandler handler = new BossHandler(ChapterId.FROSTBITE_CAVES, List.of("Peashooter"), new Random(14));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        for (int row = 0; row < session.getBoard().getRows(); row++) {
+            session.addConveyorBeltPlant("Peashooter");
+            assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 2, row, 1));
+        }
+        BossArena arena = new BossArena(session, handler.getBoss(), new Random(14), ChapterId.FROSTBITE_CAVES);
+        BossAttacks.IceWind wind = new BossAttacks.IceWind();
+        wind.start(arena);
+        int windVfx = 0;
+        for (BossVfx vfx : session.drainBossVfx()) {
+            if (vfx.kind() == BossVfx.Kind.ICE_WIND) {
+                windVfx++;
+            }
+        }
+        assertEquals(2, windVfx);
+        int ticks = 0;
+        while (!wind.tick(arena) && ticks < 50) {
+            ticks++;
+        }
+        int frozenRows = 0;
+        int lastFrozen = -2;
+        for (int row = 0; row < session.getBoard().getRows(); row++) {
+            var plant = session.getBoard().getPlantAt(2, row);
+            if (plant != null && (plant.getHostileIceStacks(null) >= 3 || hasIceCovering(session, plant))) {
+                if (frozenRows > 0) {
+                    assertEquals(lastFrozen + 1, row);
+                }
+                lastFrozen = row;
+                frozenRows++;
+            }
+        }
+        assertEquals(2, frozenRows);
+    }
+
+    @Test
+    void freezeColumnAttackEncasesAColumn() {
+        GameSession session = newBossSession(ChapterId.FROSTBITE_CAVES, new Random(15));
+        BossHandler handler = new BossHandler(ChapterId.FROSTBITE_CAVES, List.of("Peashooter"), new Random(15));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        BossArena arena = new BossArena(session, handler.getBoss(), new Random(15), ChapterId.FROSTBITE_CAVES);
+        BossAttacks.FreezeColumn freeze = new BossAttacks.FreezeColumn();
+        freeze.start(arena);
+        assertTrue(handler.getBoss().getPresentationClip().startsWith("glacier_"));
+        int ticks = 0;
+        while (!freeze.tick(arena) && ticks < 80) {
+            ticks++;
+        }
+        int icedColumns = 0;
+        int icedCol = -1;
+        for (int col = 0; col < session.getBoard().getCols(); col++) {
+            boolean allIce = true;
+            for (int row = 0; row < session.getBoard().getRows(); row++) {
+                if (!(session.getBoard().getTile(col, row) instanceof IceTile)) {
+                    allIce = false;
+                    break;
+                }
+            }
+            if (allIce) {
+                icedColumns++;
+                icedCol = col;
+            }
+        }
+        assertEquals(1, icedColumns);
+        assertEquals(session.getBoard().getRows(), countFrozenMinionsInColumn(session, icedCol));
+    }
+
+    @Test
+    void frostbiteBossStaysOnTwoRowsWithoutSummon() {
+        assertFalse(BossCatalog.allowsSummon(ChapterId.FROSTBITE_CAVES));
+        assertFalse(BossCatalog.allowsLaneSwitch(ChapterId.FROSTBITE_CAVES));
+        assertEquals(BossCatalog.ICE_INTRO_TICKS, BossCatalog.introTicks(ChapterId.FROSTBITE_CAVES));
+        GameSession session = newBossSession(ChapterId.FROSTBITE_CAVES, new Random(16));
+        BossHandler handler = new BossHandler(ChapterId.FROSTBITE_CAVES, List.of("Peashooter"), new Random(16));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        Zombie boss = handler.getBoss();
+        assertEquals("ZombieIceageZomboss", boss.getType());
+        assertTrue(boss.occupiesRow(boss.getRow()));
+        assertTrue(boss.occupiesRow(boss.getRow() + 1));
+        assertEquals(2, countOccupiedRows(boss, session.getBoard().getRows()));
     }
 
     @Test
@@ -281,6 +426,45 @@ class BossHandlerTest {
         int[] cell = new int[2];
         assertTrue(arena.swallowWaterPlant(cell));
         assertNull(session.getBoard().getPlantAt(4, 2));
+    }
+
+    private static int countOccupiedRows(Zombie boss, int rows) {
+        int occupied = 0;
+        for (int row = 0; row < rows; row++) {
+            if (boss.occupiesRow(row)) {
+                occupied++;
+            }
+        }
+        return occupied;
+    }
+
+    private static boolean hasIceCovering(GameSession session, io.github.finalwave.model.game.entity.plant.Plant plant) {
+        if (plant == null) {
+            return false;
+        }
+        for (var covering : session.getPlantCoverings()) {
+            if (covering != null
+                    && covering.isAlive()
+                    && covering.getCoveredPlant() == plant
+                    && covering.getType() == io.github.finalwave.model.game.entity.plant.PlantCovering.Type.HUNTER_ICE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int countFrozenMinionsInColumn(GameSession session, int col) {
+        int frozen = 0;
+        double expectedX = col + 0.5;
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie.isBoss() || !zombie.isAlive()) {
+                continue;
+            }
+            if (zombie.getFreezeTicksRemaining() >= 40 && Math.abs(zombie.getX() - expectedX) < 0.6) {
+                frozen++;
+            }
+        }
+        return frozen;
     }
 
     private static boolean hasImpOnCell(GameSession session, int col, int row) {

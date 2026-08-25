@@ -966,6 +966,9 @@ public final class GamePlayScreen extends MenuScreen {
             preload(ZombossClips.TURBINE);
             preload(ZombossClips.FIRE_TILE);
             preload(ZombossClips.GLACIER);
+            preload(ZombossClips.CHILL_WIND);
+            preload(ZombossClips.ICE_BLOCK_ZOMBIE);
+            preload(ZombossClips.ICE_BLOCK_ZOMBIE_SPAWN);
         }
         if (!session.getProtectedSeedPlacements().isEmpty()) {
             assets.region(LawnAssetIds.PROTECT_TILE);

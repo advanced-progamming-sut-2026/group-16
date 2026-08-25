@@ -29,6 +29,9 @@ public final class BossFxSync {
     private static final float FIREBALL_FLIGHT_DELAY = 1.0f;
     private static final float FIREBALL_FLIGHT_SECONDS = 1.0f;
     private static final float FLIGHT_START_Y = 900f;
+    private static final float WIND_SCALE = 1.35f;
+    private static final float WIND_SECONDS = 2.5f;
+    private static final float WIND_WIDTH_TILES = 3.6f;
 
     private final GameAssets assets;
     private final LawnLayout layout;
@@ -80,7 +83,7 @@ public final class BossFxSync {
             return;
         }
         Vector2 center = layout.cellCenter(vfx.col(), vfx.row());
-        if (vfx.kind() == BossVfx.Kind.LOCK_RETICLE) {
+        if (vfx.kind() == BossVfx.Kind.LOCK_RETICLE || vfx.kind() == BossVfx.Kind.LOCK_RETICLE_ICE) {
             spawnLock(path, clip, center, vfx);
             return;
         }
@@ -88,9 +91,17 @@ public final class BossFxSync {
             spawnFlight(path, clip, center, vfx.row(), FLIGHT_SCALE, FLIGHT_DELAY, FLIGHT_SECONDS);
             return;
         }
+        if (vfx.kind() == BossVfx.Kind.ICE_MISSILE_FLIGHT) {
+            spawnFlight(path, clip, center, vfx.row(), FLIGHT_SCALE, FLIGHT_DELAY, FLIGHT_SECONDS);
+            return;
+        }
         if (vfx.kind() == BossVfx.Kind.FIREBALL_FLIGHT) {
             spawnFlight(path, clip, center, vfx.row(),
                     FIREBALL_FLIGHT_SCALE, FIREBALL_FLIGHT_DELAY, FIREBALL_FLIGHT_SECONDS);
+            return;
+        }
+        if (vfx.kind() == BossVfx.Kind.ICE_WIND) {
+            spawnWind(vfx.row());
             return;
         }
         if (vfx.kind() == BossVfx.Kind.MISSILE_EGYPT || vfx.kind() == BossVfx.Kind.MISSILE_ICE) {
@@ -110,6 +121,26 @@ public final class BossFxSync {
         PamActor actor = place(center, vfx.row());
         actor.setClip(path, clip, LOCK_SCALE, true);
         locks.put(key, actor);
+    }
+
+    private void spawnWind(int row) {
+        Vector2 right = layout.cellCenter(Math.max(0, layout.cols() - 1), row);
+        Vector2 left = layout.cellCenter(0, row);
+        PamActor actor = assets.pamActor();
+        actor.setTouchable(Touchable.disabled);
+        actor.setAnchor(0.5f, 0.5f);
+        actor.setSize(layout.tileWidth() * WIND_WIDTH_TILES, layout.tileHeight() * 1.5f);
+        actor.setClip(ZombossClips.CHILL_WIND, "animation", WIND_SCALE, true);
+        float y = right.y - actor.getHeight() / 2f;
+        float startX = right.x + layout.tileWidth();
+        float endX = left.x - layout.tileWidth() * 2f;
+        actor.setPosition(startX - actor.getWidth() / 2f, y);
+        actor.setUserObject(row);
+        layer.addActor(actor);
+        actor.addAction(Actions.sequence(
+                Actions.moveTo(endX - actor.getWidth() / 2f, y, WIND_SECONDS, Interpolation.linear),
+                Actions.run(actor::remove)));
+        playing.add(actor);
     }
 
     private void spawnFlight(String path, String clip, Vector2 center, int row,
@@ -151,8 +182,9 @@ public final class BossFxSync {
     private static String pathOf(BossVfx.Kind kind) {
         return switch (kind) {
             case LOCK_RETICLE, MISSILE_FLIGHT, MISSILE_EGYPT -> ZombossClips.EGYPT_MISSILE;
-            case MISSILE_ICE -> ZombossClips.ICE_MISSILE;
+            case LOCK_RETICLE_ICE, ICE_MISSILE_FLIGHT, MISSILE_ICE -> ZombossClips.ICE_MISSILE;
             case FIREBALL_FLIGHT, FIREBALL -> ZombossClips.DARK_FIREBALL;
+            case ICE_WIND -> ZombossClips.CHILL_WIND;
             case SHARK -> ZombossClips.SHARK;
             case VACUUM -> ZombossClips.TURBINE;
             case GLACIER -> ZombossClips.GLACIER;
@@ -161,11 +193,12 @@ public final class BossFxSync {
 
     private static String clipOf(BossVfx.Kind kind) {
         return switch (kind) {
-            case LOCK_RETICLE -> "missile_lock_reticle";
-            case MISSILE_FLIGHT -> "missile";
+            case LOCK_RETICLE, LOCK_RETICLE_ICE -> "missile_lock_reticle";
+            case MISSILE_FLIGHT, ICE_MISSILE_FLIGHT -> "missile";
             case MISSILE_EGYPT, MISSILE_ICE -> "missile_explosion";
             case FIREBALL_FLIGHT -> "fall";
             case FIREBALL -> "impact";
+            case ICE_WIND -> "animation";
             case SHARK -> "attack";
             case VACUUM -> "animation";
             case GLACIER -> "idle";

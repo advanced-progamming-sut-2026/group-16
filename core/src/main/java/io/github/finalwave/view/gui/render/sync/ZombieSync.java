@@ -14,6 +14,7 @@ import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.ActorRegistry;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.ArmorPartVisibility;
+import io.github.finalwave.view.gui.render.clip.ZombossClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.widget.ActorFades;
 import io.github.finalwave.view.gui.widget.HitFlashTracker;
@@ -50,6 +51,7 @@ public final class ZombieSync {
     private final Map<PamActor, String> bossLogical = new IdentityHashMap<>();
     private final Set<Armor> thrownArmor = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<Armor, String> lastArmorLayers = new IdentityHashMap<>();
+    private final ActorRegistry<Zombie, PamActor> iceShells = new ActorRegistry<>();
     private GameSession session;
     private float tickFraction;
 
@@ -77,12 +79,14 @@ public final class ZombieSync {
             }
         }
         zombies.sync(live, this::spawn, this::update, this::beginDeath);
+        iceShells.sync(encased(live), this::spawnIceShell, this::updateIceShell, PamActor::remove);
         hits.retain(live);
         retainThrownArmor(live);
     }
 
     public void clear() {
         zombies.clear(PamActor::remove);
+        iceShells.clear(PamActor::remove);
         hits.clear();
         aliases.clear();
         thrownArmor.clear();
@@ -137,6 +141,43 @@ public final class ZombieSync {
         aliases.put(actor, zombie.getType());
         hits.observe(zombie, flashHealth(zombie), actor, zombie.isBoss() ? 0.28f : 0.18f);
         throwBrokenArmor(zombie, actor, clip);
+    }
+
+    private List<Zombie> encased(List<Zombie> live) {
+        List<Zombie> frozen = new ArrayList<>();
+        for (Zombie zombie : live) {
+            if (zombie.isBoss() || zombie.getFreezeTicksRemaining() < 40) {
+                continue;
+            }
+            frozen.add(zombie);
+        }
+        return frozen;
+    }
+
+    private PamActor spawnIceShell(Zombie zombie) {
+        PamActor actor = assets.pamActor();
+        actor.setTouchable(Touchable.disabled);
+        actor.setAnchor(0.5f, LawnLayout.ZOMBIE_ANCHOR_Y);
+        actor.playOnce(
+                ZombossClips.ICE_BLOCK_ZOMBIE_SPAWN,
+                ZombossClips.ICE_BLOCK_ZOMBIE_SPAWN_CLIP,
+                LawnLayout.ICE_BLOCK_SCALE,
+                () -> actor.setClip(
+                        ZombossClips.ICE_BLOCK_ZOMBIE, "idle", LawnLayout.ICE_BLOCK_SCALE, true));
+        layer.addActor(actor);
+        return actor;
+    }
+
+    private void updateIceShell(Zombie zombie, PamActor actor) {
+        float worldX = layout.worldX(displayX(zombie));
+        float worldY = layout.worldYForRow(displayY(zombie));
+        actor.setSize(layout.tileWidth(), layout.tileHeight());
+        actor.setPosition(worldX - actor.getWidth() / 2f, worldY);
+        if (!ZombossClips.ICE_BLOCK_ZOMBIE_SPAWN_CLIP.equals(actor.clipName())) {
+            actor.setClip(ZombossClips.ICE_BLOCK_ZOMBIE, "idle", LawnLayout.ICE_BLOCK_SCALE, true);
+        }
+        actor.setUserObject(zombie.getRow() * 8 + 3);
+        actor.setVisible(!zombie.isSubmerged());
     }
 
     private void applyClip(Zombie zombie, PamActor actor, float scale) {
