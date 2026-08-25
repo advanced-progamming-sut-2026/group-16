@@ -33,6 +33,9 @@ public final class ZombieVisualState {
 
     public static EntityAnimationCatalog.ClipSpec clip(Zombie zombie, ZombieClips clips) {
         String type = zombie.getType();
+        if (zombie.isBoss()) {
+            return clips.boss(type, zombie.getPresentationClip());
+        }
         boolean newspaper = hasNewspaper(zombie);
         if (zombie.getState() == ZombieState.EATING) {
             return newspaper ? clips.eatNewspaper(type) : clips.eat(type);
@@ -70,6 +73,12 @@ public final class ZombieVisualState {
     }
 
     public static Color tint(Zombie zombie, GameSession session) {
+        if (zombie.isBoss()) {
+            if (zombie.getFreezeTicksRemaining() > 0) {
+                return CHILL;
+            }
+            return Color.WHITE;
+        }
         if (zombie.isHypnotized()) {
             return HYPNOTIZED;
         }

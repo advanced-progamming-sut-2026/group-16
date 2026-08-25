@@ -107,4 +107,18 @@ class ConveyBeltHandlerTest {
         assertTrue(session.getConveyorBeltPlants().isEmpty());
         assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 0, 0, 1));
     }
+
+    @Test
+    void plantingBeltPlantIgnoresSunAndCooldown() {
+        GameSession session = newConveyorBeltSession(new Random(6));
+        ConveyBeltHandler handler = new ConveyBeltHandler(List.of("Peashooter"), new Random(6));
+        session.setActiveSpecialLevelHandler(handler);
+        handler.onLevelStart(session);
+        session.start();
+        session.setSunBalance(0);
+        assertEquals(0, session.getSunBalance());
+        assertEquals(List.of("Peashooter"), session.getConveyorBeltPlants());
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 0, 0, 1));
+        assertTrue(session.getConveyorBeltPlants().isEmpty());
+    }
 }

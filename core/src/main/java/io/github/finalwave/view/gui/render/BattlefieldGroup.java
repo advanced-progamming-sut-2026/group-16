@@ -14,11 +14,14 @@ import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.render.sync.ArcadeObstacleSync;
 import io.github.finalwave.view.gui.render.sync.BeghouledPlantSync;
+import io.github.finalwave.view.gui.render.sync.BossFxSync;
 import io.github.finalwave.view.gui.render.sync.BowlingLineSync;
 import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
+import io.github.finalwave.view.gui.render.sync.FireTileSync;
 import io.github.finalwave.view.gui.render.sync.GraveSync;
 import io.github.finalwave.view.gui.render.sync.GroundSeedPacketSync;
+import io.github.finalwave.view.gui.render.sync.IceTileSync;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
@@ -53,6 +56,9 @@ public final class BattlefieldGroup extends WidgetGroup {
     private MowerSync mowerSync;
     private ProtectTileSync protectTileSync;
     private GraveSync graveSync;
+    private FireTileSync fireTileSync;
+    private IceTileSync iceTileSync;
+    private BossFxSync bossFxSync;
     private DeadLineSync deadLineSync;
     private VaseSync vaseSync;
     private GroundSeedPacketSync packetSync;
@@ -100,6 +106,9 @@ public final class BattlefieldGroup extends WidgetGroup {
             mowerSync = null;
             protectTileSync = null;
             graveSync = null;
+            fireTileSync = null;
+            iceTileSync = null;
+            bossFxSync = null;
             deadLineSync = null;
             vaseSync = null;
             packetSync = null;
@@ -110,11 +119,14 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
         zombieSync = new ZombieSync(assets, layout, new ZombieClips(catalog), zombieLayer);
-        projectileSync = new ProjectileSync(assets, layout, new ProjectileClips(), zombieLayer);
+        projectileSync = new ProjectileSync(assets, layout, new ProjectileClips(), projectileLayer);
         sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
         mowerSync = new MowerSync(assets, layout, mowerLayer);
         protectTileSync = new ProtectTileSync(layout, environmentLayer);
         graveSync = new GraveSync(assets, layout, environmentLayer);
+        fireTileSync = new FireTileSync(assets, layout, environmentLayer);
+        iceTileSync = new IceTileSync(assets, layout, environmentLayer);
+        bossFxSync = new BossFxSync(assets, layout, fxLayer);
         deadLineSync = new DeadLineSync(assets, layout, deadlineLayer);
         vaseSync = new VaseSync(assets, layout, environmentLayer);
         packetSync = new GroundSeedPacketSync(assets, layout, packetLayer);
@@ -152,6 +164,15 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (graveSync != null) {
             graveSync.sync(session);
             sortByRow(environmentLayer, BattlefieldGroup::sortKey);
+        }
+        if (fireTileSync != null) {
+            fireTileSync.sync(session);
+        }
+        if (iceTileSync != null) {
+            iceTileSync.sync(session);
+        }
+        if (bossFxSync != null) {
+            bossFxSync.sync(session);
         }
         if (vaseSync != null) {
             vaseSync.sync(session);
@@ -197,8 +218,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (projectileSync != null) {
             projectileSync.sync(session, tickFraction);
+            sortByRow(projectileLayer, BattlefieldGroup::sortKey);
         }
-        if (zombieSync != null || arcadeObstacleSync != null || projectileSync != null) {
+        if (zombieSync != null || arcadeObstacleSync != null) {
             sortByRow(zombieLayer, BattlefieldGroup::sortKey);
         }
         if (mowerSync != null) {
@@ -268,6 +290,15 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (graveSync != null) {
             graveSync.clear();
+        }
+        if (fireTileSync != null) {
+            fireTileSync.clear();
+        }
+        if (iceTileSync != null) {
+            iceTileSync.clear();
+        }
+        if (bossFxSync != null) {
+            bossFxSync.clear();
         }
         if (deadLineSync != null) {
             deadLineSync.clear();

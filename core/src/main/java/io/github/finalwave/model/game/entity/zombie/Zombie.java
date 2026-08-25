@@ -42,6 +42,11 @@ public final class Zombie extends Entity {
     private boolean submerged;
     private final boolean basicKnightTarget;
     private final String knightTargetKey;
+    private int rowSpan = 1;
+    private boolean boss;
+    private int stunTicksRemaining;
+    private int bossPhase = 1;
+    private String presentationClip = "idle";
 
     private Zombie(Builder b) {
         super(b.alias + "-" + NEXT_ID.incrementAndGet(), b.maxHealth, b.x, b.y);
@@ -68,6 +73,15 @@ public final class Zombie extends Entity {
         lastContext = context;
         tickAge++;
         actionThisTick = Action.NONE;
+        if (boss && stunTicksRemaining > 0) {
+            stunTicksRemaining--;
+            if (stunTicksRemaining > 0) {
+                state = ZombieState.ABILITY;
+                presentationClip = "stun";
+                return;
+            }
+            presentationClip = "idle";
+        }
         state = ZombieState.MOVING;
         if (hypnotized) {
             actAsHypnotized(context);
@@ -113,6 +127,10 @@ public final class Zombie extends Entity {
 
     @Override
     public void takeDamage(int amount) {
+        if (boss) {
+            applyBossDamage(amount);
+            return;
+        }
         int remaining = amount;
         for (Armor armor : armorLayers) {
             if (remaining <= 0) {
@@ -128,8 +146,83 @@ public final class Zombie extends Entity {
     }
 
     public void takeDirectDamage(int amount) {
+        if (boss) {
+            applyBossDamage(amount);
+            return;
+        }
         if (amount > 0) {
             super.takeDamage(amount);
+        }
+    }
+
+    private void applyBossDamage(int amount) {
+        if (isDead() || stunTicksRemaining > 0 || amount <= 0) {
+            return;
+        }
+        int phaseHp = Math.max(1, getMaxHealth() / 3);
+        int floorHp = bossPhase < 3 ? (3 - bossPhase) * phaseHp : 0;
+        int remainingInPhase = Math.max(0, getHealth() - floorHp);
+        boolean phaseBreak = bossPhase < 3 && amount >= remainingInPhase && remainingInPhase > 0;
+        int applied = phaseBreak ? remainingInPhase : amount;
+        super.takeDamage(applied);
+        if (isDead() || !phaseBreak) {
+            return;
+        }
+        bossPhase++;
+        stunTicksRemaining = 50;
+        presentationClip = "stun";
+        state = ZombieState.ABILITY;
+    }
+
+    public void configureAsBoss(int span) {
+        boss = true;
+        rowSpan = Math.max(1, span);
+        stationary = true;
+        trapImmune = true;
+        bossPhase = 1;
+        stunTicksRemaining = 0;
+        presentationClip = "intro";
+        state = ZombieState.MOVING;
+    }
+
+    public boolean isBoss() {
+        return boss;
+    }
+
+    public boolean occupiesRow(int row) {
+        if (rowSpan <= 1) {
+            return getRow() == row;
+        }
+        int primary = getRow();
+        return row == primary || row == primary + 1;
+    }
+
+    public int[] occupiedRows() {
+        if (rowSpan <= 1) {
+            return new int[]{getRow()};
+        }
+        return new int[]{getRow(), getRow() + 1};
+    }
+
+    public boolean isStunned() {
+        return stunTicksRemaining > 0;
+    }
+
+    public int getStunTicksRemaining() {
+        return stunTicksRemaining;
+    }
+
+    public int getBossPhase() {
+        return bossPhase;
+    }
+
+    public String getPresentationClip() {
+        return presentationClip;
+    }
+
+    public void setPresentationClip(String clip) {
+        if (clip != null && !clip.isBlank()) {
+            presentationClip = clip;
         }
     }
 
@@ -139,6 +232,10 @@ public final class Zombie extends Entity {
 
     public void setRow(int row) {
         setY(row);
+    }
+
+    public void setVisualY(double y) {
+        setY(y);
     }
 
     public void setPosition(double x, int row) {
@@ -246,7 +343,7 @@ public final class Zombie extends Entity {
     }
 
     public void hypnotize(double healthMultiplier, double damageMultiplier) {
-        if (hypnotized) {
+        if (boss || hypnotized) {
             return;
         }
         hypnotized = true;

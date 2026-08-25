@@ -84,7 +84,7 @@ public final class BoardGameContext implements GameContext {
     public List<Zombie> getZombiesInRow(int row) {
         List<Zombie> result = new ArrayList<>();
         for (Zombie zombie : session.getZombies()) {
-            if (zombie.getRow() == row && zombie.isAlive()) {
+            if (zombie.isAlive() && zombie.occupiesRow(row)) {
                 result.add(zombie);
             }
         }

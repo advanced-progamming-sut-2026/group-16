@@ -10,12 +10,20 @@ public final class HitFlashTracker<M> {
     private final Map<M, Integer> lastHealth = new IdentityHashMap<>();
 
     public void observe(M model, int health, PamActor actor) {
+        observe(model, health, actor, 0f);
+    }
+
+    public void observe(M model, int health, PamActor actor, float flashSeconds) {
         if (model == null || actor == null) {
             return;
         }
         Integer previous = lastHealth.put(model, health);
         if (previous != null && health < previous) {
-            actor.flashHit();
+            if (flashSeconds > 0f) {
+                actor.flashHit(flashSeconds);
+            } else {
+                actor.flashHit();
+            }
         }
     }
 

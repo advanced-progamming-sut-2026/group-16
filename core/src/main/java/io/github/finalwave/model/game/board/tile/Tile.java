@@ -31,4 +31,8 @@ public abstract class Tile {
     public boolean isCrater() {
         return false;
     }
+
+    public boolean isFire() {
+        return false;
+    }
 }

@@ -6,6 +6,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import io.github.finalwave.model.game.boss.BossVfx;
+
 
 final class GameSessionSpecialLevelState {
 
@@ -27,6 +29,12 @@ final class GameSessionSpecialLevelState {
 
     private boolean plantWhatYouGetActive;
     private boolean prepPhaseActive;
+
+    private boolean bossActive;
+    private int bossPhase = 1;
+    private int bossHealth;
+    private int bossMaxHealth;
+    private final List<BossVfx> bossVfx = new ArrayList<>();
 
     void activateConveyorBelt() {
         conveyorBeltActive = true;
@@ -200,5 +208,50 @@ final class GameSessionSpecialLevelState {
 
     void endPrepPhase() {
         prepPhaseActive = false;
+    }
+
+    void activateBoss(int maxHealth) {
+        bossActive = true;
+        bossPhase = 1;
+        bossMaxHealth = Math.max(1, maxHealth);
+        bossHealth = bossMaxHealth;
+        bossVfx.clear();
+    }
+
+    boolean isBossActive() {
+        return bossActive;
+    }
+
+    void syncBoss(int phase, int health, int maxHealth) {
+        bossPhase = Math.max(1, Math.min(3, phase));
+        bossMaxHealth = Math.max(1, maxHealth);
+        bossHealth = Math.max(0, Math.min(bossMaxHealth, health));
+    }
+
+    int getBossPhase() {
+        return bossPhase;
+    }
+
+    int getBossHealth() {
+        return bossHealth;
+    }
+
+    int getBossMaxHealth() {
+        return bossMaxHealth;
+    }
+
+    void addBossVfx(BossVfx vfx) {
+        if (vfx != null) {
+            bossVfx.add(vfx);
+        }
+    }
+
+    List<BossVfx> drainBossVfx() {
+        if (bossVfx.isEmpty()) {
+            return List.of();
+        }
+        List<BossVfx> copy = List.copyOf(bossVfx);
+        bossVfx.clear();
+        return copy;
     }
 }

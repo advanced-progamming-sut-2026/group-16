@@ -272,4 +272,23 @@ class ProjectileSystemTest {
         assertTrue(zombie.getFreezeTicksRemaining() > 0);
         assertEquals(0.0, zombie.getCurrentSpeed(), 0.0001);
     }
+
+    @Test
+    void peaHitsBossOnOccupiedRowBeforeCenter() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Peashooter"), 1, 1);
+        Zombie boss = new Zombie.Builder("ZombieEgyptZomboss")
+                .maxHealth(3600)
+                .position(8, 1)
+                .build();
+        boss.configureAsBoss(2);
+        int health = boss.getHealth();
+        system.spawn(new Projectile(2, 6.8, 20, ProjectileProfile.straight(),
+                ProjectileEffect.PEA, plant, 0));
+
+        system.tick(board, List.of(boss), z -> {});
+
+        assertTrue(boss.getHealth() < health);
+        assertTrue(system.getProjectiles().isEmpty());
+    }
 }

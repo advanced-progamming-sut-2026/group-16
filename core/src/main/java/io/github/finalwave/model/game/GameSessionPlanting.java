@@ -188,19 +188,24 @@ final class GameSessionPlanting {
             return PlantPlacementResult.NOT_IN_LOADOUT;
         }
         int cost = PlantStatsCalculator.compute(definition, level).cost();
-        if (!special.isPrepPhaseActive() && !session.getCooldownTracker().isReady(plantName)) {
+        boolean conveyor = special.isConveyorBeltActive();
+        if (!conveyor && !special.isPrepPhaseActive() && !session.getCooldownTracker().isReady(plantName)) {
             return PlantPlacementResult.ON_COOLDOWN;
         }
-        if (session.getSunBalance() < cost) return PlantPlacementResult.INSUFFICIENT_SUN;
+        if (!conveyor && session.getSunBalance() < cost) {
+            return PlantPlacementResult.INSUFFICIENT_SUN;
+        }
         PlantPlacementResult placement = session.getBoard().canPlace(definition, col, row);
         if (placement != PlantPlacementResult.SUCCESS) {
             return placement;
         }
         Plant plant = session.getPlantFactory().create(definition, level, col, row);
-        session.withdrawSun(cost);
+        if (!conveyor) {
+            session.withdrawSun(cost);
+        }
         session.getBoard().placePlant(plant);
         plant.onPlanted(session.getContext());
-        if (!special.isPrepPhaseActive()) {
+        if (!conveyor && !special.isPrepPhaseActive()) {
             session.getCooldownTracker().startCooldown(
                     plantName, plant.getStats().recharge(), GameSession.TICKS_PER_SECOND);
         }
@@ -210,8 +215,10 @@ final class GameSessionPlanting {
                 col,
                 row,
                 plant.hasTag(PlantTag.NIGHT) || plant.hasTag(PlantTag.SHROOM)));
-        session.getEventBus().publish(new GameEvent.SunSpent(cost));
-        if (special.isConveyorBeltActive()) {
+        if (!conveyor) {
+            session.getEventBus().publish(new GameEvent.SunSpent(cost));
+        }
+        if (conveyor) {
             special.removeConveyorBeltPlant(plantName);
         }
         return PlantPlacementResult.SUCCESS;

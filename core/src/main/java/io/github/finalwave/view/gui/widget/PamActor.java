@@ -14,7 +14,7 @@ import java.util.Objects;
 
 
 public final class PamActor extends Actor {
-    private static final float HIT_FLASH_SECONDS = 0.12f;
+    private static final float HIT_FLASH_SECONDS = 0.18f;
 
     private final PamPlayer player;
     private final HitFlashShader hitFlash;
@@ -85,6 +85,10 @@ public final class PamActor extends Actor {
             player.loadAsync(pamPath, () -> {
             });
         }
+    }
+
+    public void setDrawScale(float scale) {
+        this.drawScale = Math.abs(scale);
     }
 
     public void playThen(String pamPath, String clipName, float scale, String nextClip, boolean nextLoop, Runnable onFinished) {
@@ -159,7 +163,11 @@ public final class PamActor extends Actor {
     }
 
     public void flashHit() {
-        hitFlashRemaining = HIT_FLASH_SECONDS;
+        flashHit(HIT_FLASH_SECONDS);
+    }
+
+    public void flashHit(float seconds) {
+        hitFlashRemaining = Math.max(hitFlashRemaining, seconds);
     }
 
     @Override

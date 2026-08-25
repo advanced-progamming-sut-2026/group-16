@@ -79,6 +79,12 @@ public interface MatchListener {
     default void onPlantWhatYouGetWavesStarted() {
     }
 
+    default void onBossPhaseChanged(int phase) {
+    }
+
+    default void onBossDefeated() {
+    }
+
     default void onVaseSmashed(int col, int row, Vase.Content content) {
     }
 

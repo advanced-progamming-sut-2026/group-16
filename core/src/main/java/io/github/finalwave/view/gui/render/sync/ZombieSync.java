@@ -46,6 +46,8 @@ public final class ZombieSync {
     private final HitFlashTracker<Zombie> hits = new HitFlashTracker<>();
     private final Map<PamActor, String> aliases = new IdentityHashMap<>();
     private final List<PamActor> deathActors = new ArrayList<>();
+    private final Set<PamActor> bossActors = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Map<PamActor, String> bossLogical = new IdentityHashMap<>();
     private final Set<Armor> thrownArmor = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<Armor, String> lastArmorLayers = new IdentityHashMap<>();
     private GameSession session;
@@ -85,6 +87,8 @@ public final class ZombieSync {
         aliases.clear();
         thrownArmor.clear();
         lastArmorLayers.clear();
+        bossActors.clear();
+        bossLogical.clear();
         ArmorPartVisibility.clear();
         for (PamActor actor : deathActors) {
             actor.remove();
@@ -96,32 +100,61 @@ public final class ZombieSync {
     private PamActor spawn(Zombie zombie) {
         PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
-        actor.setAnchor(0.5f, LawnLayout.ZOMBIE_ANCHOR_Y);
+        if (zombie.isBoss()) {
+            actor.setAnchor(0.5f, LawnLayout.ZOMBOSS_ANCHOR_Y);
+            bossActors.add(actor);
+        } else {
+            actor.setAnchor(0.5f, LawnLayout.ZOMBIE_ANCHOR_Y);
+        }
         layer.addActor(actor);
         return actor;
     }
 
     private void update(Zombie zombie, PamActor actor) {
         float worldX = layout.worldX(displayX(zombie));
-        float worldY = layout.worldYForRow(zombie.getRow());
-        actor.setSize(layout.tileWidth(), layout.tileHeight());
+        float worldY = layout.worldYForRow(displayY(zombie));
+        float scale = LawnLayout.ZOMBIE_SCALE;
+        if (zombie.isBoss()) {
+            worldY = layout.worldYForRow(displayY(zombie) + 1);
+            actor.setSize(layout.tileWidth() * 1.85f, layout.tileHeight() * 2.0f);
+            scale = LawnLayout.ZOMBOSS_SCALE;
+            bossActors.add(actor);
+        } else {
+            actor.setSize(layout.tileWidth(), layout.tileHeight());
+        }
         actor.setPosition(worldX - actor.getWidth() / 2f, worldY);
-        EntityAnimationCatalog.ClipSpec clip = ZombieVisualState.clip(zombie, clips);
-        actor.setClip(clip.path(), clip.clip(), LawnLayout.ZOMBIE_SCALE, true);
-        actor.setFlipX(zombie.isMovingRight() || zombie.isHypnotized());
+        applyClip(zombie, actor, scale);
+        actor.setFlipX(!zombie.isBoss() && (zombie.isMovingRight() || zombie.isHypnotized()));
         actor.setTint(ZombieVisualState.tint(zombie, session));
+        EntityAnimationCatalog.ClipSpec clip = ZombieVisualState.clip(zombie, clips);
         actor.setVisibility(ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(),
                 ZombieVisualState.armorVisibility(zombie, clips)));
         actor.setUserObject(zombie.getRow() * 8);
         actor.setVisible(!zombie.isSubmerged());
         aliases.put(actor, zombie.getType());
-        hits.observe(zombie, flashHealth(zombie), actor);
+        hits.observe(zombie, flashHealth(zombie), actor, zombie.isBoss() ? 0.28f : 0.18f);
         throwBrokenArmor(zombie, actor, clip);
+    }
+
+    private void applyClip(Zombie zombie, PamActor actor, float scale) {
+        if (!zombie.isBoss()) {
+            EntityAnimationCatalog.ClipSpec clip = ZombieVisualState.clip(zombie, clips);
+            actor.setClip(clip.path(), clip.clip(), scale, true);
+            return;
+        }
+        String logical = zombie.getPresentationClip();
+        if (logical.equals(bossLogical.get(actor))) {
+            actor.setDrawScale(scale);
+            return;
+        }
+        bossLogical.put(actor, logical);
+        clips.applyBoss(actor, zombie.getType(), logical, scale);
     }
 
     private void beginDeath(PamActor actor) {
         actor.flashHit();
         String alias = aliases.remove(actor);
+        bossLogical.remove(actor);
         if (alias == null || !clips.hasDie(alias)) {
             actor.remove();
             return;
@@ -131,7 +164,8 @@ public final class ZombieSync {
         spawnParticles(actor, parts);
         deathActors.add(actor);
         actor.setVisibility(null);
-        actor.playOnce(die.path(), die.clip(), LawnLayout.ZOMBIE_SCALE,
+        float scale = bossActors.remove(actor) ? LawnLayout.ZOMBOSS_SCALE : LawnLayout.ZOMBIE_SCALE;
+        actor.playOnce(die.path(), die.clip(), scale,
                 () -> actor.addAction(ActorFades.holdThenFade(() -> deathActors.remove(actor))));
     }
 
@@ -265,6 +299,9 @@ public final class ZombieSync {
     }
 
     private double displayX(Zombie zombie) {
+        if (zombie.isBoss()) {
+            return lerp(zombie.getPreviousX(), zombie.getX(), tickFraction);
+        }
         double modelX = zombie.getX();
         if (tickFraction <= 0f
                 || zombie.getState() != ZombieState.MOVING
@@ -276,5 +313,16 @@ public final class ZombieSync {
             return modelX + step;
         }
         return modelX - step;
+    }
+
+    private double displayY(Zombie zombie) {
+        if (zombie.isBoss()) {
+            return lerp(zombie.getPreviousY(), zombie.getY(), tickFraction);
+        }
+        return zombie.getY();
+    }
+
+    private static double lerp(double from, double to, float fraction) {
+        return from + (to - from) * Math.max(0f, Math.min(1f, fraction));
     }
 }

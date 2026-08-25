@@ -17,9 +17,11 @@ public record LawnLayout(
     public static final float VASE_SCALE = 0.72f;
     public static final float VASE_ANCHOR_Y = 0.42f;
     public static final float ZOMBIE_SCALE = 1.05f;
+    public static final float ZOMBOSS_SCALE = 1.08f;
     public static final float ICE_BLOCK_SCALE = 1.0f;
     public static final float PLANT_ANCHOR_Y = 0.42f;
     public static final float ZOMBIE_ANCHOR_Y = 1.0f;
+    public static final float ZOMBOSS_ANCHOR_Y = 0.48f;
     public static final float MOWER_SCALE = 1.0f;
     public static final float MOWER_ANCHOR_Y = 0.42f;
     public static final float MOWER_MODEL_X = -0.5f;
@@ -47,7 +49,11 @@ public record LawnLayout(
     }
 
     public float worldYForRow(int row) {
-        return originY + (rows - 1 - row) * tileHeight;
+        return worldYForRow((double) row);
+    }
+
+    public float worldYForRow(double row) {
+        return originY + (float) (rows - 1 - row) * tileHeight;
     }
 
     public int colAt(float worldX) {

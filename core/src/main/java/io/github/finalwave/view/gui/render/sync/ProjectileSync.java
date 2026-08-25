@@ -25,6 +25,8 @@ public final class ProjectileSync {
     private static final float ARCING_SPEED = 0.25f;
     private static final float DEFAULT_ARC_SPAN = 4f;
     private static final float ARC_HEIGHT_TILES = 1.15f;
+    private static final float SPLAT_SCALE = 1.25f;
+    private static final float SPLAT_LIFT = 0.28f;
 
     private final GameAssets assets;
     private final LawnLayout layout;
@@ -110,7 +112,7 @@ public final class ProjectileSync {
         splat.setTouchable(Touchable.disabled);
         splat.setAnchor(0.5f, 0.5f);
         splat.setSize(source.getWidth(), source.getHeight());
-        splat.setPosition(source.getX(), source.getY());
+        splat.setPosition(source.getX(), source.getY() + layout.tileHeight() * SPLAT_LIFT);
         splat.setUserObject(source.getUserObject());
         splat.setFlipX(source.isFlipX());
         Group parent = source.getParent();
@@ -118,7 +120,7 @@ public final class ProjectileSync {
             parent = layer;
         }
         parent.addActor(splat);
-        splat.playOnce(spec.path(), spec.clip(), LawnLayout.PROJECTILE_SCALE, splat::remove);
+        splat.playOnce(spec.path(), spec.clip(), SPLAT_SCALE, splat::remove);
     }
 
     private float arcLift(float displayX, ArcFlight arc) {
@@ -131,7 +133,7 @@ public final class ProjectileSync {
         double nearest = Double.NaN;
         if (session != null) {
             for (Zombie zombie : session.getZombies()) {
-                if (!zombie.isAlive() || zombie.getRow() != projectile.getRow()) {
+                if (!zombie.isAlive() || !zombie.occupiesRow(projectile.getRow())) {
                     continue;
                 }
                 double distance = zombie.getX() - launchX;

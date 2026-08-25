@@ -8,7 +8,9 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Value;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -49,6 +51,7 @@ import io.github.finalwave.view.gui.hud.special.BeghouledUpgradeBar;
 import io.github.finalwave.view.gui.hud.special.ConveyorBeltBar;
 import io.github.finalwave.view.gui.hud.special.StartWaveButton;
 import io.github.finalwave.view.gui.hud.special.TimedWarPanel;
+import io.github.finalwave.view.gui.hud.special.ZombossHealthMeter;
 import io.github.finalwave.view.gui.input.ControllerLawnHost;
 import io.github.finalwave.view.gui.input.LawnActionHost;
 import io.github.finalwave.view.gui.input.LawnInputController;
@@ -62,6 +65,7 @@ import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.GraveClips;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ProjectileClips;
+import io.github.finalwave.view.gui.render.clip.ZombossClips;
 import io.github.finalwave.view.gui.render.sync.ArcadeObstacleSync;
 import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
@@ -100,6 +104,7 @@ public final class GamePlayScreen extends MenuScreen {
     private final Set<String> preloadedPlantPams = new HashSet<>();
     private PlantFoodCounter plantFoodCounter;
     private WaveProgressMeter waveMeter;
+    private ZombossHealthMeter zombossMeter;
     private Label beghouledRemaining;
     private SpeedButton speedButton;
     private AlertBanner alertBanner;
@@ -107,6 +112,7 @@ public final class GamePlayScreen extends MenuScreen {
     private NpcDialogBox npcDialog;
     private WidgetGroup cursorLayer;
     private boolean resultShown;
+    private boolean bossOutroQueued;
     private float resultHold;
 
     public GamePlayScreen(PvzGame game) {
@@ -148,6 +154,7 @@ public final class GamePlayScreen extends MenuScreen {
 
     private void bindMatch(User user, GameSession session) {
         this.resultShown = false;
+        this.bossOutroQueued = false;
         this.resultHold = 0f;
         this.clock = null;
         preloadedPlantPams.clear();
@@ -318,6 +325,21 @@ public final class GamePlayScreen extends MenuScreen {
         if (deadlineHoldRemaining(result) > 0f) {
             return;
         }
+        if (npcDialog != null && npcDialog.isShowing()) {
+            return;
+        }
+        if (!bossOutroQueued && matchSession() != null && matchSession().isBossActive()) {
+            List<NpcDialogLine> lines = NpcDialogScript.forBossResult(result);
+            bossOutroQueued = true;
+            if (!lines.isEmpty() && npcDialog != null) {
+                if (clock != null) {
+                    clock.setPaused(true);
+                }
+                npcDialog.setOnFinished(() -> presentResult(result));
+                npcDialog.show(lines);
+                return;
+            }
+        }
         presentResult(result);
     }
 
@@ -344,13 +366,22 @@ public final class GamePlayScreen extends MenuScreen {
         boolean hideAdventureHud = vaseMode || bowlingMode;
         boolean hideSeeds = hideSeedTools();
         if (sunCounter != null) {
-            sunCounter.setVisible(!hideAdventureHud);
+            boolean conveyor = session != null && session.isConveyorBeltActive();
+            sunCounter.setVisible(!hideAdventureHud && !conveyor);
         }
         if (plantFoodCounter != null) {
             plantFoodCounter.setVisible(!hideSeeds);
         }
         if (waveMeter != null) {
-            waveMeter.setVisible(!vaseMode);
+            boolean boss = session != null && session.isBossActive();
+            waveMeter.setVisible(!vaseMode && !boss);
+        }
+        if (zombossMeter != null) {
+            boolean boss = session != null && session.isBossActive();
+            zombossMeter.setVisible(boss);
+            if (boss) {
+                zombossMeter.refresh(session);
+            }
         }
         if (beghouledRemaining != null) {
             boolean showMatches = beghouled != null && session != null && session.isBeghouledActive()
@@ -391,7 +422,6 @@ public final class GamePlayScreen extends MenuScreen {
         if (conveyorBeltBar != null) {
             boolean freeze = clock != null && clock.shouldFreeze();
             conveyorBeltBar.refresh(session, user, input == null ? null : input.mode(), freeze);
-            updateSunPad();
             if (session != null && session.isConveyorBeltActive()) {
                 for (String plantName : session.getConveyorBeltPlants()) {
                     preloadPlantPam(plantName);
@@ -401,8 +431,19 @@ public final class GamePlayScreen extends MenuScreen {
         if (startWaveButton != null) {
             startWaveButton.refresh(session);
         }
+        packTopHudCells();
+        if (hudBottom != null && plantFoodCounter != null) {
+            Cell<?> foodCell = hudBottom.getCell(plantFoodCounter);
+            if (foodCell != null) {
+                foodCell.padLeft(plantFoodPad());
+                hudBottom.invalidate();
+            }
+        }
         if (waveMeter != null) {
             waveMeter.refresh(session);
+        }
+        if (zombossMeter != null && session != null && session.isBossActive()) {
+            zombossMeter.refresh(session);
         }
         if (speedButton != null && clock != null) {
             speedButton.setSpeed(clock.speed());
@@ -474,6 +515,7 @@ public final class GamePlayScreen extends MenuScreen {
         conveyorBeltBar = new ConveyorBeltBar(assets, this::onSeed);
         startWaveButton = new StartWaveButton(assets, this::onStartWaves);
         waveMeter = new WaveProgressMeter(assets);
+        zombossMeter = new ZombossHealthMeter(assets);
         speedButton = new SpeedButton(assets, this::onSpeed);
         Actor pause = PauseButton.create(assets, this::togglePause);
         Actor shovel = hideSeedTools() ? null : ShovelButton.create(assets, this::onShovel);
@@ -485,12 +527,22 @@ public final class GamePlayScreen extends MenuScreen {
         hudTop.add(startWaveButton).padLeft(8f).padTop(10f);
         hudTop.add(timedWarPanel).padLeft(8f).padTop(10f);
         hudTop.add().expandX();
-        hudTop.add(meterBlock()).padTop(8f);
-        hudTop.add().expandX();
-        hudTop.add(speedButton.actor()).size(84f).padRight(8f).padTop(8f);
-        hudTop.add(pause).size(84f).padRight(8f).padTop(8f);
-        hudTop.add(currencyBar).padTop(12f).padRight(20f);
-        hudLayer.add(hudTop).growX().row();
+        Table utilities = new Table();
+        utilities.add(speedButton.actor()).size(72f).padRight(2f);
+        utilities.add(pause).size(72f).padRight(4f);
+        utilities.add(currencyBar);
+        hudTop.add(utilities).padTop(6f).padRight(8f);
+
+        Table meterOverlay = new Table();
+        meterOverlay.setTouchable(Touchable.childrenOnly);
+        meterOverlay.add().expandX();
+        meterOverlay.add(meterBlock()).padTop(8f).top();
+        meterOverlay.add().expandX();
+
+        Stack topStack = new Stack();
+        topStack.add(hudTop);
+        topStack.add(meterOverlay);
+        hudLayer.add(topStack).growX().row();
 
         Table mid = new Table();
         mid.setTouchable(Touchable.childrenOnly);
@@ -534,7 +586,11 @@ public final class GamePlayScreen extends MenuScreen {
 
     private Table meterBlock() {
         Table block = new Table();
-        block.add(waveMeter).size(420f, 48f).row();
+        Stack meters = new Stack();
+        meters.add(waveMeter);
+        meters.add(zombossMeter);
+        zombossMeter.setVisible(false);
+        block.add(meters).size(420f, 48f).row();
         beghouledRemaining = new Label("", assets.skin(), "medium");
         beghouledRemaining.setAlignment(Align.center);
         beghouledRemaining.setFontScale(0.7f);
@@ -837,21 +893,30 @@ public final class GamePlayScreen extends MenuScreen {
                 && matchUser().isShowLawnGrid();
     }
 
-    private void updateSunPad() {
-        if (hudTop != null && sunCounter != null) {
-            Cell<?> sunCell = hudTop.getCell(sunCounter);
-            if (sunCell != null) {
-                sunCell.padLeft(sunPad());
-                hudTop.invalidate();
-            }
+    private void packTopHudCells() {
+        if (hudTop == null) {
+            return;
         }
-        if (hudBottom != null && plantFoodCounter != null) {
-            Cell<?> foodCell = hudBottom.getCell(plantFoodCounter);
-            if (foodCell != null) {
-                foodCell.padLeft(plantFoodPad());
-                hudBottom.invalidate();
-            }
+        packHudCell(hudTop.getCell(sunCounter), sunCounter, sunPad(), 10f);
+        packHudCell(hudTop.getCell(startWaveButton), startWaveButton, 8f, 10f);
+        packHudCell(hudTop.getCell(timedWarPanel), timedWarPanel, 8f, 10f);
+        hudTop.invalidate();
+        hudTop.invalidateHierarchy();
+    }
+
+    private static void packHudCell(Cell<?> cell, Actor actor, float padLeft, float padTop) {
+        if (cell == null || actor == null) {
+            return;
         }
+        if (actor.isVisible()) {
+            cell.width(Value.prefWidth);
+            cell.height(Value.prefHeight);
+            cell.padLeft(padLeft).padTop(padTop).padRight(0f).padBottom(0f);
+            return;
+        }
+        cell.width(0f);
+        cell.height(0f);
+        cell.pad(0f);
     }
 
     private float sunPad() {
@@ -882,6 +947,24 @@ public final class GamePlayScreen extends MenuScreen {
         if (session.isConveyorBeltActive()) {
             assets.region(LawnAssetIds.CONVEYOR_BELT);
             assets.region(LawnAssetIds.CONVEYOR_SIDE);
+        }
+        if (session.isBossActive()) {
+            assets.region(LawnAssetIds.ZOMBOSS_METER);
+            assets.region(LawnAssetIds.ZOMBOSS_FILL);
+            assets.region(LawnAssetIds.ZOMBOSS_HEAD);
+            assets.region(LawnAssetIds.ZOMBOSS_NOTCH);
+            assets.region(LawnAssetIds.ZOMBOSS_SKULL);
+            preload(catalog.zombiePath("ZombieEgyptZomboss"));
+            preload(catalog.zombiePath("ZombieDarkZomboss"));
+            preload(catalog.zombiePath("ZombieIceageZomboss"));
+            preload(catalog.zombiePath("ZombieBeachZomboss"));
+            preload(ZombossClips.EGYPT_MISSILE);
+            preload(ZombossClips.ICE_MISSILE);
+            preload(ZombossClips.DARK_FIREBALL);
+            preload(ZombossClips.SHARK);
+            preload(ZombossClips.TURBINE);
+            preload(ZombossClips.FIRE_TILE);
+            preload(ZombossClips.GLACIER);
         }
         if (!session.getProtectedSeedPlacements().isEmpty()) {
             assets.region(LawnAssetIds.PROTECT_TILE);
