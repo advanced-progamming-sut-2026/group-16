@@ -31,11 +31,13 @@ import pvz.libpvz.pam.PamPlayer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 
 public final class ZombieSync {
@@ -66,8 +68,10 @@ public final class ZombieSync {
     private final Set<Armor> thrownArmor = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<Armor, String> lastArmorLayers = new IdentityHashMap<>();
     private final ActorRegistry<Zombie, PamActor> iceShells = new ActorRegistry<>();
+    private final Set<String> smashShaking = new HashSet<>();
     private GameSession session;
     private float tickFraction;
+    private BiConsumer<Float, Float> smashShake;
 
     public ZombieSync(GameAssets assets, LawnLayout layout, ZombieClips clips, PlantClips plantClips, Group layer) {
         this.assets = assets;
@@ -75,6 +79,10 @@ public final class ZombieSync {
         this.clips = clips;
         this.plantClips = plantClips;
         this.layer = layer;
+    }
+
+    public void setSmashShake(BiConsumer<Float, Float> smashShake) {
+        this.smashShake = smashShake;
     }
 
     public void sync(GameSession session) {
@@ -107,6 +115,7 @@ public final class ZombieSync {
         iceShells.clear(PamActor::remove);
         hits.clear();
         aliases.clear();
+        smashShaking.clear();
         appearStart.clear();
         for (Image badge : producerBadges.values()) {
             badge.remove();
@@ -185,6 +194,7 @@ public final class ZombieSync {
         hits.observe(zombie, flashHealth(zombie), actor, zombie.isBoss() ? 0.28f : 0.18f);
         throwBrokenArmor(zombie, actor, clip);
         updateProducerBadge(zombie, actor);
+        maybeShakeSmash(zombie, clip);
     }
 
     private List<Zombie> overlayLive(List<Zombie> live) {
@@ -379,6 +389,25 @@ public final class ZombieSync {
         }
         actor.setUserObject(zombie.getRow() * 8 + 3);
         actor.setVisible(!zombie.isSubmerged());
+    }
+
+    private void maybeShakeSmash(Zombie zombie, EntityAnimationCatalog.ClipSpec clip) {
+        if (zombie == null || clip == null || clip.clip() == null) {
+            return;
+        }
+        boolean smash = clip.clip().contains("smash")
+                || (zombie.getState() == ZombieState.ABILITY
+                && zombie.getType() != null
+                && zombie.getType().contains("Gargantuar"));
+        String id = zombie.getId();
+        if (!smash) {
+            smashShaking.remove(id);
+            return;
+        }
+        if (!smashShaking.add(id) || smashShake == null) {
+            return;
+        }
+        smashShake.accept(0.28f, 6f);
     }
 
     private void applyClip(Zombie zombie, PamActor actor, float scale) {

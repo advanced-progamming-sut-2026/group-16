@@ -1,6 +1,7 @@
 package io.github.finalwave.model.game.board;
 
 import io.github.finalwave.model.game.GameSession;
+import io.github.finalwave.model.game.LawnBurst;
 import io.github.finalwave.model.game.MatchListener;
 import io.github.finalwave.model.game.board.tile.NormalTile;
 import io.github.finalwave.model.game.board.tile.GraveTile;
@@ -217,15 +218,14 @@ public final class BoardGameContext implements GameContext {
             if (zombie.isDead()) {
                 continue;
             }
-            double horizontalDistance = zombie.getX() - centerCol;
-            double verticalDistance = zombie.getRow() - centerRow;
-            if (Math.hypot(horizontalDistance, verticalDistance) <= radius) {
+            if (zombieInBlast(zombie, centerCol, centerRow, radius)) {
                 zombie.takeDamage(damage);
                 if (zombie.isDead()) {
                     onZombieKilled(zombie);
                 }
             }
         }
+        session.queueLawnBurst(new LawnBurst(LawnBurst.Kind.CHERRY, centerCol, centerRow));
     }
 
     @Override
@@ -240,9 +240,7 @@ public final class BoardGameContext implements GameContext {
             if (zombie.isDead()) {
                 continue;
             }
-            double horizontalDistance = zombie.getX() - centerCol;
-            double verticalDistance = zombie.getRow() - centerRow;
-            if (Math.hypot(horizontalDistance, verticalDistance) <= radius) {
+            if (zombieInBlast(zombie, centerCol, centerRow, radius)) {
                 zombie.takeDamage(totalDamage);
                 if (zombie.isDead()) {
                     onZombieKilled(zombie);
@@ -251,14 +249,14 @@ public final class BoardGameContext implements GameContext {
         }
         for (PlantCovering covering : session.getPlantCoverings()) {
             if (covering.isAlive() && covering.getCoveredPlant() != plant
-                    && Math.hypot(covering.getCol() - centerCol,
-                    covering.getRow() - centerRow) <= radius) {
+                    && inBlast(covering.getCol(), covering.getRow(), centerCol, centerRow, radius)) {
                 covering.takeDamage(totalDamage);
             }
         }
         for (ArcadeObstacle obstacle : session.getArcadeObstacles()) {
-            if (obstacle.isAlive() && Math.hypot(obstacle.getX() - centerCol,
-                    obstacle.getRow() - centerRow) <= radius) {
+            if (obstacle.isAlive() && inBlast(
+                    (int) Math.floor(obstacle.getX()), obstacle.getRow(),
+                    centerCol, centerRow, radius)) {
                 obstacle.takeDamage(totalDamage);
             }
         }
@@ -275,6 +273,7 @@ public final class BoardGameContext implements GameContext {
                     plant.getStats().hasSpecialModifier(PlantSpecialModifiers.MELT_AREA_3X3)
                             ? 1 : 0);
         }
+        session.queueLawnBurst(new LawnBurst(LawnBurst.kindForPlant(plant.getName()), centerCol, centerRow));
     }
 
     @Override
@@ -714,7 +713,7 @@ public final class BoardGameContext implements GameContext {
                 if (!session.getBoard().inBounds(col, row)) {
                     continue;
                 }
-                if (Math.hypot(col - centerCol, row - centerRow) > radius) {
+                if (!inBlast(col, row, centerCol, centerRow, radius)) {
                     continue;
                 }
                 Tile tile = session.getBoard().getTile(col, row);
@@ -743,6 +742,20 @@ public final class BoardGameContext implements GameContext {
             }
         }
         return nearest;
+    }
+
+    private static boolean inBlast(int col, int row, int centerCol, int centerRow, double radius) {
+        return Math.max(Math.abs(col - centerCol), Math.abs(row - centerRow)) <= radius;
+    }
+
+    private static boolean zombieInBlast(Zombie zombie, int centerCol, int centerRow, double radius) {
+        int col = (int) Math.floor(zombie.getX());
+        for (int row : zombie.occupiedRows()) {
+            if (inBlast(col, row, centerCol, centerRow, radius)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Zombie findFrontZombie(int row, int col) {

@@ -36,7 +36,7 @@ public final class MatchResultModal {
             }
         });
         panel.content().add(exit).width(260f).height(56f).padBottom(10f).row();
-        if (!won && onRetry != null) {
+        if (onRetry != null) {
             TextButton retry = PvzButtons.textButton("Retry", skin, "brown", () -> {
                 dismiss();
                 onRetry.run();

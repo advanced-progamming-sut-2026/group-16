@@ -81,7 +81,7 @@ public final class MainMenuScreen extends MenuScreen {
         Actor profileBar = buildProfileBar(skin);
 
         Actor cloud = PvzButtons.framedIconButton(skin, assets.region(MenuAssetIds.CLOUD_ICON), SIDE_ICON,
-                () -> toastMessage("Coming soon"));
+                () -> openDestination(MainMenuController.Destination.SCORE_GAME));
         Actor news = PvzButtons.framedIconButton(skin, assets.region(MenuAssetIds.NEWS_ICON), SIDE_ICON,
                 () -> openDestination(MainMenuController.Destination.NEWS));
         Actor settings = PvzButtons.framedIconButton(skin, assets.region(MenuAssetIds.SETTINGS_ICON), SIDE_ICON,

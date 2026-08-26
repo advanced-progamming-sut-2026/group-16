@@ -65,6 +65,13 @@ public abstract class Entity {
         return health;
     }
 
+    public final void restoreHealth(int amount) {
+        if (dead) {
+            return;
+        }
+        health = Math.max(1, Math.min(maxHealth, amount));
+    }
+
     public final int getMaxHealth() {
         return maxHealth;
     }

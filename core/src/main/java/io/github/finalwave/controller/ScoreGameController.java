@@ -23,6 +23,22 @@ public class ScoreGameController extends ViewController {
         this(user, UserDatabase.getInstance());
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public int bestMeowPoint() {
+        return user.getBestMeowPoint();
+    }
+
+    public void startMatch() {
+        navigator.push(new ScoreGamePlantSelectionController(user, userDatabase, this));
+    }
+
+    public void back() {
+        navigator.pop();
+    }
+
     @Override
     public void displayMenu() {
         getScoreGameView().showScoreGameMenu(user.getBestMeowPoint());

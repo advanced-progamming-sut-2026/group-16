@@ -38,6 +38,11 @@ public final class LawnMower {
         return !used && !active;
     }
 
+    public void markSpent() {
+        used = true;
+        active = false;
+    }
+
     public boolean trigger() {
         if (used || active) {
             return false;

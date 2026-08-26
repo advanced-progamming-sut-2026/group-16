@@ -56,6 +56,19 @@ public class GameController extends ViewController {
         handleEnterChapter(chapterId.getDisplayName());
     }
 
+    public boolean hasSavedMatch() {
+        return userDatabase.loadMatchSnapshot(user) != null;
+    }
+
+    public void continueSavedMatch() {
+        GamePlayController gameplay = MatchResume.open(user, userDatabase, userDatabase.loadMatchSnapshot(user));
+        if (gameplay == null) {
+            return;
+        }
+        navigator.push(gameplay);
+        gameplay.session().start();
+    }
+
     public void openTravelLog() {
         handleTravelLog();
     }

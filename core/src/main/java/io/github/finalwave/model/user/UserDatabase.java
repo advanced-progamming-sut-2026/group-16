@@ -2,6 +2,7 @@ package io.github.finalwave.model.user;
 
 import io.github.finalwave.model.collection.OwnedPlant;
 import io.github.finalwave.model.collection.PlayerPlantProgress;
+import io.github.finalwave.model.save.MatchSaveSnapshot;
 import io.github.finalwave.util.database.DatabaseUtil;
 
 import java.sql.*;
@@ -61,6 +62,7 @@ public class UserDatabase {
             AdventureProgressStore.createTables();
             MiniGameProgressStore.createTables();
             ScoreGameStore.createTables();
+            MatchSaveStore.createTables();
             UserSettingsStore.createTables();
         } catch (SQLException e) {
             throw new RuntimeException("Could not create the database.", e);
@@ -242,6 +244,43 @@ public class UserDatabase {
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not save best meowpoint.", e);
+        }
+    }
+
+    public void saveMatchSnapshot(User user, MatchSaveSnapshot snapshot) {
+        if (user == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            MatchSaveStore.save(conn, user, snapshot);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save match.", e);
+        }
+    }
+
+    public MatchSaveSnapshot loadMatchSnapshot(User user) {
+        if (user == null) {
+            return null;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            return MatchSaveStore.load(conn, user);
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not load match save.", e);
+        }
+    }
+
+    public void clearMatchSave(User user) {
+        if (user == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            MatchSaveStore.clear(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not clear match save.", e);
         }
     }
 
