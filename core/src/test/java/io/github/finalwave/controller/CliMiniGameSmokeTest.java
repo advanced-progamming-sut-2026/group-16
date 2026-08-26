@@ -168,6 +168,9 @@ class CliMiniGameSmokeTest {
         parser.parseAndExecute("enter game -n zombotany");
         parser.parseAndExecute("show stages");
         parser.parseAndExecute("start stage -n 1");
+        assertInstanceOf(ZombotanyPlantSelectionController.class, parser.getCurrentController());
+        parser.parseAndExecute("add plant -t Sunflower");
+        parser.parseAndExecute("start game");
         assertInstanceOf(ZombotanyController.class, parser.getCurrentController());
 
         ZombotanyController gameplay = (ZombotanyController) parser.getCurrentController();

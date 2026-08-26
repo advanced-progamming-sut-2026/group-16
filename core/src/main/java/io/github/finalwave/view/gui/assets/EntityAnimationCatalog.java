@@ -222,6 +222,10 @@ public final class EntityAnimationCatalog {
         String brick = "768/FULL/ZOMBIE/ZOMBIE_DARK_BASIC_BRICK/ZOMBIE_DARK_BASIC_BRICK.PAM";
         Map<String, String> paths = new HashMap<>();
         paths.put("ZombieDefault", egypt);
+        paths.put("ZombiePeaShooter", egypt);
+        paths.put("ZombieWallNut", egypt);
+        paths.put("ZombieJalapeno", egypt);
+        paths.put("ZombieSquash", egypt);
         paths.put("ZombieArmor1", egypt);
         paths.put("ZombieArmor2", egypt);
         paths.put("ZombieArmor4", brick);

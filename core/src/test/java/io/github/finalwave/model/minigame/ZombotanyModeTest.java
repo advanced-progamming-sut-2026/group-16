@@ -38,8 +38,7 @@ class ZombotanyModeTest {
         assertTrue(session.getSkySunSystem().isEnabled());
         assertTrue(session.isWavesAutoStart());
         assertEquals(50, session.getSunBalance());
-        assertEquals(stage.getPlantSeedPool().size(), session.getSelectedLoadout().size());
-        assertTrue(session.getSelectedLoadout().containsAll(stage.getPlantSeedPool()));
+        assertTrue(session.getSelectedLoadout().isEmpty());
         assertNotNull(session.getWaveManager());
         assertEquals(2, session.getWaveManager().getWaveCount());
         assertTrue(session.getWaveManager().getWaves().size() >= 1);
@@ -55,6 +54,6 @@ class ZombotanyModeTest {
         assertEquals(4, session.getWaveManager().getWaveCount());
         assertTrue(stage.getZombiePool().contains("ZombieJalapeno"));
         assertTrue(stage.getZombiePool().contains("ZombieSquash"));
-        assertTrue(session.getSelectedLoadout().contains("Melon-pult"));
+        assertTrue(stage.getPlantSeedPool().contains("Melon-pult"));
     }
 }

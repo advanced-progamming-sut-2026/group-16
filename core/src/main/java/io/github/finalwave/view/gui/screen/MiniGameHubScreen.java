@@ -174,7 +174,8 @@ public final class MiniGameHubScreen extends MenuScreen {
         return id == MiniGameId.VASE_BREAKER
                 || id == MiniGameId.WALNUT_BOWLING
                 || id == MiniGameId.I_ZOMBIE
-                || id == MiniGameId.BEGHOULED;
+                || id == MiniGameId.BEGHOULED
+                || id == MiniGameId.ZOMBOTANY;
     }
 
     private ChapterId pathChapter() {

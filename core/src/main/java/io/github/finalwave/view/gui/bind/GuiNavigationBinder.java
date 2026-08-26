@@ -22,6 +22,7 @@ import io.github.finalwave.controller.TravelLogController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.controller.WalnutBowlingController;
+import io.github.finalwave.controller.ZombotanyController;
 import io.github.finalwave.view.gui.AdventureViewGui;
 import io.github.finalwave.view.gui.BeghouledViewGui;
 import io.github.finalwave.view.gui.AuthViewGui;
@@ -42,6 +43,7 @@ import io.github.finalwave.view.gui.ShopViewGui;
 import io.github.finalwave.view.gui.TravelLogViewGui;
 import io.github.finalwave.view.gui.VaseBreakerViewGui;
 import io.github.finalwave.view.gui.WalnutBowlingViewGui;
+import io.github.finalwave.view.gui.ZombotanyViewGui;
 import io.github.finalwave.view.gui.screen.ScreenRouter;
 
 public final class GuiNavigationBinder implements NavigationBinder {
@@ -65,6 +67,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final WalnutBowlingViewGui walnutBowlingView;
     private final IZombieViewGui iZombieView;
     private final BeghouledViewGui beghouledView;
+    private final ZombotanyViewGui zombotanyView;
     private final ComingSoonViewGui comingSoonView;
 
     public GuiNavigationBinder(ScreenRouter router) {
@@ -88,6 +91,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.walnutBowlingView = new WalnutBowlingViewGui(router);
         this.iZombieView = new IZombieViewGui(router);
         this.beghouledView = new BeghouledViewGui(router);
+        this.zombotanyView = new ZombotanyViewGui(router);
         this.comingSoonView = new ComingSoonViewGui(router);
     }
 
@@ -147,6 +151,9 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof BeghouledController beghouledController) {
             beghouledView.bindController(beghouledController);
             newController.setView(beghouledView);
+        } else if (newController instanceof ZombotanyController zombotanyController) {
+            zombotanyView.bindController(zombotanyController);
+            newController.setView(zombotanyView);
         } else if (newController instanceof RegistrationController
                 || newController instanceof LoginController) {
             authView.bindController(newController);

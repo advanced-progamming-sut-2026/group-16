@@ -12,7 +12,6 @@ import io.github.finalwave.model.minigame.mode.BeghouledMode;
 import io.github.finalwave.model.minigame.mode.IZombieMode;
 import io.github.finalwave.model.minigame.mode.VaseBreakerMode;
 import io.github.finalwave.model.minigame.mode.WalnutBowlingMode;
-import io.github.finalwave.model.minigame.mode.ZombotanyMode;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.minigame.MiniGameHubView;
@@ -169,20 +168,13 @@ public class MiniGameHubController extends ViewController {
             case WALNUT_BOWLING -> startWalnutBowling(stage);
             case I_ZOMBIE -> startIZombie(stage);
             case BEGHOULED -> startBeghouled(stage);
-            case ZOMBOTANY -> startZombotany(stage);
+            case ZOMBOTANY -> startZombotanySelect(stage);
             default -> getHubView().showComingSoon(selectedGame);
         }
     }
 
-    private void startZombotany(MiniGameStageConfig stage) {
-        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
-        ZombieRegistry zombieRegistry = loadZombotanyZombieRegistry();
-        ZombotanyMode mode = new ZombotanyMode(stage, plantRegistry, zombieRegistry, new Random());
-        GameSession session = mode.createSession();
-        ZombotanyController controller = new ZombotanyController(
-                user, userDatabase, mode, session, stage);
-        navigator.push(controller);
-        session.start();
+    private void startZombotanySelect(MiniGameStageConfig stage) {
+        navigator.push(new ZombotanyPlantSelectionController(user, userDatabase, stage));
     }
 
     private void startBeghouled(MiniGameStageConfig stage) {

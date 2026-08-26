@@ -90,6 +90,10 @@ public final class PamActor extends Actor {
         }
     }
 
+    public float drawScale() {
+        return drawScale;
+    }
+
     public void setDrawScale(float scale) {
         this.drawScale = Math.abs(scale);
     }

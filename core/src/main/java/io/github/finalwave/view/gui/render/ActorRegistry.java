@@ -38,6 +38,10 @@ public final class ActorRegistry<M, A extends Actor> {
         }
     }
 
+    public A get(M model) {
+        return actors.get(model);
+    }
+
     public Collection<A> actors() {
         return Collections.unmodifiableCollection(actors.values());
     }

@@ -356,21 +356,24 @@ public final class MiniGameStageConfig {
                     MiniGameId.ZOMBOTANY, 1, 5, 9, 50,
                     0, 0, 0, 100,
                     List.of("Peashooter", "Sunflower", "Wall-nut", "Potato Mine", "Cabbage-pult"),
-                    List.of("ZombieDefault", "ZombiePeaShooter"),
-                    true, -1, 2, 100, List.of());
+                    List.of("ZombiePeaShooter", "ZombiePeaShooter", "ZombiePeaShooter",
+                            "ZombiePeaShooter", "ZombieDefault"),
+                    true, -1, 2, 250, List.of());
             case 2 -> new MiniGameStageConfig(
                     MiniGameId.ZOMBOTANY, 2, 5, 9, 50,
                     0, 0, 0, 100,
                     List.of("Peashooter", "Sunflower", "Wall-nut", "Repeater", "Potato Mine", "Cabbage-pult"),
-                    List.of("ZombieDefault", "ZombiePeaShooter", "ZombieWallNut", "ZombieArmor1"),
-                    true, -1, 3, 120, List.of());
+                    List.of("ZombiePeaShooter", "ZombiePeaShooter", "ZombieWallNut", "ZombieWallNut",
+                            "ZombiePeaShooter", "ZombieDefault"),
+                    true, -1, 3, 300, List.of());
             case 3 -> new MiniGameStageConfig(
                     MiniGameId.ZOMBOTANY, 3, 5, 9, 75,
                     0, 0, 0, 100,
                     List.of("Peashooter", "Sunflower", "Repeater", "Tall-nut", "Potato Mine", "Melon-pult"),
-                    List.of("ZombieDefault", "ZombiePeaShooter", "ZombieWallNut",
-                            "ZombieJalapeno", "ZombieSquash", "ZombieArmor1"),
-                    true, -1, 4, 140, List.of());
+                    List.of("ZombiePeaShooter", "ZombieWallNut", "ZombieJalapeno", "ZombieSquash",
+                            "ZombiePeaShooter", "ZombieJalapeno", "ZombieSquash", "ZombieWallNut",
+                            "ZombieDefault"),
+                    true, -1, 4, 350, List.of());
             default -> throw new IllegalArgumentException("Zombotany stages are 1-3");
         };
     }

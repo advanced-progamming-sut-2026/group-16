@@ -5,6 +5,7 @@ import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.IZombieController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
+import io.github.finalwave.controller.ZombotanyController;
 import io.github.finalwave.model.game.GameSession;
 
 
@@ -14,6 +15,7 @@ public final class ControllerLawnHost implements LawnActionHost {
     private final WalnutBowlingController walnutBowling;
     private final IZombieController iZombie;
     private final BeghouledController beghouled;
+    private final ZombotanyController zombotany;
 
     public ControllerLawnHost(GamePlayController gamePlay) {
         this.gamePlay = gamePlay;
@@ -21,6 +23,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = null;
         this.beghouled = null;
+        this.zombotany = null;
     }
 
     public ControllerLawnHost(VaseBreakerController vaseBreaker) {
@@ -29,6 +32,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = null;
         this.beghouled = null;
+        this.zombotany = null;
     }
 
     public ControllerLawnHost(WalnutBowlingController walnutBowling) {
@@ -37,6 +41,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = walnutBowling;
         this.iZombie = null;
         this.beghouled = null;
+        this.zombotany = null;
     }
 
     public ControllerLawnHost(IZombieController iZombie) {
@@ -45,6 +50,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = iZombie;
         this.beghouled = null;
+        this.zombotany = null;
     }
 
     public ControllerLawnHost(BeghouledController beghouled) {
@@ -53,6 +59,16 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = null;
         this.beghouled = beghouled;
+        this.zombotany = null;
+    }
+
+    public ControllerLawnHost(ZombotanyController zombotany) {
+        this.gamePlay = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.iZombie = null;
+        this.beghouled = null;
+        this.zombotany = zombotany;
     }
 
     @Override
@@ -69,6 +85,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         if (beghouled != null) {
             return beghouled.session();
         }
+        if (zombotany != null) {
+            return zombotany.session();
+        }
         return gamePlay == null ? null : gamePlay.session();
     }
 
@@ -83,6 +102,10 @@ public final class ControllerLawnHost implements LawnActionHost {
             return;
         }
         if (iZombie != null || beghouled != null) {
+            return;
+        }
+        if (zombotany != null) {
+            zombotany.plantAt(plantName, col, row);
             return;
         }
         if (gamePlay != null) {
@@ -112,6 +135,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         if (beghouled != null) {
             return beghouled.collectSunAt(col, row);
         }
+        if (zombotany != null) {
+            return zombotany.collectSunAt(col, row);
+        }
         return gamePlay != null && gamePlay.collectSunAt(col, row);
     }
 
@@ -123,6 +149,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         if (walnutBowling != null || iZombie != null || beghouled != null) {
             return false;
         }
+        if (zombotany != null) {
+            return zombotany.shovelAt(col, row);
+        }
         return gamePlay != null && gamePlay.shovelAt(col, row);
     }
 
@@ -133,6 +162,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         }
         if (walnutBowling != null || iZombie != null || beghouled != null) {
             return false;
+        }
+        if (zombotany != null) {
+            return zombotany.feedAt(col, row);
         }
         return gamePlay != null && gamePlay.feedAt(col, row);
     }
