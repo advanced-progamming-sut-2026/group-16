@@ -19,8 +19,10 @@ import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.render.ActorRegistry;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.ArmorPartVisibility;
+import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ZombossClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
+import io.github.finalwave.view.gui.render.clip.ZombotanyLooks;
 import io.github.finalwave.view.gui.widget.ActorFades;
 import io.github.finalwave.view.gui.widget.HitFlashTracker;
 import io.github.finalwave.view.gui.widget.PamActor;
@@ -49,10 +51,13 @@ public final class ZombieSync {
     private final GameAssets assets;
     private final LawnLayout layout;
     private final ZombieClips clips;
+    private final PlantClips plantClips;
     private final Group layer;
     private final ActorRegistry<Zombie, PamActor> zombies = new ActorRegistry<>();
+    private final ActorRegistry<Zombie, PamActor> overlays = new ActorRegistry<>();
     private final HitFlashTracker<Zombie> hits = new HitFlashTracker<>();
     private final Map<PamActor, String> aliases = new IdentityHashMap<>();
+    private final Vector2 headScratch = new Vector2();
     private final Map<PamActor, Long> appearStart = new IdentityHashMap<>();
     private final Map<Zombie, Image> producerBadges = new IdentityHashMap<>();
     private final List<PamActor> deathActors = new ArrayList<>();
@@ -64,10 +69,11 @@ public final class ZombieSync {
     private GameSession session;
     private float tickFraction;
 
-    public ZombieSync(GameAssets assets, LawnLayout layout, ZombieClips clips, Group layer) {
+    public ZombieSync(GameAssets assets, LawnLayout layout, ZombieClips clips, PlantClips plantClips, Group layer) {
         this.assets = assets;
         this.layout = layout;
         this.clips = clips;
+        this.plantClips = plantClips;
         this.layer = layer;
     }
 
@@ -88,6 +94,7 @@ public final class ZombieSync {
             }
         }
         zombies.sync(live, this::spawn, this::update, this::beginDeath);
+        overlays.sync(overlayLive(live), this::spawnOverlay, this::updateOverlay, PamActor::remove);
         iceShells.sync(encased(live), this::spawnIceShell, this::updateIceShell, PamActor::remove);
         pruneProducerBadges(live);
         hits.retain(live);
@@ -96,6 +103,7 @@ public final class ZombieSync {
 
     public void clear() {
         zombies.clear(PamActor::remove);
+        overlays.clear(PamActor::remove);
         iceShells.clear(PamActor::remove);
         hits.clear();
         aliases.clear();
@@ -109,6 +117,7 @@ public final class ZombieSync {
         bossActors.clear();
         bossLogical.clear();
         ArmorPartVisibility.clear();
+        ZombotanyLooks.clear();
         for (PamActor actor : deathActors) {
             actor.remove();
         }
@@ -164,14 +173,126 @@ public final class ZombieSync {
         actor.setFlipX(!zombie.isBoss() && (zombie.isMovingRight() || zombie.isHypnotized()));
         actor.setTint(ZombieVisualState.tint(zombie, session));
         EntityAnimationCatalog.ClipSpec clip = ZombieVisualState.clip(zombie, clips);
-        actor.setVisibility(ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(),
-                ZombieVisualState.armorVisibility(zombie, clips)));
+        Map<String, Boolean> vis = ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(),
+                ZombieVisualState.armorVisibility(zombie, clips));
+        if (ZombotanyLooks.plantFor(zombie.getType()) != null) {
+            vis = ZombotanyLooks.withHeadHidden(assets.pamPlayer(), clip.path(), vis);
+        }
+        actor.setVisibility(vis);
         actor.setUserObject(zombie.getRow() * 8);
         actor.setVisible(!zombie.isSubmerged());
         aliases.put(actor, zombie.getType());
         hits.observe(zombie, flashHealth(zombie), actor, zombie.isBoss() ? 0.28f : 0.18f);
         throwBrokenArmor(zombie, actor, clip);
         updateProducerBadge(zombie, actor);
+    }
+
+    private List<Zombie> overlayLive(List<Zombie> live) {
+        List<Zombie> overlay = new ArrayList<>();
+        for (Zombie zombie : live) {
+            if (zombie != null && zombie.isAlive() && ZombotanyLooks.plantFor(zombie.getType()) != null) {
+                overlay.add(zombie);
+            }
+        }
+        return overlay;
+    }
+
+    private PamActor spawnOverlay(Zombie zombie) {
+        PamActor overlay = assets.pamActor();
+        overlay.setTouchable(Touchable.disabled);
+        overlay.setAnchor(0.5f, ZombotanyLooks.overlayAnchorY());
+        layer.addActor(overlay);
+        return overlay;
+    }
+
+    private void updateOverlay(Zombie zombie, PamActor overlay) {
+        String plantName = ZombotanyLooks.plantFor(zombie.getType());
+        if (plantName == null) {
+            overlay.setVisible(false);
+            return;
+        }
+        PamActor body = zombies.get(zombie);
+        boolean flipped = body != null
+                ? body.isFlipX()
+                : zombie.isMovingRight() || zombie.isHypnotized();
+        float originX;
+        float originY;
+        float bodyScale;
+        float headTime = 0f;
+        if (body != null) {
+            originX = body.getX() + body.getWidth() * 0.5f;
+            originY = body.getY() + body.getHeight() * LawnLayout.ZOMBIE_ANCHOR_Y;
+            bodyScale = body.drawScale();
+            headTime = body.stateTime();
+        } else {
+            originX = layout.worldX(displayX(zombie));
+            originY = layout.worldYForRow(displayY(zombie))
+                    + layout.tileHeight() * LawnLayout.ZOMBIE_ANCHOR_Y;
+            bodyScale = LawnLayout.ZOMBIE_SCALE;
+        }
+        Vector2 head = headWorld(zombie, originX, originY, bodyScale, flipped, headTime);
+        overlay.setSize(layout.tileWidth(), layout.tileHeight());
+        overlay.setAnchor(0.5f, ZombotanyLooks.overlayAnchorY());
+        overlay.setPosition(
+                head.x - overlay.getWidth() * 0.5f,
+                head.y - overlay.getHeight() * ZombotanyLooks.overlayAnchorY()
+                        - ZombotanyLooks.overlayDrop(plantName, layout.tileHeight()));
+        overlay.setFlipX(!flipped);
+        overlay.setTint(ZombieVisualState.tint(zombie, session));
+        applyOverlayClip(overlay, plantName, zombie);
+        EntityAnimationCatalog.ClipSpec idle = plantClips.idle(plantName);
+        overlay.setVisibility(ZombotanyLooks.overlayVisibility(
+                assets.pamPlayer(), plantName, idle.path()));
+        overlay.setUserObject(zombie.getRow() * 8 + 2);
+        overlay.setVisible(body == null || body.isVisible());
+    }
+
+    private Vector2 headWorld(Zombie zombie,
+                              float originX,
+                              float originY,
+                              float bodyScale,
+                              boolean flipped,
+                              float time) {
+        EntityAnimationCatalog.ClipSpec clip = ZombieVisualState.clip(zombie, clips);
+        String part = ZombotanyLooks.attachPart(assets.pamPlayer(), clip.path());
+        if (part != null) {
+            PamPartCentroid.at(assets.pamPlayer(), clip.path(), clip.clip(), part, time, 0f, 0f, headScratch);
+        } else {
+            headScratch.setZero();
+        }
+        if (headScratch.len2() < 1f) {
+            PamPartCentroid.at(assets.pamPlayer(), clip.path(), clip.clip(), PARTICLE_HEAD, time, 0f, 0f, headScratch);
+        }
+        float sign = flipped ? -1f : 1f;
+        return headScratch.set(
+                originX + sign * bodyScale * headScratch.x,
+                originY + bodyScale * headScratch.y);
+    }
+
+    private void applyOverlayClip(PamActor overlay, String plantName, Zombie zombie) {
+        float scale = ZombotanyLooks.overlayScale(plantName);
+        EntityAnimationCatalog.ClipSpec idle = plantClips.idle(plantName);
+        boolean freezeIdle = "Peashooter".equals(plantName);
+        boolean shoot = freezeIdle
+                && zombie.getState() == ZombieState.ABILITY
+                && plantClips.hasAttack(plantName);
+        if (shoot) {
+            EntityAnimationCatalog.ClipSpec attack = plantClips.attack(plantName);
+            if (!attack.clip().equals(overlay.clipName())) {
+                overlay.setPlaying(true);
+                overlay.playThen(attack.path(), attack.clip(), scale, idle.clip(), false,
+                        () -> overlay.setPlaying(false));
+            } else {
+                overlay.setDrawScale(scale);
+            }
+            return;
+        }
+        if (plantClips.hasAttack(plantName) && plantClips.attack(plantName).clip().equals(overlay.clipName())) {
+            overlay.setDrawScale(scale);
+            return;
+        }
+        overlay.setClip(idle.path(), idle.clip(), scale, !freezeIdle);
+        overlay.setPlaying(!freezeIdle);
     }
 
     private boolean shouldAppear(Zombie zombie) {

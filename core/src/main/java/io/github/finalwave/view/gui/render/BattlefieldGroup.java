@@ -124,7 +124,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             return;
         }
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
-        zombieSync = new ZombieSync(assets, layout, new ZombieClips(catalog), zombieLayer);
+        zombieSync = new ZombieSync(assets, layout, new ZombieClips(catalog), new PlantClips(catalog), zombieLayer);
         projectileSync = new ProjectileSync(assets, layout, new ProjectileClips(), projectileLayer);
         sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
         mowerSync = new MowerSync(assets, layout, mowerLayer);

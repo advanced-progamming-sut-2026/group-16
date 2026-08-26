@@ -38,6 +38,13 @@ public final class ArmorPartVisibility {
         return index(player, pamPath).names.contains(name);
     }
 
+    public static Set<String> partNames(PamPlayer player, String pamPath) {
+        if (player == null || pamPath == null) {
+            return Set.of();
+        }
+        return Set.copyOf(index(player, pamPath).names);
+    }
+
     public static void clear() {
         INDEX_BY_PATH.clear();
     }

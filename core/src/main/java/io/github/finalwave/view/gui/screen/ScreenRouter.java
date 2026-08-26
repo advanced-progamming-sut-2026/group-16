@@ -25,6 +25,7 @@ import io.github.finalwave.controller.TravelLogController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.ViewController;
 import io.github.finalwave.controller.WalnutBowlingController;
+import io.github.finalwave.controller.ZombotanyController;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.leaderboard.LeaderboardEntry;
 import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
@@ -80,7 +81,8 @@ public final class ScreenRouter {
                 || controller instanceof VaseBreakerController
                 || controller instanceof WalnutBowlingController
                 || controller instanceof IZombieController
-                || controller instanceof BeghouledController;
+                || controller instanceof BeghouledController
+                || controller instanceof ZombotanyController;
     }
 
     public boolean supportsDestination(MainMenuController.Destination destination) {
@@ -133,6 +135,8 @@ public final class ScreenRouter {
             showGamePlay(iZombieController);
         } else if (controller instanceof BeghouledController beghouledController) {
             showGamePlay(beghouledController);
+        } else if (controller instanceof ZombotanyController zombotanyController) {
+            showGamePlay(zombotanyController);
         } else {
             Gdx.app.log(TAG, "No GUI screen registered for " + controller.getClass().getSimpleName());
         }
@@ -283,6 +287,14 @@ public final class ScreenRouter {
     }
 
     public void showGamePlay(BeghouledController controller) {
+        if (gamePlayScreen == null) {
+            gamePlayScreen = new GamePlayScreen(game);
+        }
+        gamePlayScreen.bind(controller);
+        setScreen(gamePlayScreen);
+    }
+
+    public void showGamePlay(ZombotanyController controller) {
         if (gamePlayScreen == null) {
             gamePlayScreen = new GamePlayScreen(game);
         }

@@ -5,6 +5,7 @@ import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.IZombieController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
+import io.github.finalwave.controller.ZombotanyController;
 import io.github.finalwave.model.game.GameSession;
 
 
@@ -14,6 +15,7 @@ public final class ControllerTicker implements MatchTicker {
     private final WalnutBowlingController walnutBowling;
     private final IZombieController iZombie;
     private final BeghouledController beghouled;
+    private final ZombotanyController zombotany;
 
     public ControllerTicker(GamePlayController gamePlay) {
         this.gamePlay = gamePlay;
@@ -21,6 +23,7 @@ public final class ControllerTicker implements MatchTicker {
         this.walnutBowling = null;
         this.iZombie = null;
         this.beghouled = null;
+        this.zombotany = null;
     }
 
     public ControllerTicker(VaseBreakerController vaseBreaker) {
@@ -29,6 +32,7 @@ public final class ControllerTicker implements MatchTicker {
         this.walnutBowling = null;
         this.iZombie = null;
         this.beghouled = null;
+        this.zombotany = null;
     }
 
     public ControllerTicker(WalnutBowlingController walnutBowling) {
@@ -37,6 +41,7 @@ public final class ControllerTicker implements MatchTicker {
         this.walnutBowling = walnutBowling;
         this.iZombie = null;
         this.beghouled = null;
+        this.zombotany = null;
     }
 
     public ControllerTicker(IZombieController iZombie) {
@@ -45,6 +50,7 @@ public final class ControllerTicker implements MatchTicker {
         this.walnutBowling = null;
         this.iZombie = iZombie;
         this.beghouled = null;
+        this.zombotany = null;
     }
 
     public ControllerTicker(BeghouledController beghouled) {
@@ -53,6 +59,16 @@ public final class ControllerTicker implements MatchTicker {
         this.walnutBowling = null;
         this.iZombie = null;
         this.beghouled = beghouled;
+        this.zombotany = null;
+    }
+
+    public ControllerTicker(ZombotanyController zombotany) {
+        this.gamePlay = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.iZombie = null;
+        this.beghouled = null;
+        this.zombotany = zombotany;
     }
 
     @Override
@@ -73,6 +89,10 @@ public final class ControllerTicker implements MatchTicker {
             beghouled.advance(ticks);
             return;
         }
+        if (zombotany != null) {
+            zombotany.advance(ticks);
+            return;
+        }
         if (gamePlay != null) {
             gamePlay.advance(ticks);
         }
@@ -91,6 +111,9 @@ public final class ControllerTicker implements MatchTicker {
         }
         if (beghouled != null) {
             return beghouled.session();
+        }
+        if (zombotany != null) {
+            return zombotany.session();
         }
         return gamePlay == null ? null : gamePlay.session();
     }

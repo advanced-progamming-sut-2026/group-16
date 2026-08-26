@@ -22,6 +22,7 @@ import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.IZombieController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
+import io.github.finalwave.controller.ZombotanyController;
 import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.adventure.ChapterRules;
@@ -71,6 +72,7 @@ import io.github.finalwave.view.gui.render.clip.GraveClips;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombossClips;
+import io.github.finalwave.view.gui.render.clip.ZombotanyLooks;
 import io.github.finalwave.view.gui.render.sync.ArcadeObstacleSync;
 import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
@@ -93,6 +95,7 @@ public final class GamePlayScreen extends MenuScreen {
     private WalnutBowlingController walnutBowling;
     private IZombieController iZombie;
     private BeghouledController beghouled;
+    private ZombotanyController zombotany;
     private MatchClock clock;
     private LawnLayout layout;
     private ChapterBackground chapterBackground;
@@ -133,6 +136,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = null;
         this.beghouled = null;
+        this.zombotany = null;
         bindMatch(controller == null ? null : controller.getUser(), controller == null ? null : controller.session());
     }
 
@@ -142,6 +146,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = null;
         this.beghouled = null;
+        this.zombotany = null;
         bindMatch(vaseBreaker == null ? null : vaseBreaker.getUser(), vaseBreaker == null ? null : vaseBreaker.session());
     }
 
@@ -151,6 +156,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = walnutBowling;
         this.iZombie = null;
         this.beghouled = null;
+        this.zombotany = null;
         bindMatch(walnutBowling == null ? null : walnutBowling.getUser(),
                 walnutBowling == null ? null : walnutBowling.session());
     }
@@ -161,6 +167,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = iZombie;
         this.beghouled = null;
+        this.zombotany = null;
         bindMatch(iZombie == null ? null : iZombie.getUser(), iZombie == null ? null : iZombie.session());
     }
 
@@ -170,7 +177,18 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = null;
         this.beghouled = beghouled;
+        this.zombotany = null;
         bindMatch(beghouled == null ? null : beghouled.getUser(), beghouled == null ? null : beghouled.session());
+    }
+
+    public void bind(ZombotanyController zombotany) {
+        this.controller = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.iZombie = null;
+        this.beghouled = null;
+        this.zombotany = zombotany;
+        bindMatch(zombotany == null ? null : zombotany.getUser(), zombotany == null ? null : zombotany.session());
     }
 
     private void bindMatch(User user, GameSession session) {
@@ -403,7 +421,7 @@ public final class GamePlayScreen extends MenuScreen {
 
     public void refreshHud() {
         if (controller == null && vaseBreaker == null && walnutBowling == null && iZombie == null
-                && beghouled == null) {
+                && beghouled == null && zombotany == null) {
             return;
         }
         User user = matchUser();
@@ -458,7 +476,7 @@ public final class GamePlayScreen extends MenuScreen {
             if (hideSeeds) {
                 seedBank.setVisible(false);
             } else {
-                seedBank.refresh(session, user, controller == null ? Set.of() : controller.boostedPlants(),
+                seedBank.refresh(session, user, seedBoosts(),
                         input == null ? null : input.mode());
             }
         }
@@ -677,7 +695,7 @@ public final class GamePlayScreen extends MenuScreen {
 
     private void startIntroDialog() {
         if (npcDialog == null || controller == null || vaseBreaker != null || walnutBowling != null
-                || iZombie != null || beghouled != null) {
+                || iZombie != null || beghouled != null || zombotany != null) {
             showObjectiveIfNeeded();
             return;
         }
@@ -699,7 +717,7 @@ public final class GamePlayScreen extends MenuScreen {
 
     private void showObjectiveIfNeeded() {
         if (objectiveBanner == null || controller == null || vaseBreaker != null || walnutBowling != null
-                || iZombie != null || beghouled != null) {
+                || iZombie != null || beghouled != null || zombotany != null) {
             resumeAfterIntro();
             return;
         }
@@ -727,7 +745,7 @@ public final class GamePlayScreen extends MenuScreen {
 
     private boolean shouldPlayStartChant() {
         if (controller == null || vaseBreaker != null || walnutBowling != null || iZombie != null
-                || beghouled != null) {
+                || beghouled != null || zombotany != null) {
             return false;
         }
         GameSession session = controller.session();
@@ -772,6 +790,10 @@ public final class GamePlayScreen extends MenuScreen {
         if (beghouled != null && beghouled.getStage() != null) {
             MiniGameStageConfig stage = beghouled.getStage();
             return "Beghouled - Stage " + stage.getStageIndex();
+        }
+        if (zombotany != null && zombotany.getStage() != null) {
+            MiniGameStageConfig stage = zombotany.getStage();
+            return "Zombotany - Stage " + stage.getStageIndex();
         }
         if (controller == null || controller.chapter() == null || controller.level() == null) {
             return "";
@@ -818,10 +840,21 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (iZombie != null) {
             iZombie.cheatAddSun(50);
+            return;
+        }
+        if (zombotany != null) {
+            zombotany.cheatAddSun(50);
         }
     }
 
     private void onAddPlantFood() {
+        if (zombotany != null && zombotany.session() != null) {
+            if (zombotany.session().getPlantFoodCount() >= PlantFoodCounter.SLOT_COUNT) {
+                return;
+            }
+            zombotany.cheatAddPlantFood();
+            return;
+        }
         if (controller == null || controller.session() == null) {
             return;
         }
@@ -908,6 +941,10 @@ public final class GamePlayScreen extends MenuScreen {
             beghouled.confirmMatchExit();
             return;
         }
+        if (zombotany != null) {
+            zombotany.confirmMatchExit();
+            return;
+        }
         if (controller != null) {
             controller.confirmMatchExit();
         }
@@ -928,6 +965,10 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (beghouled != null) {
             beghouled.restartMatch();
+            return;
+        }
+        if (zombotany != null) {
+            zombotany.restartMatch();
             return;
         }
         if (controller != null) {
@@ -1170,6 +1211,22 @@ public final class GamePlayScreen extends MenuScreen {
                 }
             }
         }
+        if (zombotany != null && zombotany.getStage() != null) {
+            MiniGameStageConfig stage = zombotany.getStage();
+            if (stage.getPlantSeedPool() != null) {
+                for (String plantName : stage.getPlantSeedPool()) {
+                    preloadPlantPam(plantName);
+                }
+            }
+            if (stage.getZombiePool() != null) {
+                for (String alias : stage.getZombiePool()) {
+                    preload(catalog.zombiePath(alias));
+                }
+            }
+            for (String plantName : ZombotanyLooks.overlayPlants()) {
+                preloadPlantPam(plantName);
+            }
+        }
         for (String splatPath : new ProjectileClips().splatPaths()) {
             preload(splatPath);
         }
@@ -1231,7 +1288,20 @@ public final class GamePlayScreen extends MenuScreen {
         if (beghouled != null) {
             return beghouled.session();
         }
+        if (zombotany != null) {
+            return zombotany.session();
+        }
         return controller == null ? null : controller.session();
+    }
+
+    private Set<String> seedBoosts() {
+        if (controller != null) {
+            return controller.boostedPlants();
+        }
+        if (zombotany != null) {
+            return zombotany.boostedPlants();
+        }
+        return Set.of();
     }
 
     private User matchUser() {
@@ -1246,6 +1316,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (beghouled != null) {
             return beghouled.getUser();
+        }
+        if (zombotany != null) {
+            return zombotany.getUser();
         }
         return controller == null ? null : controller.getUser();
     }
@@ -1283,6 +1356,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (beghouled != null) {
             return new ControllerLawnHost(beghouled);
         }
+        if (zombotany != null) {
+            return new ControllerLawnHost(zombotany);
+        }
         return new ControllerLawnHost(controller);
     }
 
@@ -1298,6 +1374,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (beghouled != null) {
             return new ControllerTicker(beghouled);
+        }
+        if (zombotany != null) {
+            return new ControllerTicker(zombotany);
         }
         return new ControllerTicker(controller);
     }

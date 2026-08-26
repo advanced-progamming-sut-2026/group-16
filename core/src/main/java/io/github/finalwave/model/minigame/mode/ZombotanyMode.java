@@ -8,7 +8,6 @@ import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.mode.GameMode;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
 
-import java.util.HashSet;
 import java.util.Random;
 
 public class ZombotanyMode extends GameMode {
@@ -42,7 +41,6 @@ public class ZombotanyMode extends GameMode {
         session.setChapterId("minigame");
         session.setLevelId("zombotany-S" + stage.getStageIndex());
         session.setWavesAutoStart(true);
-        session.setSelectedLoadout(new HashSet<>(stage.getPlantSeedPool()));
 
         WaveManager waveManager = new WaveManager(
                 stage.getWaveCount(), stage.getBaseWaveCost(), stage.getZombiePool(), random);

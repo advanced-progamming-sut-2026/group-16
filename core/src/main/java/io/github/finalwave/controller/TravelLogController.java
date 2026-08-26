@@ -136,10 +136,9 @@ public class TravelLogController extends ViewController {
             getTravelLogView().displayError(id.getDisplayName() + " is locked.");
             return;
         }
-        if (id != MiniGameId.VASE_BREAKER
-                && id != MiniGameId.WALNUT_BOWLING
-                && id != MiniGameId.I_ZOMBIE
-                && id != MiniGameId.BEGHOULED) {
+        List<MiniGameStageConfig> stages = MiniGameRegistry.getInstance().getStages(id);
+        boolean implemented = stages.stream().anyMatch(MiniGameStageConfig::isImplemented);
+        if (!implemented) {
             getTravelLogView().displayMessage(id.getDisplayName() + " is coming soon.");
             return;
         }

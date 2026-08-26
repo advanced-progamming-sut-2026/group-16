@@ -16,6 +16,7 @@ import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.minigame.ZombotanyView;
 
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 
 public class ZombotanyController extends ViewController implements MatchListener {
@@ -25,20 +26,36 @@ public class ZombotanyController extends ViewController implements MatchListener
     private final ZombotanyMode mode;
     private final GameSession session;
     private final MiniGameStageConfig stage;
+    private final Set<String> boostedPlants;
     private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
+    private boolean deferMatchExit;
 
     public ZombotanyController(User user,
                                UserDatabase userDatabase,
                                ZombotanyMode mode,
                                GameSession session,
                                MiniGameStageConfig stage) {
+        this(user, userDatabase, mode, session, stage, Set.of());
+    }
+
+    public ZombotanyController(User user,
+                               UserDatabase userDatabase,
+                               ZombotanyMode mode,
+                               GameSession session,
+                               MiniGameStageConfig stage,
+                               Set<String> boostedPlants) {
         this.user = user;
         this.userDatabase = userDatabase;
         this.mode = mode;
         this.session = session;
         this.stage = stage;
+        this.boostedPlants = boostedPlants == null ? Set.of() : Set.copyOf(boostedPlants);
         this.session.setMatchListener(this);
+    }
+
+    public Set<String> boostedPlants() {
+        return boostedPlants;
     }
 
     @Override
@@ -87,61 +104,19 @@ public class ZombotanyController extends ViewController implements MatchListener
             getViewApi().errorInvalidTickCount();
             return;
         }
-        if (ticks < 0) {
-            getViewApi().errorNegativeTickCount();
-            return;
-        }
-        session.advanceTicks(ticks);
-        getViewApi().showAdvanceTime(ticks);
+        advance(ticks);
     }
 
     private void handleCollectSun(String x, String y) {
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        if (col < 0 || row < 0) {
-            getViewApi().errorInvalidLocation(col, row);
-            return;
-        }
-        if (!session.collectSunAt(col, row)) {
-            getViewApi().errorNoSunAt(col, row);
-        }
+        collectSunAt(parseCoord(x), parseCoord(y));
     }
 
     private void handlePlantPlant(String type, String x, String y) {
-        String plantType = type.trim();
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        if (col < 0 || row < 0) {
-            getViewApi().errorInvalidLocation(col, row);
-            return;
-        }
-        int plantLevel = user.getPlantProgress().getOwnedPlant(plantType)
-                .map(owned -> owned.getLevel())
-                .orElse(1);
-        PlantPlacementResult result = session.tryPlant(plantType, col, row, plantLevel);
-        switch (result) {
-            case SUCCESS -> getViewApi().showPlantPlanted(plantType, col, row);
-            case UNKNOWN_PLANT -> getViewApi().errorPlantNotFound(plantType);
-            case NOT_IN_LOADOUT -> getViewApi().errorPlantNotSelected(plantType);
-            case ON_COOLDOWN -> getViewApi().errorPlantOnCooldown(plantType);
-            case INSUFFICIENT_SUN -> getViewApi().errorNotEnoughSun();
-            case OUT_OF_BOUNDS -> getViewApi().errorInvalidLocation(col, row);
-            default -> getViewApi().errorCannotPlantHere(col, row);
-        }
+        plantAt(type, parseCoord(x), parseCoord(y));
     }
 
     private void handlePluckPlant(String x, String y) {
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        if (col < 0 || row < 0) {
-            getViewApi().errorInvalidLocation(col, row);
-            return;
-        }
-        if (!session.pluckPlant(col, row)) {
-            getViewApi().errorNoPlantToPluck(col, row);
-            return;
-        }
-        getViewApi().showPlantPlucked(col, row);
+        shovelAt(parseCoord(x), parseCoord(y));
     }
 
     private void maybeReturnAfterMatch() {
@@ -149,18 +124,20 @@ public class ZombotanyController extends ViewController implements MatchListener
             return;
         }
         MatchResult result = session.getMatchResult();
+        if (result != MatchResult.WON && result != MatchResult.LOST) {
+            return;
+        }
+        finishedHandled = true;
+        recordFinishedGame();
         if (result == MatchResult.WON) {
-            finishedHandled = true;
-            recordFinishedGame();
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
-            navigator.pop();
-        } else if (result == MatchResult.LOST) {
-            finishedHandled = true;
-            recordFinishedGame();
-            navigator.pop();
         }
+        if (deferMatchExit) {
+            return;
+        }
+        navigator.pop();
     }
 
     private void recordFinishedGame() {
@@ -180,8 +157,33 @@ public class ZombotanyController extends ViewController implements MatchListener
         return (ZombotanyView) view;
     }
 
+    public void cheatAddSun(int amount) {
+        if (amount <= 0 || session == null) {
+            return;
+        }
+        session.addSunBalance(amount);
+        getViewApi().showSunAmount(session.getSunBalance());
+        maybeReturnAfterMatch();
+    }
+
+    public void cheatAddPlantFood() {
+        if (session == null) {
+            return;
+        }
+        session.addPlantFood(1);
+        maybeReturnAfterMatch();
+    }
+
+    public GameSession session() {
+        return session;
+    }
+
     public GameSession getSession() {
         return session;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     public MiniGameStageConfig getStage() {
@@ -190,6 +192,101 @@ public class ZombotanyController extends ViewController implements MatchListener
 
     public ZombotanyMode getMode() {
         return mode;
+    }
+
+    public void setDeferMatchExit(boolean deferMatchExit) {
+        this.deferMatchExit = deferMatchExit;
+    }
+
+    public void confirmMatchExit() {
+        navigator.pop();
+    }
+
+    public void restartMatch() {
+        navigator.pop();
+    }
+
+    public void advance(int ticks) {
+        if (ticks < 0) {
+            getViewApi().errorNegativeTickCount();
+            return;
+        }
+        session.advanceTicks(ticks);
+        getViewApi().showAdvanceTime(ticks);
+        maybeReturnAfterMatch();
+    }
+
+    public PlantPlacementResult plantAt(String plantName, int col, int row) {
+        if (plantName == null || plantName.isBlank()) {
+            getViewApi().errorPlantNotFound(plantName);
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        if (col < 0 || row < 0) {
+            getViewApi().errorInvalidLocation(col, row);
+            return PlantPlacementResult.OUT_OF_BOUNDS;
+        }
+        String plantType = plantName.trim();
+        int plantLevel = user.getPlantProgress().getOwnedPlant(plantType)
+                .map(owned -> owned.getLevel())
+                .orElse(1);
+        PlantPlacementResult result = session.tryPlant(plantType, col, row, plantLevel);
+        switch (result) {
+            case SUCCESS -> {
+                getViewApi().showPlantPlanted(plantType, col, row);
+                if (boostedPlants.contains(plantType)) {
+                    Plant planted = session.getBoard().getPlantAt(col, row);
+                    if (planted != null) {
+                        planted.activatePlantFoodEffect(session.getContext());
+                    }
+                }
+            }
+            case UNKNOWN_PLANT -> getViewApi().errorPlantNotFound(plantType);
+            case NOT_IN_LOADOUT -> getViewApi().errorPlantNotSelected(plantType);
+            case ON_COOLDOWN -> getViewApi().errorPlantOnCooldown(plantType);
+            case INSUFFICIENT_SUN -> getViewApi().errorNotEnoughSun();
+            case OUT_OF_BOUNDS -> getViewApi().errorInvalidLocation(col, row);
+            default -> getViewApi().errorCannotPlantHere(col, row);
+        }
+        maybeReturnAfterMatch();
+        return result;
+    }
+
+    public boolean collectSunAt(int col, int row) {
+        if (col < 0 || row < 0) {
+            getViewApi().errorInvalidLocation(col, row);
+            return false;
+        }
+        if (!session.collectSunAt(col, row)) {
+            getViewApi().errorNoSunAt(col, row);
+            return false;
+        }
+        return true;
+    }
+
+    public boolean shovelAt(int col, int row) {
+        if (col < 0 || row < 0) {
+            getViewApi().errorInvalidLocation(col, row);
+            return false;
+        }
+        if (!session.pluckPlant(col, row)) {
+            getViewApi().errorNoPlantToPluck(col, row);
+            return false;
+        }
+        getViewApi().showPlantPlucked(col, row);
+        maybeReturnAfterMatch();
+        return true;
+    }
+
+    public boolean feedAt(int col, int row) {
+        if (session.getPlantFoodCount() <= 0) {
+            return false;
+        }
+        if (!session.usePlantFood(col, row)) {
+            getViewApi().errorCannotPlantHere(col, row);
+            return false;
+        }
+        maybeReturnAfterMatch();
+        return true;
     }
 
     @Override
