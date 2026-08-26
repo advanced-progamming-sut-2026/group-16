@@ -53,6 +53,7 @@ public final class LawnAssetIds {
     public static final String PACKET_EMPTY = "IMAGE_UI_PACKETS_EMPTY_PACKET";
     public static final String PACKET_LOCK = "IMAGE_UI_CARDS_LOCK_MEDIUM";
     public static final String PACKET_SELECT = "IMAGE_UI_PACKETS_SELECT";
+    public static final String BRAIN = "IMAGE_ZOMBIE_POWER_BRAIN_PROJECTILE_POWER_BRAIN_PROJECTILE_112X82";
     public static final String CONVEYOR_BELT = "IMAGE_UI_CONVEYOR_CONVEYOR_BELT";
     public static final String CONVEYOR_SIDE = "IMAGE_UI_CONVEYOR_CONVEYOR_SIDE";
     public static final String CONVEYOR_TOP = "IMAGE_UI_CONVEYOR_CONVEYOR_TOP";
@@ -101,6 +102,7 @@ public final class LawnAssetIds {
             PACKET_EMPTY,
             PACKET_LOCK,
             PACKET_SELECT,
+            BRAIN,
             CONVEYOR_BELT,
             CONVEYOR_SIDE,
             PROTECT_TILE,

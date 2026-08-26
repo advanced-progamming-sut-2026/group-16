@@ -44,6 +44,8 @@ public final class PlantCardActor extends Group {
     private final Label levelLabel;
     private final UpgradeSeedBar seedBar;
     private final Image selectFrame;
+    private final Color previousBatchColor = new Color();
+    private final Color incomingBatchColor = new Color();
     private final float costFontScale;
     private String plantName;
     private String packetBackgroundId = LawnAssetIds.PACKET_BG;
@@ -180,6 +182,23 @@ public final class PlantCardActor extends Group {
         refreshBackground();
     }
 
+    public void setZombie(String alias) {
+        this.plantName = alias;
+        empty = alias == null || alias.isBlank();
+        if (empty) {
+            setEmpty();
+            return;
+        }
+        packetBackgroundId = LawnAssetIds.PACKET_BG;
+        packet.setDrawable(new TextureRegionDrawable(
+                assets.region(CollectionZombieCard.packetImageId(assets, alias))));
+        packet.setVisible(true);
+        familyBadge.setVisible(false);
+        seedBar.setVisible(false);
+        levelLabel.setText("");
+        refreshBackground();
+    }
+
     public String plantName() {
         return plantName;
     }
@@ -269,8 +288,10 @@ public final class PlantCardActor extends Group {
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
+        incomingBatchColor.set(batch.getColor());
         drawShadow(batch, parentAlpha);
         super.draw(batch, parentAlpha);
+        batch.setColor(incomingBatchColor);
     }
 
     private void drawShadow(Batch batch, float parentAlpha) {
@@ -278,14 +299,14 @@ public final class PlantCardActor extends Group {
         if (drawable == null) {
             return;
         }
-        Color previous = batch.getColor();
+        previousBatchColor.set(batch.getColor());
         batch.setColor(0f, 0f, 0f, SHADOW_ALPHA * parentAlpha * getColor().a);
         drawable.draw(batch,
                 getX() + SHADOW_OFFSET,
                 getY() - SHADOW_OFFSET,
                 getWidth(),
                 getHeight());
-        batch.setColor(previous);
+        batch.setColor(previousBatchColor);
     }
 
     private void layoutChildren() {

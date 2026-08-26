@@ -23,6 +23,7 @@ import io.github.finalwave.view.gui.render.BattlefieldGroup;
 import io.github.finalwave.view.gui.render.LawnHighlights;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
+import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.widget.PamActor;
 
 import java.util.function.BooleanSupplier;
@@ -36,6 +37,7 @@ public final class LawnInputController implements Disposable {
     private final BattlefieldGroup battlefield;
     private final GameAssets assets;
     private final PlantClips plantClips;
+    private final ZombieClips zombieClips;
     private final BooleanSupplier blocked;
     private final LawnHighlights highlights;
     private final PamActor plantGhost;
@@ -57,6 +59,7 @@ public final class LawnInputController implements Disposable {
         this.battlefield = battlefield;
         this.assets = assets;
         this.plantClips = new PlantClips(catalog);
+        this.zombieClips = new ZombieClips(catalog);
         this.blocked = blocked;
         this.highlights = new LawnHighlights(battlefield.highlightLayer());
         this.plantGhost = new PamActor(assets.pamPlayer());
@@ -98,6 +101,18 @@ public final class LawnInputController implements Disposable {
             return;
         }
         setMode(new ToolMode.Seed(plantName));
+    }
+
+    public void toggleZombie(String alias) {
+        if (alias == null || alias.isBlank()) {
+            setMode(NONE);
+            return;
+        }
+        if (mode instanceof ToolMode.Zombie zombie && alias.equals(zombie.alias())) {
+            setMode(NONE);
+            return;
+        }
+        setMode(new ToolMode.Zombie(alias));
     }
 
     public void toggleShovel() {
@@ -216,6 +231,10 @@ public final class LawnInputController implements Disposable {
             host.plantSeed(seed.plantName(), col, row);
             return true;
         }
+        if (mode instanceof ToolMode.Zombie zombie) {
+            host.placeZombie(zombie.alias(), col, row);
+            return true;
+        }
         if (mode instanceof ToolMode.Shovel) {
             host.shovelAt(col, row);
             return true;
@@ -253,7 +272,16 @@ public final class LawnInputController implements Disposable {
         if (mode instanceof ToolMode.Seed seed) {
             EntityAnimationCatalog.ClipSpec idle = plantClips.idle(seed.plantName());
             plantGhost.setSize(layout.tileWidth(), layout.tileHeight());
+            plantGhost.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
             plantGhost.setClip(idle.path(), idle.clip(), plantClips.scale(seed.plantName()), true);
+            plantGhost.setVisible(true);
+            return;
+        }
+        if (mode instanceof ToolMode.Zombie zombie) {
+            EntityAnimationCatalog.ClipSpec idle = zombieClips.idle(zombie.alias());
+            plantGhost.setSize(layout.tileWidth(), layout.tileHeight());
+            plantGhost.setAnchor(0.5f, LawnLayout.ZOMBIE_ANCHOR_Y);
+            plantGhost.setClip(idle.path(), idle.clip(), LawnLayout.ZOMBIE_SCALE, true);
             plantGhost.setVisible(true);
             return;
         }
@@ -272,7 +300,12 @@ public final class LawnInputController implements Disposable {
 
     private void placeGhost(float x, float y) {
         if (plantGhost.isVisible()) {
-            plantGhost.setPosition(x - plantGhost.getWidth() / 2f, y - plantGhost.getHeight() * LawnLayout.PLANT_ANCHOR_Y);
+            float anchor = mode instanceof ToolMode.Zombie
+                    ? LawnLayout.ZOMBIE_ANCHOR_Y
+                    : LawnLayout.PLANT_ANCHOR_Y;
+            plantGhost.setPosition(
+                    x - plantGhost.getWidth() / 2f,
+                    y - plantGhost.getHeight() * anchor);
         }
         if (toolGhost.isVisible()) {
             toolGhost.setPosition(x - toolGhost.getWidth() / 2f, y - toolGhost.getHeight() / 2f);

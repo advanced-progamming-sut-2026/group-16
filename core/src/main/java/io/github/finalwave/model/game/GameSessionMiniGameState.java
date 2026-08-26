@@ -2,6 +2,7 @@ package io.github.finalwave.model.game;
 
 import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.board.PlantPlacementResult;
+import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.minigame.beghouled.BeghouledBoard;
 import io.github.finalwave.model.minigame.beghouled.BeghouledSwapOutcome;
 import io.github.finalwave.model.minigame.beghouled.BeghouledSwapResult;
@@ -11,6 +12,7 @@ import io.github.finalwave.model.minigame.beghouled.BeghouledUpgradeResult;
 import io.github.finalwave.model.minigame.bowling.BowlingNut;
 import io.github.finalwave.model.minigame.bowling.BowlingNutSystem;
 import io.github.finalwave.model.minigame.bowling.BowlingNutType;
+import io.github.finalwave.model.minigame.izombie.IZombiePacketRecharge;
 import io.github.finalwave.model.quest.event.GameEvent;
 
 import java.util.List;
@@ -172,16 +174,24 @@ final class GameSessionMiniGameState {
         if (session.getSunBalance() < cost) {
             return PlantPlacementResult.INSUFFICIENT_SUN;
         }
+        if (!session.getCooldownTracker().isReady(trimmed)) {
+            return PlantPlacementResult.ON_COOLDOWN;
+        }
         if (session.getZombieFactory() == null) {
             return PlantPlacementResult.UNKNOWN_PLANT;
         }
         try {
-            session.spawnZombieOfType(trimmed, row, col);
+            Zombie placed = session.spawnZombieOfType(trimmed, row, col);
+            placed.lockLane();
         } catch (IllegalArgumentException e) {
             return PlantPlacementResult.UNKNOWN_PLANT;
         }
         session.withdrawSun(cost);
         session.getEventBus().publish(new GameEvent.SunSpent(cost));
+        session.getCooldownTracker().startCooldown(
+                trimmed,
+                IZombiePacketRecharge.secondsFor(trimmed),
+                GameSession.TICKS_PER_SECOND);
         return PlantPlacementResult.SUCCESS;
     }
 

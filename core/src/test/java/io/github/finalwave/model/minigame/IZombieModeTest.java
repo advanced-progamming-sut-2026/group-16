@@ -77,8 +77,8 @@ class IZombieModeTest {
         var plants = session.getBoard().getAllPlants();
         assertEquals(stage.getPrePlantedPlantCount(), plants.size());
         for (Plant plant : plants) {
-            assertTrue(plant.getCol() <= stage.getRedLineColumn(),
-                    "plant at col " + plant.getCol() + " should be <= red line");
+            assertTrue(plant.getCol() < stage.getRedLineColumn(),
+                    "plant at col " + plant.getCol() + " should be left of the red line");
         }
     }
 

@@ -58,6 +58,7 @@ public final class IZombieHandler implements MiniGameHandler {
         for (int row = 0; row < session.getBoard().getRows(); row++) {
             Zombie producer = session.spawnZombieOfType(SUN_PRODUCER_ALIAS, row, rightmostCol);
             producer.setStationary(true);
+            producer.lockLane();
             sunProducerSystem.register(producer, row);
         }
     }
@@ -68,7 +69,10 @@ public final class IZombieHandler implements MiniGameHandler {
             return;
         }
         List<int[]> cells = new ArrayList<>();
-        int maxCol = Math.min(stage.getRedLineColumn(), session.getBoard().getCols() - 1);
+        int maxCol = Math.min(stage.getRedLineColumn(), session.getBoard().getCols()) - 1;
+        if (maxCol < 0) {
+            return;
+        }
         for (int row = 0; row < stage.getRows(); row++) {
             for (int col = 0; col <= maxCol; col++) {
                 cells.add(new int[]{col, row});

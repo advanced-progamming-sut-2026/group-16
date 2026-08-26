@@ -65,10 +65,10 @@ public final class MovementBehavior implements ZombieBehavior {
     }
 
     private void walk(Zombie zombie, GameContext context) {
-        zombie.setState(ZombieState.MOVING);
         if (zombie.isStationary()) {
             return;
         }
+        zombie.setState(ZombieState.MOVING);
 
         double stepPerTick = zombie.getCurrentSpeed() / context.getTicksPerSecond();
         if (zombie.isMovingRight()) {
@@ -84,7 +84,7 @@ public final class MovementBehavior implements ZombieBehavior {
     }
 
     private void applySlipperyTile(Zombie zombie, GameContext context) {
-        if (zombie.isDodoBypass()) {
+        if (zombie.isDodoBypass() || context.lockZombieLanes()) {
             return;
         }
         int col = (int) Math.floor(zombie.getX());

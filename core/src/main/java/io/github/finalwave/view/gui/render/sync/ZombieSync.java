@@ -5,12 +5,17 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Scaling;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.entity.zombie.Armor;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieState;
+import io.github.finalwave.model.minigame.izombie.IZombieHandler;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.GameAssets;
+import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.render.ActorRegistry;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.ArmorPartVisibility;
@@ -25,6 +30,7 @@ import pvz.libpvz.pam.PamPlayer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +42,7 @@ public final class ZombieSync {
     private static final float HEAD_DROP_Y = 0.58f;
     private static final float ARM_DROP_Y = 0.7f;
     private static final float ARMOR_DROP_Y = 1.15f;
+    private static final float APPEAR_SECONDS = 0.28f;
     private static final String PARTICLE_HEAD = "particle_head";
     private static final String PARTICLE_ARM = "particle_arm";
 
@@ -46,6 +53,8 @@ public final class ZombieSync {
     private final ActorRegistry<Zombie, PamActor> zombies = new ActorRegistry<>();
     private final HitFlashTracker<Zombie> hits = new HitFlashTracker<>();
     private final Map<PamActor, String> aliases = new IdentityHashMap<>();
+    private final Map<PamActor, Long> appearStart = new IdentityHashMap<>();
+    private final Map<Zombie, Image> producerBadges = new IdentityHashMap<>();
     private final List<PamActor> deathActors = new ArrayList<>();
     private final Set<PamActor> bossActors = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<PamActor, String> bossLogical = new IdentityHashMap<>();
@@ -80,6 +89,7 @@ public final class ZombieSync {
         }
         zombies.sync(live, this::spawn, this::update, this::beginDeath);
         iceShells.sync(encased(live), this::spawnIceShell, this::updateIceShell, PamActor::remove);
+        pruneProducerBadges(live);
         hits.retain(live);
         retainThrownArmor(live);
     }
@@ -89,6 +99,11 @@ public final class ZombieSync {
         iceShells.clear(PamActor::remove);
         hits.clear();
         aliases.clear();
+        appearStart.clear();
+        for (Image badge : producerBadges.values()) {
+            badge.remove();
+        }
+        producerBadges.clear();
         thrownArmor.clear();
         lastArmorLayers.clear();
         bossActors.clear();
@@ -111,6 +126,11 @@ public final class ZombieSync {
             actor.setAnchor(0.5f, LawnLayout.ZOMBIE_ANCHOR_Y);
         }
         layer.addActor(actor);
+        if (shouldAppear(zombie)) {
+            appearStart.put(actor, System.nanoTime());
+            actor.getColor().a = 0f;
+            actor.addAction(Actions.fadeIn(APPEAR_SECONDS));
+        }
         return actor;
     }
 
@@ -118,6 +138,16 @@ public final class ZombieSync {
         float worldX = layout.worldX(displayX(zombie));
         float worldY = layout.worldYForRow(displayY(zombie));
         float scale = LawnLayout.ZOMBIE_SCALE;
+        Long started = appearStart.get(actor);
+        if (started != null) {
+            float t = (System.nanoTime() - started) / 1_000_000_000f / APPEAR_SECONDS;
+            t = Math.max(0f, Math.min(1f, t));
+            scale = LawnLayout.ZOMBIE_SCALE * (0.45f + 0.55f * Interpolation.swingOut.apply(t));
+            if (t >= 1f) {
+                appearStart.remove(actor);
+                scale = LawnLayout.ZOMBIE_SCALE;
+            }
+        }
         if (zombie.isBoss()) {
             worldY = layout.worldYForRow(displayY(zombie) + 1);
             actor.setSize(layout.tileWidth() * 1.85f, layout.tileHeight() * 2.0f);
@@ -141,6 +171,56 @@ public final class ZombieSync {
         aliases.put(actor, zombie.getType());
         hits.observe(zombie, flashHealth(zombie), actor, zombie.isBoss() ? 0.28f : 0.18f);
         throwBrokenArmor(zombie, actor, clip);
+        updateProducerBadge(zombie, actor);
+    }
+
+    private boolean shouldAppear(Zombie zombie) {
+        return session != null
+                && session.isIZombieActive()
+                && zombie != null
+                && !zombie.isBoss()
+                && !zombie.isStationary();
+    }
+
+    private void updateProducerBadge(Zombie zombie, PamActor actor) {
+        boolean show = session != null
+                && session.isIZombieActive()
+                && IZombieHandler.SUN_PRODUCER_ALIAS.equals(zombie.getType())
+                && zombie.isStationary()
+                && !zombie.isBoss()
+                && zombie.isAlive();
+        Image badge = producerBadges.get(zombie);
+        if (!show) {
+            if (badge != null) {
+                badge.remove();
+                producerBadges.remove(zombie);
+            }
+            return;
+        }
+        if (badge == null) {
+            badge = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.SUN_ICON)));
+            badge.setTouchable(Touchable.disabled);
+            badge.setScaling(Scaling.fit);
+            layer.addActor(badge);
+            producerBadges.put(zombie, badge);
+        }
+        float size = layout.tileWidth() * 0.34f;
+        badge.setSize(size, size);
+        badge.setPosition(
+                actor.getX() + actor.getWidth() * 0.58f,
+                actor.getY() + actor.getHeight() * 0.68f);
+        badge.setVisible(actor.isVisible());
+    }
+
+    private void pruneProducerBadges(List<Zombie> live) {
+        Iterator<Map.Entry<Zombie, Image>> iterator = producerBadges.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Zombie, Image> entry = iterator.next();
+            if (!live.contains(entry.getKey())) {
+                entry.getValue().remove();
+                iterator.remove();
+            }
+        }
     }
 
     private List<Zombie> encased(List<Zombie> live) {
@@ -249,7 +329,11 @@ public final class ZombieSync {
         if (parts == null) {
             return List.of();
         }
-        assets.pamPlayer().loadSync(parts.path());
+        try {
+            assets.pamPlayer().loadSync(parts.path());
+        } catch (RuntimeException e) {
+            return List.of();
+        }
         List<String> names = debrisPartNames(parts.path());
         if (names.isEmpty()) {
             return List.of(spawnDebris(body, parts, null));
@@ -263,7 +347,11 @@ public final class ZombieSync {
 
     private List<String> debrisPartNames(String pamPath) {
         List<String> found = new ArrayList<>();
-        collectDebrisParts(assets.pamPlayer().getParts(pamPath), found);
+        try {
+            collectDebrisParts(assets.pamPlayer().getParts(pamPath), found);
+        } catch (RuntimeException e) {
+            return List.of();
+        }
         List<String> names = new ArrayList<>();
         if (found.contains(PARTICLE_HEAD)) {
             names.add(PARTICLE_HEAD);
@@ -362,6 +450,9 @@ public final class ZombieSync {
     private double displayY(Zombie zombie) {
         if (zombie.isBoss()) {
             return lerp(zombie.getPreviousY(), zombie.getY(), tickFraction);
+        }
+        if (session != null && session.isIZombieActive()) {
+            return zombie.getRow();
         }
         return zombie.getY();
     }

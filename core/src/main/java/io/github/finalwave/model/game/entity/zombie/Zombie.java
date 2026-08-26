@@ -37,6 +37,7 @@ public final class Zombie extends Entity {
     private boolean movingRight;
     private boolean stationary;
     private boolean trapImmune;
+    private boolean laneLocked;
     private boolean bypassDisabledPlants;
     private boolean dodoBypass;
     private boolean submerged;
@@ -231,7 +232,15 @@ public final class Zombie extends Entity {
     }
 
     public void setRow(int row) {
+        if (laneLocked) {
+            return;
+        }
         setY(row);
+    }
+
+    public void lockLane() {
+        laneLocked = true;
+        setY(getRow());
     }
 
     public void setVisualY(double y) {

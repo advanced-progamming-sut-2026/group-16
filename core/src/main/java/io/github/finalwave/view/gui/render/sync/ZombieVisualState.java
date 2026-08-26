@@ -85,6 +85,9 @@ public final class ZombieVisualState {
         if (zombie.getFreezeTicksRemaining() > 0) {
             return CHILL;
         }
+        if (zombie.isStationary()) {
+            return Color.WHITE;
+        }
         if (zombie.getState() != ZombieState.EATING
                 && zombie.getCurrentSpeed() <= zombie.getBaseSpeed() * 0.05) {
             return BUTTER;

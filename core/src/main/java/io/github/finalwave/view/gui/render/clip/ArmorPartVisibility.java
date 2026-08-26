@@ -48,7 +48,11 @@ public final class ArmorPartVisibility {
             return cached;
         }
         PartIndex built = new PartIndex();
-        indexParts(player.getParts(pamPath), null, built);
+        try {
+            indexParts(player.getParts(pamPath), null, built);
+        } catch (RuntimeException e) {
+            return built;
+        }
         if (!built.names.isEmpty()) {
             INDEX_BY_PATH.put(pamPath, built);
         }

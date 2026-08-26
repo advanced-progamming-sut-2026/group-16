@@ -27,6 +27,7 @@ public class IZombieController extends ViewController implements MatchListener {
     private final MiniGameStageConfig stage;
     private final UnlockService unlockService = new UnlockService();
     private boolean finishedHandled;
+    private boolean deferMatchExit;
 
     public IZombieController(User user,
                              UserDatabase userDatabase,
@@ -78,28 +79,7 @@ public class IZombieController extends ViewController implements MatchListener {
     }
 
     private void handlePlaceZombie(String zombieType, String x, String y) {
-        int col = parseCoord(x);
-        int row = parseCoord(y);
-        if (col < 0 || row < 0) {
-            getViewApi().errorInvalidLocation(col, row);
-            return;
-        }
-        String type = zombieType.trim();
-        PlantPlacementResult result = session.tryPlaceZombie(type, col, row);
-        switch (result) {
-            case SUCCESS -> getViewApi().showZombiePlaced(type, col, row);
-            case BEYOND_PLANTING_LINE -> getViewApi().errorBeyondPlantingLine(
-                    col, row, session.getIZombiePlacementColumn());
-            case NOT_IN_LOADOUT -> getViewApi().errorNotInRoster(type);
-            case INSUFFICIENT_SUN -> {
-                Integer cost = stage.getZombieSunCosts().get(type);
-                getViewApi().errorInsufficientSun(
-                        type, cost == null ? 0 : cost, session.getSunBalance());
-            }
-            case UNKNOWN_PLANT -> getViewApi().errorUnknownZombie(type);
-            case OUT_OF_BOUNDS -> getViewApi().errorInvalidLocation(col, row);
-            default -> getViewApi().errorInvalidLocation(col, row);
-        }
+        placeZombie(zombieType, parseCoord(x), parseCoord(y));
     }
 
     private void handleAdvanceTime(String count) {
@@ -110,12 +90,7 @@ public class IZombieController extends ViewController implements MatchListener {
             getViewApi().errorInvalidTickCount();
             return;
         }
-        if (ticks < 0) {
-            getViewApi().errorNegativeTickCount();
-            return;
-        }
-        session.advanceTicks(ticks);
-        getViewApi().showAdvanceTime(ticks);
+        advance(ticks);
     }
 
     private void maybeReturnAfterMatch() {
@@ -123,18 +98,20 @@ public class IZombieController extends ViewController implements MatchListener {
             return;
         }
         MatchResult result = session.getMatchResult();
+        if (result != MatchResult.WON && result != MatchResult.LOST) {
+            return;
+        }
+        finishedHandled = true;
+        recordFinishedGame();
         if (result == MatchResult.WON) {
-            finishedHandled = true;
-            recordFinishedGame();
             user.getMiniGameProgress().markStageCompleted(
                     stage.getMiniGameId(), stage.getStageIndex());
             userDatabase.saveMiniGameProgress(user);
-            navigator.pop();
-        } else if (result == MatchResult.LOST) {
-            finishedHandled = true;
-            recordFinishedGame();
-            navigator.pop();
         }
+        if (deferMatchExit) {
+            return;
+        }
+        navigator.pop();
     }
 
     private void recordFinishedGame() {
@@ -154,8 +131,23 @@ public class IZombieController extends ViewController implements MatchListener {
         return (IZombieView) view;
     }
 
+    public void cheatAddSun(int amount) {
+        if (amount <= 0 || session == null) {
+            return;
+        }
+        session.addSunBalance(amount);
+    }
+
+    public GameSession session() {
+        return session;
+    }
+
     public GameSession getSession() {
         return session;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     public MiniGameStageConfig getStage() {
@@ -164,6 +156,65 @@ public class IZombieController extends ViewController implements MatchListener {
 
     public IZombieMode getMode() {
         return mode;
+    }
+
+    public void setDeferMatchExit(boolean deferMatchExit) {
+        this.deferMatchExit = deferMatchExit;
+    }
+
+    public void confirmMatchExit() {
+        navigator.pop();
+    }
+
+    public void restartMatch() {
+        navigator.pop();
+    }
+
+    public void advance(int ticks) {
+        if (ticks < 0) {
+            getViewApi().errorNegativeTickCount();
+            return;
+        }
+        session.advanceTicks(ticks);
+        getViewApi().showAdvanceTime(ticks);
+        maybeReturnAfterMatch();
+    }
+
+    public PlantPlacementResult placeZombie(String alias, int col, int row) {
+        if (alias == null || alias.isBlank()) {
+            getViewApi().errorUnknownZombie(alias);
+            return PlantPlacementResult.UNKNOWN_PLANT;
+        }
+        if (col < 0 || row < 0) {
+            getViewApi().errorInvalidLocation(col, row);
+            return PlantPlacementResult.OUT_OF_BOUNDS;
+        }
+        String type = alias.trim();
+        PlantPlacementResult result = session.tryPlaceZombie(type, col, row);
+        switch (result) {
+            case SUCCESS -> getViewApi().showZombiePlaced(type, col, row);
+            case BEYOND_PLANTING_LINE -> getViewApi().errorBeyondPlantingLine(
+                    col, row, session.getIZombiePlacementColumn());
+            case NOT_IN_LOADOUT -> getViewApi().errorNotInRoster(type);
+            case INSUFFICIENT_SUN -> {
+                Integer cost = stage.getZombieSunCosts().get(type);
+                getViewApi().errorInsufficientSun(
+                        type, cost == null ? 0 : cost, session.getSunBalance());
+            }
+            case ON_COOLDOWN -> getViewApi().errorOnCooldown(type);
+            case UNKNOWN_PLANT -> getViewApi().errorUnknownZombie(type);
+            case OUT_OF_BOUNDS -> getViewApi().errorInvalidLocation(col, row);
+            default -> getViewApi().errorInvalidLocation(col, row);
+        }
+        maybeReturnAfterMatch();
+        return result;
+    }
+
+    public boolean collectSunAt(int col, int row) {
+        if (col < 0 || row < 0 || session == null) {
+            return false;
+        }
+        return session.collectSunAt(col, row);
     }
 
     @Override

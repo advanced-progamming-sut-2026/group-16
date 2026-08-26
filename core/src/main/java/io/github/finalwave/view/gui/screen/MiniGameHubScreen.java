@@ -171,7 +171,10 @@ public final class MiniGameHubScreen extends MenuScreen {
             return false;
         }
         MiniGameId id = controller.selectedGame();
-        return id == MiniGameId.VASE_BREAKER || id == MiniGameId.WALNUT_BOWLING || id == MiniGameId.BEGHOULED;
+        return id == MiniGameId.VASE_BREAKER
+                || id == MiniGameId.WALNUT_BOWLING
+                || id == MiniGameId.I_ZOMBIE
+                || id == MiniGameId.BEGHOULED;
     }
 
     private ChapterId pathChapter() {

@@ -24,7 +24,7 @@ public final class EntityAnimationCatalog {
 
     private static final String TAG = "EntityAnimationCatalog";
     private static final String DEFAULT_PLANT_CLIP = "idle";
-    private static final String DEFAULT_ZOMBIE_CLIP = "walk";
+    private static final String DEFAULT_ZOMBIE_CLIP = "idle";
 
     private static final Map<String, String> PLANT_NAME_OVERRIDES = Map.of(
             normalize("Twin Sunflower"), "SUNFLOWER_TWIN",

@@ -38,6 +38,8 @@ public interface IZombieView extends View {
 
     void errorUnknownZombie(String type);
 
+    void errorOnCooldown(String type);
+
     void errorInvalidTickCount();
 
     void errorNegativeTickCount();
