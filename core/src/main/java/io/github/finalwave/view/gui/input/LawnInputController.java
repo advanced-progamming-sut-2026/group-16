@@ -177,11 +177,11 @@ public final class LawnInputController implements Disposable {
         }
     }
 
-    public void collectSun(Sun sun) {
+    public boolean collectSun(Sun sun) {
         if (sun == null || sun.isExpired() || blocked()) {
-            return;
+            return false;
         }
-        tryCollect(sun.getCol(), sun.getRow());
+        return tryCollect(sun.getCol(), sun.getRow());
     }
 
     @Override

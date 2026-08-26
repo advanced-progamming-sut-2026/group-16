@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.render;
 
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
@@ -34,7 +35,9 @@ import io.github.finalwave.view.gui.widget.PamActor;
 
 import java.util.Comparator;
 import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
 
@@ -68,7 +71,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private BrainSync brainSync;
     private ArcadeObstacleSync arcadeObstacleSync;
     private BeghouledPlantSync beghouledPlantSync;
-    private Consumer<Sun> sunCollector;
+    private Predicate<Sun> sunCollector;
 
     public BattlefieldGroup() {
         setFillParent(true);
@@ -150,8 +153,38 @@ public final class BattlefieldGroup extends WidgetGroup {
         return beghouledPlantSync != null && beghouledPlantSync.isBusy();
     }
 
-    public void setSunCollector(Consumer<Sun> sunCollector) {
+    public void setSunCollector(Predicate<Sun> sunCollector) {
         this.sunCollector = sunCollector;
+    }
+
+    public void setSunHudTarget(Supplier<Vector2> hudStageTarget) {
+        if (sunSync != null) {
+            sunSync.setHudStageTarget(hudStageTarget);
+        }
+    }
+
+    public void setSunDeferred(IntConsumer onDeferred) {
+        if (sunSync != null) {
+            sunSync.setOnDeferred(onDeferred);
+        }
+    }
+
+    public void setSunArrived(IntConsumer onArrived) {
+        if (sunSync != null) {
+            sunSync.setOnArrived(onArrived);
+        }
+    }
+
+    public void setSunFlightsAborted(Runnable onAborted) {
+        if (sunSync != null) {
+            sunSync.setOnAborted(onAborted);
+        }
+    }
+
+    public void tickSunFlights(float delta) {
+        if (sunSync != null) {
+            sunSync.tickFlights(delta);
+        }
     }
 
     public void sync(GameSession session) {
@@ -379,10 +412,8 @@ public final class BattlefieldGroup extends WidgetGroup {
         return fxLayer;
     }
 
-    private void collectSun(Sun sun) {
-        if (sunCollector != null) {
-            sunCollector.accept(sun);
-        }
+    private boolean collectSun(Sun sun) {
+        return sunCollector != null && sunCollector.test(sun);
     }
 
     private static int sortKey(Actor actor) {
