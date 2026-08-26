@@ -50,6 +50,18 @@ final class GameSessionSpecialLevelState {
         }
     }
 
+    void replaceConveyorBeltPlants(List<String> plants) {
+        conveyorBeltPlants.clear();
+        if (plants == null) {
+            return;
+        }
+        for (String plantName : plants) {
+            if (plantName != null && !plantName.isBlank()) {
+                conveyorBeltPlants.add(plantName);
+            }
+        }
+    }
+
     List<String> getConveyorBeltPlants() {
         return List.copyOf(conveyorBeltPlants);
     }

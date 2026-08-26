@@ -467,5 +467,6 @@ final class GameSessionCombat {
         }
         cleanupDeadZombies();
         cleanupDeadPlants();
+        session.queueLawnBurst(new LawnBurst(LawnBurst.Kind.GENERIC, col, row));
     }
 }

@@ -46,6 +46,7 @@ public final class GameSession {
     private MiniGameHandler activeMiniGameHandler;
     private final Set<String> destroyedPlantIds = new HashSet<>();
     private final Set<String> killedZombieIds = new HashSet<>();
+    private final List<LawnBurst> lawnBursts = new ArrayList<>();
     private final ZombieFactory zombieFactory;
     private final int zombieDifficulty;
     private final Random random;
@@ -550,6 +551,69 @@ public final class GameSession {
 
     public List<BossVfx> drainBossVfx() {
         return specialLevelState.drainBossVfx();
+    }
+
+    public void queueLawnBurst(LawnBurst burst) {
+        if (burst != null) {
+            lawnBursts.add(burst);
+        }
+    }
+
+    public List<LawnBurst> drainLawnBursts() {
+        if (lawnBursts.isEmpty()) {
+            return List.of();
+        }
+        List<LawnBurst> copy = List.copyOf(lawnBursts);
+        lawnBursts.clear();
+        return copy;
+    }
+
+    public void restoreProgress(int tick, int lostPlants, int sun, int food) {
+        currentTick = Math.max(0, tick);
+        plantsLost = Math.max(0, lostPlants);
+        setSunBalance(sun);
+        setPlantFoodCount(food);
+    }
+
+    public void clearLivingUnits() {
+        for (Plant plant : List.copyOf(board.getAllPlants())) {
+            board.removePlant(plant);
+        }
+        zombies.clear();
+        pendingZombies.clear();
+    }
+
+    public Plant restorePlant(String plantName, int level, int col, int row, int health, boolean armed) {
+        try {
+            Plant plant = plantFactory.create(plantName, Math.max(1, level), col, row);
+            board.placePlant(plant);
+            plant.initializeCooldown(TICKS_PER_SECOND);
+            plant.setArmedTrap(armed);
+            plant.restoreHealth(health);
+            return plant;
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    public Zombie restoreZombie(String alias, int row, double x, int health, int freezeTicks) {
+        try {
+            Zombie zombie = spawnZombieOfType(alias, row, x);
+            if (zombie == null) {
+                return null;
+            }
+            zombie.restoreHealth(health);
+            if (freezeTicks > 0) {
+                zombie.applyFreeze(freezeTicks);
+            }
+            return zombie;
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    public void restoreConveyorBelt(List<String> plants) {
+        specialLevelState.replaceConveyorBeltPlants(plants);
     }
 
     public void setSunBalance(int amount) {

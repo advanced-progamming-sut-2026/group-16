@@ -1,9 +1,13 @@
 package io.github.finalwave.controller;
 
+import io.github.finalwave.model.App;
 import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.adventure.LevelConfig;
+import io.github.finalwave.model.adventure.LevelType;
 import io.github.finalwave.model.command.GamePlayMenuCommands;
+import io.github.finalwave.model.definition.PlantRegistry;
+import io.github.finalwave.model.definition.ZombieRegistry;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchListener;
 import io.github.finalwave.model.game.MatchResult;
@@ -14,6 +18,7 @@ import io.github.finalwave.model.game.mode.AdventureMode;
 import io.github.finalwave.model.item.SunType;
 import io.github.finalwave.model.minigame.MiniGameId;
 import io.github.finalwave.model.quest.QuestTracker;
+import io.github.finalwave.model.save.MatchSaveSnapshot;
 import io.github.finalwave.model.user.ChapterProgress;
 import io.github.finalwave.model.user.UnlockService;
 import io.github.finalwave.model.user.User;
@@ -21,6 +26,7 @@ import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.GamePlayView;
 
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
 
@@ -87,6 +93,10 @@ public class GamePlayController extends ViewController implements MatchListener 
         return level;
     }
 
+    public AdventureMode adventureMode() {
+        return adventureMode;
+    }
+
     public void setDeferMatchExit(boolean deferMatchExit) {
         this.deferMatchExit = deferMatchExit;
     }
@@ -99,8 +109,37 @@ public class GamePlayController extends ViewController implements MatchListener 
         navigator.pop();
     }
 
-    public void restartMatch() {
+    public void saveAndExit() {
+        if (!(this instanceof ScoreGamePlayController) && chapter != null && level != null) {
+            MatchSaveSnapshot snap = MatchSaveSnapshot.capture(
+                    chapter.getId().getKey(),
+                    level.getIndex(),
+                    session.getSelectedLoadout(),
+                    boostedPlants,
+                    session);
+            userDatabase.saveMatchSnapshot(user, snap);
+        }
         navigator.pop();
+    }
+
+    public void restartMatch() {
+        userDatabase.clearMatchSave(user);
+        PlantRegistry plants = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombies = PlantSelectionController.loadZombieRegistry();
+        AdventureMode mode = new AdventureMode(
+                chapter, level, plants, zombies, user.getDifficultyLevel(), new Random());
+        GameSession fresh = mode.createSession();
+        fresh.setSelectedLoadout(session.getSelectedLoadout());
+        QuestTracker tracker = user.ensureQuestTracker();
+        tracker.registerOn(fresh.getEventBus());
+        tracker.beginSession(fresh);
+        fresh.attachQuestTracker(tracker);
+        GamePlayController next = level.getType() == LevelType.NORMAL
+                ? new GamePlayController(user, userDatabase, mode, fresh, chapter, level, boostedPlants)
+                : SpecialLevelControllerFactory.create(
+                        level.getType(), user, userDatabase, mode, fresh, chapter, level, boostedPlants);
+        navigator.replace(next);
+        fresh.start();
     }
 
     public void requestPause() {
@@ -378,6 +417,7 @@ public class GamePlayController extends ViewController implements MatchListener 
 
     protected void onMatchFinished(MatchResult result) {
         recordFinishedGame();
+        userDatabase.clearMatchSave(user);
         if (result == MatchResult.WON && awardAdventureProgress && chapter != null && level != null) {
             ChapterProgress.LevelCompletionResult completion =
                     user.getChapterProgress().markLevelCompleted(chapter.getId(), level.getIndex());

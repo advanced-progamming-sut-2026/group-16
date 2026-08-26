@@ -20,6 +20,7 @@ import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.IZombieController;
+import io.github.finalwave.controller.ScoreGamePlayController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
 import io.github.finalwave.controller.ZombotanyController;
@@ -35,6 +36,7 @@ import io.github.finalwave.model.minigame.GroundSeedPacket;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
 import io.github.finalwave.model.minigame.beghouled.BeghouledUpgradeRule;
 import io.github.finalwave.model.minigame.izombie.IZombieHandler;
+import io.github.finalwave.model.scoregame.MeowPointBreakdown;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.LawnAssetIds;
@@ -55,6 +57,8 @@ import io.github.finalwave.view.gui.hud.WaveProgressMeter;
 import io.github.finalwave.view.gui.hud.ZombieRosterBar;
 import io.github.finalwave.view.gui.hud.special.BeghouledUpgradeBar;
 import io.github.finalwave.view.gui.hud.special.ConveyorBeltBar;
+import io.github.finalwave.view.gui.hud.special.LoveYourPlantsCounter;
+import io.github.finalwave.view.gui.hud.special.MeowPointBanner;
 import io.github.finalwave.view.gui.hud.special.StartWaveButton;
 import io.github.finalwave.view.gui.hud.special.TimedWarPanel;
 import io.github.finalwave.view.gui.hud.special.ZombossHealthMeter;
@@ -68,6 +72,8 @@ import io.github.finalwave.view.gui.render.BattlefieldGroup;
 import io.github.finalwave.view.gui.render.ChapterBackground;
 import io.github.finalwave.view.gui.render.LawnGridOverlay;
 import io.github.finalwave.view.gui.render.LawnLayout;
+import io.github.finalwave.view.gui.render.ScreenShake;
+import io.github.finalwave.view.gui.render.clip.ExplosionLooks;
 import io.github.finalwave.view.gui.render.clip.GraveClips;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ProjectileClips;
@@ -80,8 +86,10 @@ import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 import io.github.finalwave.view.gui.render.sync.VaseSync;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -89,6 +97,8 @@ public final class GamePlayScreen extends MenuScreen {
     private final LawnGridOverlay gridOverlay = new LawnGridOverlay();
     private final PauseModal pauseModal = new PauseModal();
     private final MatchResultModal resultModal = new MatchResultModal();
+    private final ScreenShake screenShake = new ScreenShake();
+    private final Map<String, Integer> lastMeowScores = new HashMap<>();
 
     private GamePlayController controller;
     private VaseBreakerController vaseBreaker;
@@ -112,6 +122,8 @@ public final class GamePlayScreen extends MenuScreen {
     private SunCounter sunCounter;
     private final Vector2 sunHudTmp = new Vector2();
     private TimedWarPanel timedWarPanel;
+    private LoveYourPlantsCounter loveYourPlantsCounter;
+    private MeowPointBanner meowPointBanner;
     private final Set<String> preloadedPlantPams = new HashSet<>();
     private PlantFoodCounter plantFoodCounter;
     private WaveProgressMeter waveMeter;
@@ -196,6 +208,8 @@ public final class GamePlayScreen extends MenuScreen {
         this.bossOutroQueued = false;
         this.resultHold = 0f;
         this.clock = null;
+        lastMeowScores.clear();
+        screenShake.reset();
         preloadedPlantPams.clear();
         this.chapterBackground = new ChapterBackground(assets, ChapterId.ANCIENT_EGYPT);
         this.layout = lawnLayoutFor(5, 9);
@@ -262,6 +276,7 @@ public final class GamePlayScreen extends MenuScreen {
                 this::inputBlocked);
         battlefield.setSunCollector(sun -> input != null && input.collectSun(sun));
         battlefield.setBeghouledController(beghouled, this::inputBlocked);
+        battlefield.setShakeListener(screenShake::trigger);
         buildHud();
         battlefield.setSunHudTarget(this::sunHudCenter);
         battlefield.setSunDeferred(amount -> {
@@ -328,6 +343,10 @@ public final class GamePlayScreen extends MenuScreen {
         }
         pollResult(delta);
         viewport.apply();
+        screenShake.update(delta);
+        if (battlefield != null) {
+            battlefield.setPosition(screenShake.offsetX(), screenShake.offsetY());
+        }
         Batch batch = stage.getBatch();
         batch.setColor(Color.WHITE);
         batch.setProjectionMatrix(viewport.getCamera().combined);
@@ -437,6 +456,10 @@ public final class GamePlayScreen extends MenuScreen {
         if (timedWarPanel != null) {
             timedWarPanel.refresh(session);
         }
+        if (loveYourPlantsCounter != null) {
+            loveYourPlantsCounter.refresh(session);
+        }
+        pollMeowPoints();
         if (plantFoodCounter != null && session != null) {
             plantFoodCounter.setCount(session.getPlantFoodCount());
         }
@@ -537,6 +560,44 @@ public final class GamePlayScreen extends MenuScreen {
         }
     }
 
+    private void pollMeowPoints() {
+        if (meowPointBanner == null) {
+            return;
+        }
+        boolean scoreGame = controller instanceof ScoreGamePlayController;
+        if (!scoreGame) {
+            meowPointBanner.refresh(false, 0);
+            return;
+        }
+        ScoreGamePlayController score = (ScoreGamePlayController) controller;
+        MeowPointBreakdown breakdown = score.meowPointTracker().getBreakdown();
+        meowPointBanner.refresh(true, breakdown.total());
+        for (Map.Entry<String, Integer> entry : breakdown.patternScores().entrySet()) {
+            int previous = lastMeowScores.getOrDefault(entry.getKey(), 0);
+            int current = entry.getValue() == null ? 0 : entry.getValue();
+            if (current > previous) {
+                int gained = current - previous;
+                showAlert(meowLabel(entry.getKey()) + " +" + gained);
+                toastMessage(meowLabel(entry.getKey()) + " +" + gained);
+            }
+            lastMeowScores.put(entry.getKey(), current);
+        }
+    }
+
+    private static String meowLabel(String id) {
+        if (id == null) {
+            return "MeowPoint";
+        }
+        return switch (id) {
+            case "pierce-multi-kill" -> "Pierce";
+            case "speed-kill" -> "Speed Kill";
+            case "simultaneous-kill" -> "Multi-Kill";
+            case "mower-sweep" -> "Mower Sweep";
+            case "efficient-victory" -> "Perfect Victory";
+            default -> id;
+        };
+    }
+
     public MatchClock clock() {
         return clock;
     }
@@ -596,6 +657,8 @@ public final class GamePlayScreen extends MenuScreen {
 
         sunCounter = new SunCounter(assets, this::onAddSun);
         timedWarPanel = new TimedWarPanel(assets);
+        loveYourPlantsCounter = new LoveYourPlantsCounter(assets);
+        meowPointBanner = new MeowPointBanner(assets);
         plantFoodCounter = new PlantFoodCounter(assets, this::onAddPlantFood, this::onPlantFoodDragStart, this::onPlantFoodDrop);
         seedBank = new SeedBankBar(assets, this::onSeed);
         zombieRoster = new ZombieRosterBar(assets, this::onZombie);
@@ -614,6 +677,8 @@ public final class GamePlayScreen extends MenuScreen {
         }
         hudTop.add(startWaveButton).padLeft(8f).padTop(10f);
         hudTop.add(timedWarPanel).padLeft(8f).padTop(10f);
+        hudTop.add(loveYourPlantsCounter).padLeft(8f).padTop(10f);
+        hudTop.add(meowPointBanner).padLeft(8f).padTop(10f);
         hudTop.add().expandX();
         Table utilities = new Table();
         utilities.add(speedButton.actor()).size(72f).padRight(2f);
@@ -913,7 +978,7 @@ public final class GamePlayScreen extends MenuScreen {
         if (input != null) {
             input.setMode(new ToolMode.None());
         }
-        pauseModal.show(modalLayer, viewport, assets, this::resumeMatch, this::restartMatch, this::exitMatch);
+        pauseModal.show(modalLayer, viewport, assets, this::resumeMatch, this::restartMatch, this::saveAndExit);
     }
 
     private void resumeMatch() {
@@ -948,6 +1013,14 @@ public final class GamePlayScreen extends MenuScreen {
         if (controller != null) {
             controller.confirmMatchExit();
         }
+    }
+
+    private void saveAndExit() {
+        if (controller != null) {
+            controller.saveAndExit();
+            return;
+        }
+        exitMatch();
     }
 
     private void restartMatch() {
@@ -1012,7 +1085,7 @@ public final class GamePlayScreen extends MenuScreen {
                 assets.skin(),
                 result,
                 this::exitMatch,
-                result == MatchResult.LOST ? this::restartMatch : null);
+                this::restartMatch);
     }
 
     private boolean inputBlocked() {
@@ -1043,6 +1116,8 @@ public final class GamePlayScreen extends MenuScreen {
         packHudCell(hudTop.getCell(sunCounter), sunCounter, sunPad(), 10f);
         packHudCell(hudTop.getCell(startWaveButton), startWaveButton, 8f, 10f);
         packHudCell(hudTop.getCell(timedWarPanel), timedWarPanel, 8f, 10f);
+        packHudCell(hudTop.getCell(loveYourPlantsCounter), loveYourPlantsCounter, 8f, 10f);
+        packHudCell(hudTop.getCell(meowPointBanner), meowPointBanner, 8f, 10f);
         hudTop.invalidate();
         hudTop.invalidateHierarchy();
     }
@@ -1087,6 +1162,10 @@ public final class GamePlayScreen extends MenuScreen {
         if (catalog == null) {
             catalog = new EntityAnimationCatalog(assets.root());
         }
+        preload(ExplosionLooks.CHERRY_PATH);
+        preload(ExplosionLooks.CHERRY_REAR_PATH);
+        preload(ExplosionLooks.MINE_PATH);
+        assets.region(ExplosionLooks.SCORCH_IMAGE);
         if (session.isConveyorBeltActive()) {
             assets.region(LawnAssetIds.CONVEYOR_BELT);
             assets.region(LawnAssetIds.CONVEYOR_SIDE);

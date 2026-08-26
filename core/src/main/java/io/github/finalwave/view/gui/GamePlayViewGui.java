@@ -364,10 +364,13 @@ public final class GamePlayViewGui extends GuiViewBase implements
 
     @Override
     public void showLoveYourPlantsRule(int maxPlantsLost) {
+        playToast("Don't lose more than " + maxPlantsLost + " plants.");
+        router.refreshGamePlayHud();
     }
 
     @Override
     public void showPlantLossStatus(int plantsLost, int maxAllowed) {
+        router.refreshGamePlayHud();
     }
 
     @Override

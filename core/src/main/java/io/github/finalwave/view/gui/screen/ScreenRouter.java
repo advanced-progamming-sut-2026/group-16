@@ -19,6 +19,7 @@ import io.github.finalwave.controller.NewsController;
 import io.github.finalwave.controller.PlantSelectionController;
 import io.github.finalwave.controller.ProfileController;
 import io.github.finalwave.controller.RegistrationController;
+import io.github.finalwave.controller.ScoreGameController;
 import io.github.finalwave.controller.SettingController;
 import io.github.finalwave.controller.ShopController;
 import io.github.finalwave.controller.TravelLogController;
@@ -29,6 +30,7 @@ import io.github.finalwave.controller.ZombotanyController;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.leaderboard.LeaderboardEntry;
 import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
+import io.github.finalwave.model.scoregame.MeowPointBreakdown;
 import io.github.finalwave.model.user.User;
 
 import java.util.List;
@@ -56,6 +58,7 @@ public final class ScreenRouter {
     private GamePlayScreen gamePlayScreen;
     private MiniGameHubScreen miniGameHubScreen;
     private ComingSoonScreen comingSoonScreen;
+    private ScoreGameScreen scoreGameScreen;
 
     public ScreenRouter(PvzGame game) {
         this.game = game;
@@ -73,6 +76,7 @@ public final class ScreenRouter {
                 || controller instanceof ShopController
                 || controller instanceof CollectionController
                 || controller instanceof GameController
+                || controller instanceof ScoreGameController
                 || controller instanceof AdventureController
                 || controller instanceof TravelLogController
                 || controller instanceof PlantSelectionController
@@ -91,7 +95,8 @@ public final class ScreenRouter {
                 || destination == MainMenuController.Destination.SETTINGS
                 || destination == MainMenuController.Destination.GREENHOUSE
                 || destination == MainMenuController.Destination.PROFILE
-                || destination == MainMenuController.Destination.GAME;
+                || destination == MainMenuController.Destination.GAME
+                || destination == MainMenuController.Destination.SCORE_GAME;
     }
 
     public void showFor(ViewController controller) {
@@ -117,6 +122,8 @@ public final class ScreenRouter {
             showCollection(collectionController);
         } else if (controller instanceof GameController gameController) {
             showChapterSelect(gameController);
+        } else if (controller instanceof ScoreGameController scoreGameController) {
+            showScoreGame(scoreGameController);
         } else if (controller instanceof AdventureController adventureController) {
             showAdventure(adventureController);
         } else if (controller instanceof TravelLogController travelLogController) {
@@ -228,6 +235,26 @@ public final class ScreenRouter {
         }
         chapterSelectScreen.bind(controller);
         setScreen(chapterSelectScreen);
+    }
+
+    public void showScoreGame(ScoreGameController controller) {
+        if (scoreGameScreen == null) {
+            scoreGameScreen = new ScoreGameScreen(game);
+        }
+        scoreGameScreen.bind(controller);
+        setScreen(scoreGameScreen);
+    }
+
+    public void refreshScoreGame() {
+        if (scoreGameScreen != null && current == scoreGameScreen) {
+            scoreGameScreen.show();
+        }
+    }
+
+    public void showScoreGameResult(MeowPointBreakdown breakdown, int bestMeowPoint, boolean newBest) {
+        if (scoreGameScreen != null) {
+            scoreGameScreen.showResult(breakdown, bestMeowPoint, newBest);
+        }
     }
 
     public void showAdventure(AdventureController controller) {
@@ -562,6 +589,9 @@ public final class ScreenRouter {
         }
         if (comingSoonScreen != null) {
             comingSoonScreen.dispose();
+        }
+        if (scoreGameScreen != null) {
+            scoreGameScreen.dispose();
         }
     }
 

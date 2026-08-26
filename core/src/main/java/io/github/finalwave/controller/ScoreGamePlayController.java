@@ -1,5 +1,6 @@
 package io.github.finalwave.controller;
 
+import io.github.finalwave.model.App;
 import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.LevelConfig;
 import io.github.finalwave.model.game.GameSession;
@@ -7,9 +8,11 @@ import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.game.mode.AdventureMode;
 import io.github.finalwave.model.scoregame.MeowPointBreakdown;
 import io.github.finalwave.model.scoregame.MeowPointTracker;
+import io.github.finalwave.model.scoregame.ScoreGameSessionFactory;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 
+import java.time.Clock;
 import java.util.Set;
 
 public class ScoreGamePlayController extends GamePlayController {
@@ -29,6 +32,32 @@ public class ScoreGamePlayController extends GamePlayController {
                 boostedPlants, false);
         this.scoreGameController = scoreGameController;
         this.meowPointTracker = meowPointTracker;
+    }
+
+    public MeowPointTracker meowPointTracker() {
+        return meowPointTracker;
+    }
+
+    @Override
+    public void restartMatch() {
+        meowPointTracker.unregister();
+        var match = ScoreGameSessionFactory.create(
+                App.getInstance().getPlantRegistry(),
+                PlantSelectionController.loadZombieRegistry(),
+                Clock.systemUTC());
+        GameSession fresh = match.session();
+        fresh.setSelectedLoadout(session().getSelectedLoadout());
+        ScoreGamePlayController next = new ScoreGamePlayController(
+                getUser(), getUserDatabase(), scoreGameController, match.mode(), fresh,
+                match.chapter(), match.level(), boostedPlants(), match.tracker());
+        navigator.replace(next);
+        fresh.start();
+    }
+
+    @Override
+    public void saveAndExit() {
+        meowPointTracker.unregister();
+        navigator.pop();
     }
 
     @Override

@@ -111,6 +111,33 @@ public final class WaveManager {
         return allWavesSpawned;
     }
 
+    public void restoreProgress(int waveIndex, boolean started, boolean spawned, List<Zombie> live) {
+        currentWaveIndex = Math.min(waves.size() - 1, waveIndex);
+        wavesStarted = started;
+        allWavesSpawned = spawned;
+        if (!started) {
+            currentWaveIndex = -1;
+            return;
+        }
+        if (currentWaveIndex < 0) {
+            currentWaveIndex = 0;
+        }
+        for (int i = 0; i < waves.size(); i++) {
+            Wave wave = waves.get(i);
+            if (i < currentWaveIndex) {
+                wave.markStarted();
+                wave.markCompleted();
+            } else if (i == currentWaveIndex) {
+                wave.markStarted();
+                if (live != null) {
+                    for (Zombie zombie : live) {
+                        wave.registerSpawn(zombie);
+                    }
+                }
+            }
+        }
+    }
+
     public boolean areAllWavesCleared() {
         if (!allWavesSpawned) {
             return false;

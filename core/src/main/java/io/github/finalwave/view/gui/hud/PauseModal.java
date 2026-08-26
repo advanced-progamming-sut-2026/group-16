@@ -121,7 +121,7 @@ public final class PauseModal {
 
         Table buttons = new Table();
         buttons.defaults().size(BUTTON_WIDTH, BUTTON_HEIGHT).padLeft(8f).padRight(8f);
-        buttons.add(skinButton(skin, "EXIT TO MAP", "brown", onExit));
+        buttons.add(skinButton(skin, "SAVE & EXIT", "brown", onExit));
         buttons.add(skinButton(skin, "RESTART", "brown", onRestart));
         buttons.add(skinButton(skin, "RESUME", "purple", onResume));
         buttons.setSize(PANEL_WIDTH, BUTTON_HEIGHT);

@@ -24,6 +24,7 @@ import io.github.finalwave.view.gui.render.sync.FireTileSync;
 import io.github.finalwave.view.gui.render.sync.GraveSync;
 import io.github.finalwave.view.gui.render.sync.GroundSeedPacketSync;
 import io.github.finalwave.view.gui.render.sync.IceTileSync;
+import io.github.finalwave.view.gui.render.sync.LawnBurstSync;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
@@ -39,6 +40,7 @@ import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
+import java.util.function.BiConsumer;
 
 
 public final class BattlefieldGroup extends WidgetGroup {
@@ -71,6 +73,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private BrainSync brainSync;
     private ArcadeObstacleSync arcadeObstacleSync;
     private BeghouledPlantSync beghouledPlantSync;
+    private LawnBurstSync lawnBurstSync;
     private Predicate<Sun> sunCollector;
 
     public BattlefieldGroup() {
@@ -121,6 +124,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             bowlingLineSync = null;
             brainSync = null;
             arcadeObstacleSync = null;
+            lawnBurstSync = null;
             return;
         }
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
@@ -141,6 +145,16 @@ public final class BattlefieldGroup extends WidgetGroup {
         brainSync = new BrainSync(assets, layout, mowerLayer);
         arcadeObstacleSync = new ArcadeObstacleSync(assets, layout, zombieLayer);
         beghouledPlantSync = new BeghouledPlantSync(assets, layout, new PlantClips(catalog), plantLayer, this);
+        lawnBurstSync = new LawnBurstSync(assets, layout, fxLayer);
+    }
+
+    public void setShakeListener(BiConsumer<Float, Float> listener) {
+        if (lawnBurstSync != null) {
+            lawnBurstSync.setOnShake(listener);
+        }
+        if (zombieSync != null) {
+            zombieSync.setSmashShake(listener);
+        }
     }
 
     public void setBeghouledController(BeghouledController controller, BooleanSupplier blocked) {
@@ -210,6 +224,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (bossFxSync != null) {
             bossFxSync.sync(session);
+        }
+        if (lawnBurstSync != null) {
+            lawnBurstSync.sync(session);
         }
         if (vaseSync != null) {
             vaseSync.sync(session);
@@ -339,6 +356,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (bossFxSync != null) {
             bossFxSync.clear();
+        }
+        if (lawnBurstSync != null) {
+            lawnBurstSync.clear();
         }
         if (deadLineSync != null) {
             deadLineSync.clear();
