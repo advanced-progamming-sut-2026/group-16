@@ -17,6 +17,7 @@ import io.github.finalwave.view.gui.render.sync.BeghouledPlantSync;
 import io.github.finalwave.view.gui.render.sync.BossFxSync;
 import io.github.finalwave.view.gui.render.sync.BowlingLineSync;
 import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
+import io.github.finalwave.view.gui.render.sync.BrainSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.FireTileSync;
 import io.github.finalwave.view.gui.render.sync.GraveSync;
@@ -64,6 +65,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private GroundSeedPacketSync packetSync;
     private BowlingNutSync bowlingNutSync;
     private BowlingLineSync bowlingLineSync;
+    private BrainSync brainSync;
     private ArcadeObstacleSync arcadeObstacleSync;
     private BeghouledPlantSync beghouledPlantSync;
     private Consumer<Sun> sunCollector;
@@ -114,6 +116,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             packetSync = null;
             bowlingNutSync = null;
             bowlingLineSync = null;
+            brainSync = null;
             arcadeObstacleSync = null;
             return;
         }
@@ -132,6 +135,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         packetSync = new GroundSeedPacketSync(assets, layout, packetLayer);
         bowlingNutSync = new BowlingNutSync(assets, layout, plantLayer);
         bowlingLineSync = new BowlingLineSync(layout, highlightLayer);
+        brainSync = new BrainSync(assets, layout, mowerLayer);
         arcadeObstacleSync = new ArcadeObstacleSync(assets, layout, zombieLayer);
         beghouledPlantSync = new BeghouledPlantSync(assets, layout, new PlantClips(catalog), plantLayer, this);
     }
@@ -226,6 +230,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (mowerSync != null) {
             mowerSync.sync(session, tickFraction);
         }
+        if (brainSync != null) {
+            brainSync.sync(session);
+        }
         if (sunSync != null) {
             sunSync.sync(session, tickFraction);
         }
@@ -314,6 +321,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (bowlingLineSync != null) {
             bowlingLineSync.clear();
+        }
+        if (brainSync != null) {
+            brainSync.clear();
         }
         if (arcadeObstacleSync != null) {
             arcadeObstacleSync.clear();

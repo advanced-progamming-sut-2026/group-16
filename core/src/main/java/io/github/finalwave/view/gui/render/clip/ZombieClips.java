@@ -11,7 +11,9 @@ public final class ZombieClips {
     private static final Map<String, String[]> ABILITY_CLIPS = Map.of(
             "ZombieRa", new String[]{"power", "power_up"},
             "ZombieTombRaiser", new String[]{"power"},
-            "ZombieGargantuar", new String[]{"smash_left", "fire"}
+            "ZombieGargantuar", new String[]{"smash_left", "fire"},
+            "ZombieBeachFisherman", new String[]{"cast", "cast_loop", "idle"},
+            "ZombiePiano", new String[]{"play", "play2", "idle"}
     );
 
     private final EntityAnimationCatalog catalog;
@@ -22,6 +24,16 @@ public final class ZombieClips {
 
     public EntityAnimationCatalog.ClipSpec idle(String alias) {
         return catalog.zombieClip(alias, "idle", "walk");
+    }
+
+    public EntityAnimationCatalog.ClipSpec appear(String alias) {
+        String path = catalog.zombiePath(alias);
+        for (String name : new String[]{"pop", "spawn", "appear", "rise"}) {
+            if (catalog.hasClip(path, name)) {
+                return catalog.zombieClip(alias, name);
+            }
+        }
+        return null;
     }
 
     public EntityAnimationCatalog.ClipSpec boss(String alias, String logical) {

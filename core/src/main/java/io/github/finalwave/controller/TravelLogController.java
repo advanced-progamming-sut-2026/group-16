@@ -138,6 +138,7 @@ public class TravelLogController extends ViewController {
         }
         if (id != MiniGameId.VASE_BREAKER
                 && id != MiniGameId.WALNUT_BOWLING
+                && id != MiniGameId.I_ZOMBIE
                 && id != MiniGameId.BEGHOULED) {
             getTravelLogView().displayMessage(id.getDisplayName() + " is coming soon.");
             return;

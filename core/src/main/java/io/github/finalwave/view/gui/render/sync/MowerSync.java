@@ -44,6 +44,10 @@ public final class MowerSync {
         if (session == null) {
             return;
         }
+        if (session.isIZombieActive()) {
+            mowers.sync(List.of(), this::spawn, this::update, PamActor::remove);
+            return;
+        }
         path = pathFor(ChapterId.fromName(session.getChapterId()));
         List<LawnMower> live = new ArrayList<>();
         for (LawnMower mower : session.getLawnMowers()) {

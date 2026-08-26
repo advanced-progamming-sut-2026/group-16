@@ -18,6 +18,9 @@ public final class LaneShiftBehavior implements ZombieBehavior {
 
     @Override
     public void execute(Zombie zombie, GameContext context) {
+        if (context.lockZombieLanes()) {
+            return;
+        }
         if (cooldown-- > 0) {
             return;
         }

@@ -5,7 +5,9 @@ import io.github.finalwave.model.definition.ZombieRegistry;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.game.board.PlantPlacementResult;
+import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
+import io.github.finalwave.model.game.entity.zombie.ZombieState;
 import io.github.finalwave.model.minigame.mode.IZombieMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,7 +61,26 @@ class IZombieHandlerTest {
 
         assertTrue(session.isIZombieBrainEaten(0));
         assertEquals(MatchResult.IN_PROGRESS, session.getMatchResult());
-        assertTrue(zombie.isDead());
+        assertTrue(zombie.isAlive());
+        assertTrue(zombie.isStationary());
+    }
+
+    @Test
+    void walkingAnEmptyLaneEatsTheBrainWithoutTakingDamage() {
+        GameSession session = createStage1();
+        for (Plant plant : session.getBoard().getAllPlants()) {
+            session.removePlantFromBoard(plant, false);
+        }
+        Zombie zombie = session.spawnZombieOfType("ZombieDefault", 2, 2.0);
+        int health = zombie.getHealth();
+        session.advanceTicks(GameSession.TICKS_PER_SECOND * 20);
+
+        assertTrue(zombie.isAlive());
+        assertEquals(health, zombie.getHealth());
+        assertTrue(session.isIZombieBrainEaten(2));
+        assertTrue(zombie.isStationary());
+        assertEquals(ZombieState.MOVING, zombie.getState());
+        assertEquals(MatchResult.IN_PROGRESS, session.getMatchResult());
     }
 
     @Test
@@ -119,6 +140,15 @@ class IZombieHandlerTest {
     }
 
     @Test
+    void placeZombieAppliesPacketCooldown() {
+        GameSession session = createStage1();
+        assertEquals(PlantPlacementResult.SUCCESS,
+                session.tryPlaceZombie("ZombieDefault", 5, 0));
+        assertEquals(PlantPlacementResult.ON_COOLDOWN,
+                session.tryPlaceZombie("ZombieDefault", 5, 1));
+    }
+
+    @Test
     void sunProducersGenerateSunOverTime() {
         GameSession session = createStage1();
         int before = session.getSunBalance();
@@ -134,6 +164,28 @@ class IZombieHandlerTest {
         assertTrue(map.contains("Brains: 0/5"));
         assertTrue(map.contains("[Brain]"));
         assertFalse(map.contains("[Mower]"));
+    }
+
+    @Test
+    void placedZombiesStayInTheirLane() {
+        GameSession session = createStage1();
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlaceZombie("ZombieDefault", 5, 0));
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlaceZombie("ZombieImp", 6, 3));
+        session.spawnZombieOfType("ZombiePiano", 2, 7);
+        Zombie walker = walkerOnRow(session, 0);
+        Zombie imp = walkerOnRow(session, 3);
+        session.advanceTicks(120);
+        assertEquals(0, walker.getRow());
+        assertEquals(3, imp.getRow());
+    }
+
+    private static Zombie walkerOnRow(GameSession session, int row) {
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie.isAlive() && !zombie.isStationary() && zombie.getRow() == row) {
+                return zombie;
+            }
+        }
+        throw new AssertionError("No walker on row " + row);
     }
 
     private static int countLiving(GameSession session) {

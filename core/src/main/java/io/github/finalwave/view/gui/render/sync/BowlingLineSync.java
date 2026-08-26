@@ -39,14 +39,24 @@ public final class BowlingLineSync {
     }
 
     public void sync(GameSession session) {
-        if (disposed || session == null || !session.isWalnutBowlingActive()) {
+        if (disposed || session == null) {
             if (line != null) {
                 line.setVisible(false);
             }
             return;
         }
+        int column = -1;
+        if (session.isWalnutBowlingActive()) {
+            column = session.getWalnutBowlingRedLineColumn();
+        } else if (session.isIZombieActive()) {
+            column = session.getIZombiePlacementColumn();
+        }
+        if (column < 0) {
+            line.setVisible(false);
+            return;
+        }
         Rectangle lawn = layout.lawnBounds();
-        float x = layout.originX() + (session.getWalnutBowlingRedLineColumn() + 1) * layout.tileWidth();
+        float x = layout.originX() + (column + 1) * layout.tileWidth();
         line.setBounds(x - LINE_WIDTH / 2f, lawn.y, LINE_WIDTH, lawn.height);
         line.setVisible(true);
     }

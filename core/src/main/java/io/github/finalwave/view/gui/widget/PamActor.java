@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.widget;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Matrix4;
@@ -45,6 +46,7 @@ public final class PamActor extends Actor {
     private float rotateOffsetX;
     private float rotateOffsetY;
     private float hitFlashRemaining;
+    private boolean drawFailed;
 
     public PamActor(PamPlayer player) {
         this(player, null);
@@ -81,6 +83,7 @@ public final class PamActor extends Actor {
         this.followUpLoop = true;
         this.onIntroFinished = null;
         this.clipFinished = false;
+        this.drawFailed = false;
         if (pamPath != null) {
             player.loadAsync(pamPath, () -> {
             });
@@ -186,7 +189,13 @@ public final class PamActor extends Actor {
         if (loop || clipFinished) {
             return;
         }
-        float duration = player.clipDurationSeconds(pamPath, clipName);
+        float duration;
+        try {
+            duration = player.clipDurationSeconds(pamPath, clipName);
+        } catch (RuntimeException e) {
+            logDrawFailure(e);
+            return;
+        }
         if (stateTime < duration) {
             return;
         }
@@ -261,6 +270,8 @@ public final class PamActor extends Actor {
             } else {
                 player.draw(batch, pamPath, clipName, stateTime, cx, cy, loop, vis);
             }
+        } catch (RuntimeException e) {
+            logDrawFailure(e);
         } finally {
             if (restoreTransform) {
                 batch.setTransformMatrix(previousTransform);
@@ -270,5 +281,13 @@ public final class PamActor extends Actor {
             }
             batch.setColor(oldBatchColor);
         }
+    }
+
+    private void logDrawFailure(RuntimeException e) {
+        if (drawFailed) {
+            return;
+        }
+        drawFailed = true;
+        Gdx.app.error("PamActor", "Failed to draw " + pamPath + " clip " + clipName, e);
     }
 }

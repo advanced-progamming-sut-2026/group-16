@@ -106,6 +106,11 @@ public class IZombieViewCli extends CliView implements IZombieView {
     }
 
     @Override
+    public void errorOnCooldown(String type) {
+        displayError("Zombie " + type + " is still recharging.");
+    }
+
+    @Override
     public void errorInvalidTickCount() {
         displayError("Invalid tick count.");
     }

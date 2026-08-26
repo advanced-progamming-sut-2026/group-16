@@ -2,6 +2,7 @@ package io.github.finalwave.view.gui.match;
 
 import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.GamePlayController;
+import io.github.finalwave.controller.IZombieController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
 import io.github.finalwave.model.game.GameSession;
@@ -11,12 +12,14 @@ public final class ControllerTicker implements MatchTicker {
     private final GamePlayController gamePlay;
     private final VaseBreakerController vaseBreaker;
     private final WalnutBowlingController walnutBowling;
+    private final IZombieController iZombie;
     private final BeghouledController beghouled;
 
     public ControllerTicker(GamePlayController gamePlay) {
         this.gamePlay = gamePlay;
         this.vaseBreaker = null;
         this.walnutBowling = null;
+        this.iZombie = null;
         this.beghouled = null;
     }
 
@@ -24,6 +27,7 @@ public final class ControllerTicker implements MatchTicker {
         this.gamePlay = null;
         this.vaseBreaker = vaseBreaker;
         this.walnutBowling = null;
+        this.iZombie = null;
         this.beghouled = null;
     }
 
@@ -31,6 +35,15 @@ public final class ControllerTicker implements MatchTicker {
         this.gamePlay = null;
         this.vaseBreaker = null;
         this.walnutBowling = walnutBowling;
+        this.iZombie = null;
+        this.beghouled = null;
+    }
+
+    public ControllerTicker(IZombieController iZombie) {
+        this.gamePlay = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.iZombie = iZombie;
         this.beghouled = null;
     }
 
@@ -38,6 +51,7 @@ public final class ControllerTicker implements MatchTicker {
         this.gamePlay = null;
         this.vaseBreaker = null;
         this.walnutBowling = null;
+        this.iZombie = null;
         this.beghouled = beghouled;
     }
 
@@ -49,6 +63,10 @@ public final class ControllerTicker implements MatchTicker {
         }
         if (walnutBowling != null) {
             walnutBowling.advance(ticks);
+            return;
+        }
+        if (iZombie != null) {
+            iZombie.advance(ticks);
             return;
         }
         if (beghouled != null) {
@@ -67,6 +85,9 @@ public final class ControllerTicker implements MatchTicker {
         }
         if (walnutBowling != null) {
             return walnutBowling.session();
+        }
+        if (iZombie != null) {
+            return iZombie.session();
         }
         if (beghouled != null) {
             return beghouled.session();

@@ -10,6 +10,7 @@ import io.github.finalwave.controller.CollectionController;
 import io.github.finalwave.controller.GameController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.GreenhouseController;
+import io.github.finalwave.controller.IZombieController;
 import io.github.finalwave.controller.LeaderboardController;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
@@ -78,6 +79,7 @@ public final class ScreenRouter {
                 || controller instanceof MiniGameHubController
                 || controller instanceof VaseBreakerController
                 || controller instanceof WalnutBowlingController
+                || controller instanceof IZombieController
                 || controller instanceof BeghouledController;
     }
 
@@ -127,6 +129,8 @@ public final class ScreenRouter {
             showGamePlay(vaseBreakerController);
         } else if (controller instanceof WalnutBowlingController walnutBowlingController) {
             showGamePlay(walnutBowlingController);
+        } else if (controller instanceof IZombieController iZombieController) {
+            showGamePlay(iZombieController);
         } else if (controller instanceof BeghouledController beghouledController) {
             showGamePlay(beghouledController);
         } else {
@@ -263,6 +267,14 @@ public final class ScreenRouter {
     }
 
     public void showGamePlay(WalnutBowlingController controller) {
+        if (gamePlayScreen == null) {
+            gamePlayScreen = new GamePlayScreen(game);
+        }
+        gamePlayScreen.bind(controller);
+        setScreen(gamePlayScreen);
+    }
+
+    public void showGamePlay(IZombieController controller) {
         if (gamePlayScreen == null) {
             gamePlayScreen = new GamePlayScreen(game);
         }

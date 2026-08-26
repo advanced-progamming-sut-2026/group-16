@@ -15,4 +15,6 @@ public interface LawnActionHost {
     boolean shovelAt(int col, int row);
 
     boolean feedAt(int col, int row);
+
+    void placeZombie(String alias, int col, int row);
 }

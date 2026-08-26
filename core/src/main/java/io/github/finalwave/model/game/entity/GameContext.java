@@ -30,6 +30,10 @@ public interface GameContext {
         return false;
     }
 
+    default boolean lockZombieLanes() {
+        return false;
+    }
+
     Plant getPlantAt(int col, int row);
 
     Plant getPlantInFront(double zombieX, int row);

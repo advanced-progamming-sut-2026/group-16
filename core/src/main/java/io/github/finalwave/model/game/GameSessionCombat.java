@@ -138,6 +138,14 @@ final class GameSessionCombat {
     }
 
     void tickZombies() {
+        if (session.isIZombieActive()) {
+            for (Zombie zombie : session.zombieList()) {
+                zombie.lockLane();
+            }
+            for (Zombie zombie : session.pendingZombieList()) {
+                zombie.lockLane();
+            }
+        }
         List<Zombie> zombies = session.zombieList();
         List<Zombie> pending = session.pendingZombieList();
         session.setTickingZombies(true);
@@ -266,11 +274,8 @@ final class GameSessionCombat {
                 matchListener.onBrainEaten(row);
             }
             if (zombie.isAlive()) {
-                zombie.takeDirectDamage(zombie.getHealth() + 99999);
-                session.handleZombieKilled(zombie);
-            }
-            if (!session.isTickingZombies()) {
-                session.zombieList().removeIf(Zombie::isDead);
+                zombie.setStationary(true);
+                zombie.setPosition(0, row);
             }
             return;
         }
@@ -314,6 +319,9 @@ final class GameSessionCombat {
     }
 
     private void tickMowers() {
+        if (session.isIZombieActive()) {
+            return;
+        }
         int cols = session.getBoard().getCols();
         for (LawnMower mower : session.lawnMowerList()) {
             if (mower == null || !mower.isActive()) {

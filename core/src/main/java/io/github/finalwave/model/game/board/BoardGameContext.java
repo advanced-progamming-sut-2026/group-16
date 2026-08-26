@@ -71,6 +71,11 @@ public final class BoardGameContext implements GameContext {
     }
 
     @Override
+    public boolean lockZombieLanes() {
+        return session.isIZombieActive();
+    }
+
+    @Override
     public Plant getPlantAt(int col, int row) {
         return session.getBoard().getPlantAt(col, row);
     }
@@ -651,7 +656,7 @@ public final class BoardGameContext implements GameContext {
     }
 
     private void handleMoveZombieOnEat(Plant plant) {
-        if (!plant.hasTag(PlantTag.MOVE_ZOMBIE)) {
+        if (!plant.hasTag(PlantTag.MOVE_ZOMBIE) || session.isIZombieActive()) {
             return;
         }
         for (Zombie zombie : getZombiesInRow(plant.getRow())) {
