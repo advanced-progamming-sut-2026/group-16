@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
@@ -106,6 +107,7 @@ public final class GamePlayScreen extends MenuScreen {
     private Table hudTop;
     private Table hudBottom;
     private SunCounter sunCounter;
+    private final Vector2 sunHudTmp = new Vector2();
     private TimedWarPanel timedWarPanel;
     private final Set<String> preloadedPlantPams = new HashSet<>();
     private PlantFoodCounter plantFoodCounter;
@@ -204,6 +206,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (user != null) {
             bindCurrency(user);
         }
+        if (sunCounter != null) {
+            sunCounter.resetShown();
+        }
     }
 
     private LawnLayout lawnLayoutFor(int rows, int cols) {
@@ -237,13 +242,25 @@ public final class GamePlayScreen extends MenuScreen {
                 catalog,
                 cursorLayer,
                 this::inputBlocked);
-        battlefield.setSunCollector(sun -> {
-            if (input != null) {
-                input.collectSun(sun);
-            }
-        });
+        battlefield.setSunCollector(sun -> input != null && input.collectSun(sun));
         battlefield.setBeghouledController(beghouled, this::inputBlocked);
         buildHud();
+        battlefield.setSunHudTarget(this::sunHudCenter);
+        battlefield.setSunDeferred(amount -> {
+            if (sunCounter != null) {
+                sunCounter.hold(amount);
+            }
+        });
+        battlefield.setSunArrived(amount -> {
+            if (sunCounter != null) {
+                sunCounter.release(amount);
+            }
+        });
+        battlefield.setSunFlightsAborted(() -> {
+            if (sunCounter != null) {
+                sunCounter.clearHeld();
+            }
+        });
         startIntroDialog();
     }
 
@@ -291,7 +308,6 @@ public final class GamePlayScreen extends MenuScreen {
         if (input != null) {
             input.update();
         }
-        refreshHud();
         pollResult(delta);
         viewport.apply();
         Batch batch = stage.getBatch();
@@ -308,6 +324,14 @@ public final class GamePlayScreen extends MenuScreen {
             Gdx.gl.glEnable(GL20.GL_BLEND);
         }
         stage.act(delta);
+        float flyDelta = 0f;
+        if (clock == null || !clock.shouldFreeze()) {
+            flyDelta = delta * (clock == null ? 1f : clock.speed());
+        }
+        if (battlefield != null) {
+            battlefield.tickSunFlights(flyDelta);
+        }
+        refreshHud();
         stage.draw();
         batch.setColor(Color.WHITE);
     }
@@ -389,6 +413,8 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (sunCounter != null && session != null) {
             sunCounter.setAmount(session.getSunBalance());
+            sunCounter.setCounting(clock == null || !clock.shouldFreeze());
+            sunCounter.setCountSpeed(clock == null ? 1f : clock.speed());
         }
         if (timedWarPanel != null) {
             timedWarPanel.refresh(session);
@@ -776,6 +802,13 @@ public final class GamePlayScreen extends MenuScreen {
         if (input != null) {
             input.toggleShovel();
         }
+    }
+
+    private Vector2 sunHudCenter() {
+        if (sunCounter == null || !sunCounter.hasParent() || !sunCounter.isVisible()) {
+            return null;
+        }
+        return sunCounter.iconCenterStage(sunHudTmp);
     }
 
     private void onAddSun() {

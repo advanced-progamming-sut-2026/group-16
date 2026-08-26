@@ -2,8 +2,10 @@ package io.github.finalwave.view.gui.widget;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -29,6 +31,8 @@ public final class CurrencyBar extends Table {
 
     private static final int COIN_CHEAT_AMOUNT = 100;
     private static final int DIAMOND_CHEAT_AMOUNT = 10;
+    private static final float COUNT_PER_SECOND = 90f;
+    private static final float CATCH_UP = 8f;
 
     private final GameAssets assets;
     private final Skin skin;
@@ -36,6 +40,8 @@ public final class CurrencyBar extends Table {
     private final Stack coinChip;
     private final Label coinsLabel;
     private final Label gemsLabel;
+    private final RollingAmount coins = new RollingAmount();
+    private final RollingAmount gems = new RollingAmount();
     private Stack sproutChip;
     private Label sproutsLabel;
     private IntSupplier sproutCount;
@@ -96,6 +102,7 @@ public final class CurrencyBar extends Table {
         labelContainer.left().padLeft(valuePadLeft).padRight(10f);
 
         Stack stack = new Stack();
+        stack.setTransform(true);
         stack.setTouchable(Touchable.enabled);
         stack.add(background);
         stack.add(labelContainer);
@@ -125,12 +132,19 @@ public final class CurrencyBar extends Table {
             sproutsLabel.setText(sproutCount == null ? "0" : String.valueOf(sproutCount.getAsInt()));
         }
         if (user == null) {
+            coins.reset();
+            gems.reset();
             gemsLabel.setText("0");
             coinsLabel.setText("0");
             return;
         }
-        gemsLabel.setText(String.valueOf(user.getDiamonds()));
-        coinsLabel.setText(String.valueOf(user.getCoins()));
+        if (gems.set(user.getDiamonds())) {
+            pulse(gemChip);
+        }
+        if (coins.set(user.getCoins())) {
+            pulse(coinChip);
+        }
+        writeShown();
     }
 
     private void onSproutPlus() {
@@ -162,5 +176,65 @@ public final class CurrencyBar extends Table {
     public void act(float delta) {
         super.act(delta);
         refresh();
+        boolean coinsMoved = coins.tick(delta);
+        boolean gemsMoved = gems.tick(delta);
+        if (coinsMoved || gemsMoved) {
+            writeShown();
+        }
+    }
+
+    private void writeShown() {
+        coinsLabel.setText(String.valueOf(coins.display()));
+        gemsLabel.setText(String.valueOf(gems.display()));
+    }
+
+    private static void pulse(Stack chip) {
+        chip.clearActions();
+        chip.setOrigin(Align.center);
+        chip.setScale(1f);
+        chip.addAction(Actions.sequence(
+                Actions.scaleTo(1.16f, 1.16f, 0.08f, Interpolation.sineOut),
+                Actions.scaleTo(1f, 1f, 0.14f, Interpolation.sine)));
+    }
+
+    private static final class RollingAmount {
+        private float shown;
+        private int target;
+        private boolean seeded;
+
+        private boolean set(int amount) {
+            int next = Math.max(0, amount);
+            boolean rose = seeded && next > target;
+            target = next;
+            if (!seeded) {
+                shown = next;
+                seeded = true;
+                return false;
+            }
+            if (target < shown) {
+                shown = target;
+            }
+            return rose;
+        }
+
+        private boolean tick(float delta) {
+            if (shown >= target) {
+                return false;
+            }
+            float gap = target - shown;
+            float step = Math.max(COUNT_PER_SECOND, gap * CATCH_UP) * delta;
+            shown = Math.min(target, shown + step);
+            return true;
+        }
+
+        private int display() {
+            return Math.round(shown);
+        }
+
+        private void reset() {
+            shown = 0;
+            target = 0;
+            seeded = false;
+        }
     }
 }
