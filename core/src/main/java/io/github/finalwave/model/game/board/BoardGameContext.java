@@ -3,6 +3,7 @@ package io.github.finalwave.model.game.board;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.LawnBurst;
 import io.github.finalwave.model.game.MatchListener;
+import io.github.finalwave.model.game.PendingGraveLanding;
 import io.github.finalwave.model.game.board.tile.NormalTile;
 import io.github.finalwave.model.game.board.tile.GraveTile;
 import io.github.finalwave.model.game.board.tile.IceTile;
@@ -20,6 +21,7 @@ import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
+import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.model.item.SunType;
 
@@ -129,8 +131,8 @@ public final class BoardGameContext implements GameContext {
     }
 
     @Override
-    public void spawnZombieOfType(String alias, int row, double x) {
-        session.spawnZombieOfType(alias, row, x);
+    public Zombie spawnZombieOfType(String alias, int row, double x) {
+        return session.spawnZombieOfType(alias, row, x);
     }
 
     @Override
@@ -141,6 +143,16 @@ public final class BoardGameContext implements GameContext {
     @Override
     public void onZombieReachedHouse(Zombie zombie) {
         session.handleZombieReachedHouse(zombie);
+    }
+
+    @Override
+    public boolean zombiesWalkOffLawn() {
+        return session.isSandboxPractice();
+    }
+
+    @Override
+    public void despawnWalkOffZombie(Zombie zombie) {
+        session.despawnWalkOffZombie(zombie);
     }
 
     @Override
@@ -260,6 +272,13 @@ public final class BoardGameContext implements GameContext {
                 obstacle.takeDamage(totalDamage);
             }
         }
+        for (PianoObstacle obstacle : session.getPianoObstacles()) {
+            if (obstacle.isAlive() && inBlast(
+                    (int) Math.floor(obstacle.getX()), obstacle.getRow(),
+                    centerCol, centerRow, radius)) {
+                obstacle.takeDamage(totalDamage);
+            }
+        }
         damageTilesInRadius(centerCol, centerRow, radius, totalDamage,
                 plant.hasTag(PlantTag.FIRE)
                         || plant.getStats().hasSpecialModifier(PlantSpecialModifiers.MELT_AREA_3X3));
@@ -328,6 +347,12 @@ public final class BoardGameContext implements GameContext {
                 obstacle.takeDamage(damage);
             }
         }
+        for (PianoObstacle obstacle : session.getPianoObstacles()) {
+            if (obstacle.getRow() == plant.getRow()
+                    && Math.abs(obstacle.getX() - plant.getCol()) <= range) {
+                obstacle.takeDamage(damage);
+            }
+        }
         for (int col = 0; col < getColCount(); col++) {
             if (Math.abs(col - plant.getCol()) > range) {
                 continue;
@@ -354,6 +379,11 @@ public final class BoardGameContext implements GameContext {
         ArcadeObstacle obstacle = nearestArcadeAhead(plant, range);
         if (obstacle != null) {
             obstacle.takeDamage(damage);
+            return;
+        }
+        PianoObstacle piano = nearestPianoAhead(plant, range);
+        if (piano != null) {
+            piano.takeDamage(damage);
             return;
         }
         int tileCol = nearestDamageableTileColAhead(plant.getRow(), plant.getCol(), range);
@@ -543,8 +573,8 @@ public final class BoardGameContext implements GameContext {
     }
 
     @Override
-    public int stealGroundSun(int maximum) {
-        return session.stealGroundSun(maximum);
+    public int stealGroundSun(Zombie thief, int maximum) {
+        return session.stealGroundSun(thief, maximum);
     }
 
     @Override
@@ -555,31 +585,54 @@ public final class BoardGameContext implements GameContext {
 
     @Override
     public void pushIceInRow(int row) {
+        pushIceStack(row, Double.POSITIVE_INFINITY);
+    }
+
+    @Override
+    public void pushIceAhead(Zombie zombie) {
+        if (zombie == null) {
+            return;
+        }
+        pushIceStack(zombie.getRow(), zombie.getX());
+    }
+
+    private void pushIceStack(int row, double pusherX) {
         if (row < 0 || row >= getRowCount()) {
             return;
         }
-        for (int col = 1; col < getColCount(); col++) {
-            if (!session.getBoard().getTile(col, row).isIce()) {
-                continue;
+        int right = -1;
+        for (int col = 0; col < getColCount(); col++) {
+            if (session.getBoard().getTile(col, row).isIce() && col < pusherX) {
+                right = col;
             }
-            var destination = session.getBoard().getTile(col - 1, row);
-            if (destination == null || destination.isWater()
-                    || destination.isGrave() || destination.isIce()
-                    || destination.blocksPlanting()) {
+        }
+        if (right < 0 || pusherX >= right + 0.85) {
+            return;
+        }
+        int left = right;
+        while (left > 0 && session.getBoard().getTile(left - 1, row).isIce()) {
+            left--;
+        }
+        int dest = left - 1;
+        if (dest < 0) {
+            return;
+        }
+        var destination = session.getBoard().getTile(dest, row);
+        if (destination == null || destination.isWater()
+                || destination.isGrave() || destination.isIce()
+                || destination.blocksPlanting()) {
+            return;
+        }
+        Plant target = getPlantAt(dest, row);
+        if (target != null) {
+            if (!target.canBeTargetedByZombie()) {
                 return;
             }
-            Plant target = getPlantAt(col - 1, row);
-            if (target != null) {
-                if (!target.canBeTargetedByZombie()) {
-                    return;
-                }
-                target.takeDamage(target.getHealth());
-                onPlantDestroyed(target);
-            }
-            session.getBoard().setTile(col - 1, row, new IceTile());
-            session.getBoard().setTile(col, row, new NormalTile());
-            break;
+            target.takeDamage(target.getHealth());
+            onPlantDestroyed(target);
         }
+        session.getBoard().setTile(dest, row, new IceTile());
+        session.getBoard().setTile(right, row, new NormalTile());
     }
 
     @Override
@@ -588,15 +641,22 @@ public final class BoardGameContext implements GameContext {
             return;
         }
         int remaining = Math.max(0, count);
-        for (int col = Math.min(getColCount() - 1, startCol);
-             col >= 0 && remaining > 0; col--) {
+        int start = Math.min(getColCount() - 1, startCol);
+        for (int col = start; col >= 0 && remaining > 0; col--) {
             var tile = session.getBoard().getTile(col, row);
-            if (getPlantAt(col, row) == null && tile != null
-                    && !tile.blocksPlanting() && !tile.isWater()
-                    && !tile.isGrave()) {
-                session.getBoard().setTile(col, row, new IceTile());
-                remaining--;
+            if (tile == null || tile.isWater() || tile.isGrave()) {
+                break;
             }
+            Plant occupant = getPlantAt(col, row);
+            if (occupant != null) {
+                if (!occupant.canBeTargetedByZombie()) {
+                    break;
+                }
+                occupant.takeDamage(occupant.getHealth());
+                onPlantDestroyed(occupant);
+            }
+            session.getBoard().setTile(col, row, new IceTile());
+            remaining--;
         }
     }
 
@@ -613,6 +673,97 @@ public final class BoardGameContext implements GameContext {
     @Override
     public PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health) {
         return session.coverPlant(plant, type, health);
+    }
+
+    @Override
+    public PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health, Zombie source) {
+        return session.coverPlant(plant, type, health, source);
+    }
+
+    @Override
+    public boolean canThrowTombBones(Zombie source, int count, int maxGraves) {
+        if (source == null || count <= 0) {
+            return false;
+        }
+        int remainingSlots = Math.max(0, maxGraves - countGraves() - session.pendingGraveCount());
+        return remainingSlots > 0 && !emptyGraveTiles().isEmpty();
+    }
+
+    @Override
+    public int throwTombBones(Zombie source, int count, int maxGraves) {
+        if (source == null || count <= 0) {
+            return 0;
+        }
+        int remainingSlots = Math.max(0, maxGraves - countGraves() - session.pendingGraveCount());
+        int toThrow = Math.min(count, remainingSlots);
+        if (toThrow <= 0) {
+            return 0;
+        }
+        List<int[]> candidates = emptyGraveTiles();
+        if (candidates.isEmpty()) {
+            return 0;
+        }
+        Collections.shuffle(candidates, random);
+        int zombieRow = source.getRow();
+        int zombieCol = (int) Math.floor(source.getX());
+        candidates.sort((a, b) -> {
+            boolean aAhead = a[0] <= zombieCol - 2;
+            boolean bAhead = b[0] <= zombieCol - 2;
+            if (aAhead != bAhead) {
+                return aAhead ? -1 : 1;
+            }
+            int da = Math.abs(a[1] - zombieRow) * 4 + Math.abs(a[0] - (zombieCol - 4));
+            int db = Math.abs(b[1] - zombieRow) * 4 + Math.abs(b[0] - (zombieCol - 4));
+            return Integer.compare(da, db);
+        });
+        int hold = 16;
+        int flight = 14;
+        int total = hold + flight;
+        int thrown = 0;
+        for (int i = 0; i < Math.min(toThrow, candidates.size()); i++) {
+            int[] cell = candidates.get(i);
+            session.queueGraveLanding(new PendingGraveLanding(
+                    session.nextBoneId(), cell[0], cell[1], total, total, hold,
+                    source.getX() - 0.35, source.getY()));
+            thrown++;
+        }
+        return thrown;
+    }
+
+    private List<int[]> emptyGraveTiles() {
+        List<int[]> candidates = new ArrayList<>();
+        for (int row = 0; row < getRowCount(); row++) {
+            for (int col = 0; col < getColCount(); col++) {
+                var tile = session.getBoard().getTile(col, row);
+                if (getPlantAt(col, row) == null && tile != null
+                        && !tile.blocksPlanting() && !tile.isWater()
+                        && !tile.isIce() && !tile.isGrave()
+                        && !session.hasPendingGraveAt(col, row)) {
+                    candidates.add(new int[]{col, row});
+                }
+            }
+        }
+        return candidates;
+    }
+
+    @Override
+    public void queuePlantBurn(int col, int row) {
+        session.queueLawnBurst(new LawnBurst(LawnBurst.Kind.BURN, col, row));
+    }
+
+    @Override
+    public void fireLaneLaser(int row, int fromCol, int span) {
+        fireLaneLaser(row, fromCol, span, 0);
+    }
+
+    @Override
+    public void fireLaneLaser(int row, int fromCol, int span, int delayTicks) {
+        fireLaneLaser(row, fromCol, span, delayTicks, fromCol + 0.5);
+    }
+
+    @Override
+    public void fireLaneLaser(int row, int fromCol, int span, int delayTicks, double originX) {
+        session.queueLaneLaser(row, fromCol, Math.max(1, span), Math.max(0, delayTicks), originX);
     }
 
     @Override
@@ -638,6 +789,21 @@ public final class BoardGameContext implements GameContext {
     @Override
     public List<ArcadeObstacle> getArcadeObstacles() {
         return session.getArcadeObstacles();
+    }
+
+    @Override
+    public void pushPianoObstacle(Zombie pusher) {
+        session.pushPianoObstacle(pusher);
+    }
+
+    @Override
+    public void releasePianoObstacle(String pusherId) {
+        session.releasePianoObstacle(pusherId);
+    }
+
+    @Override
+    public List<PianoObstacle> getPianoObstacles() {
+        return session.getPianoObstacles();
     }
 
     private void handleDeathTags(Plant plant) {
@@ -797,5 +963,32 @@ public final class BoardGameContext implements GameContext {
             }
         }
         return nearest;
+    }
+
+    private PianoObstacle nearestPianoAhead(Plant source, double range) {
+        PianoObstacle nearest = null;
+        double distance = Double.MAX_VALUE;
+        for (PianoObstacle obstacle : session.getPianoObstacles()) {
+            double current = obstacle.getX() - source.getCol();
+            if (obstacle.isAlive() && obstacle.getRow() == source.getRow()
+                    && current >= 0 && current <= range && current < distance) {
+                nearest = obstacle;
+                distance = current;
+            }
+        }
+        return nearest;
+    }
+
+    private int countGraves() {
+        int result = 0;
+        for (int row = 0; row < getRowCount(); row++) {
+            for (int col = 0; col < getColCount(); col++) {
+                var tile = session.getBoard().getTile(col, row);
+                if (tile != null && tile.isGrave()) {
+                    result++;
+                }
+            }
+        }
+        return result;
     }
 }

@@ -4,18 +4,15 @@ import io.github.finalwave.model.game.entity.GameContext;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieBehavior;
 
-public final class ArcadePushBehavior implements ZombieBehavior {
+public final class PianoPushBehavior implements ZombieBehavior {
 
     @Override
     public void execute(Zombie zombie, GameContext context) {
-        if (!"push".equals(zombie.getPresentationClip())) {
-            zombie.setPresentationClip("push");
-        }
-        context.pushArcadeObstacle(zombie);
+        context.pushPianoObstacle(zombie);
     }
 
     @Override
     public void onDeath(Zombie zombie, GameContext context) {
-        context.releaseArcadeObstacle(zombie.getId());
+        context.releasePianoObstacle(zombie.getId());
     }
 }

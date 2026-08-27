@@ -10,6 +10,7 @@ import io.github.finalwave.model.game.entity.Vase;
 import io.github.finalwave.model.game.entity.plant.*;
 import io.github.finalwave.model.game.entity.projectile.ProjectileSystem;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
+import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieFactory;
 import io.github.finalwave.model.item.Sun;
@@ -65,6 +66,7 @@ public final class GameSession {
     private MatchResult matchResult = MatchResult.IN_PROGRESS;
     private boolean wavesAutoStart = true;
     private boolean zombiesImmuneToChill;
+    private boolean sandboxPractice;
 
     private int currentTick;
     private int sunBalance;
@@ -197,6 +199,14 @@ public final class GameSession {
 
     public List<ArcadeObstacle> getArcadeObstacles() {
         return tileEffects.getArcadeObstacles();
+    }
+
+    public List<PianoObstacle> getPianoObstacles() {
+        return tileEffects.getPianoObstacles();
+    }
+
+    public List<PendingGraveLanding> getPendingGraveLandings() {
+        return tileEffects.getPendingGraveLandings();
     }
 
     public List<Vase> getVases() {
@@ -715,6 +725,15 @@ public final class GameSession {
         return zombiesImmuneToChill;
     }
 
+    public void enableSandboxPractice() {
+        sandboxPractice = true;
+        setWavesAutoStart(false);
+    }
+
+    public boolean isSandboxPractice() {
+        return sandboxPractice;
+    }
+
     public boolean isRunning() {
         return running;
     }
@@ -802,7 +821,11 @@ public final class GameSession {
     }
 
     public int stealGroundSun(int maximum) {
-        return planting.stealGroundSun(maximum);
+        return planting.stealGroundSun(null, maximum);
+    }
+
+    public int stealGroundSun(Zombie thief, int maximum) {
+        return planting.stealGroundSun(thief, maximum);
     }
 
     public boolean removePlantFromBoard(Plant plant) {
@@ -831,6 +854,14 @@ public final class GameSession {
 
     public void handleZombieReachedHouse(Zombie zombie) {
         combat.handleZombieReachedHouse(zombie);
+    }
+
+    public void despawnWalkOffZombie(Zombie zombie) {
+        if (zombie == null) {
+            return;
+        }
+        zombies.remove(zombie);
+        pendingZombies.remove(zombie);
     }
 
     public void winMatch() {
@@ -885,6 +916,10 @@ public final class GameSession {
         return tileEffects.coverPlant(plant, type, health);
     }
 
+    public PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health, Zombie source) {
+        return tileEffects.coverPlant(plant, type, health, source);
+    }
+
     public void registerHunterIceHit(Plant plant) {
         tileEffects.registerHunterIceHit(plant);
     }
@@ -915,6 +950,38 @@ public final class GameSession {
 
     public void releaseArcadeObstacle(String pusherId) {
         tileEffects.releaseArcadeObstacle(pusherId);
+    }
+
+    public void pushPianoObstacle(Zombie pusher) {
+        tileEffects.pushPianoObstacle(pusher);
+    }
+
+    public void releasePianoObstacle(String pusherId) {
+        tileEffects.releasePianoObstacle(pusherId);
+    }
+
+    public void queueGraveLanding(PendingGraveLanding landing) {
+        tileEffects.queueGraveLanding(landing);
+    }
+
+    public void queueLaneLaser(int row, int fromCol, int span, int delayTicks) {
+        tileEffects.queueLaneLaser(row, fromCol, span, delayTicks);
+    }
+
+    public void queueLaneLaser(int row, int fromCol, int span, int delayTicks, double originX) {
+        tileEffects.queueLaneLaser(row, fromCol, span, delayTicks, originX);
+    }
+
+    public long nextBoneId() {
+        return tileEffects.nextBoneId();
+    }
+
+    public boolean hasPendingGraveAt(int col, int row) {
+        return tileEffects.hasPendingGraveAt(col, row);
+    }
+
+    public int pendingGraveCount() {
+        return tileEffects.pendingGraveCount();
     }
 
     public void resetFamilyCooldowns(PlantCategory category) {

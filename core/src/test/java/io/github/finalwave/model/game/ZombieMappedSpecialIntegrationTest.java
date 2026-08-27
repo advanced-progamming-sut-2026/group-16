@@ -3,12 +3,14 @@ package io.github.finalwave.model.game;
 import io.github.finalwave.model.definition.PlantRegistry;
 import io.github.finalwave.model.definition.ZombieRegistry;
 import io.github.finalwave.model.game.board.GameBoard;
+import io.github.finalwave.model.game.entity.plant.PlantCovering;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantFactory;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
+import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieFactory;
 import io.github.finalwave.model.item.Sun;
@@ -45,7 +47,7 @@ class ZombieMappedSpecialIntegrationTest {
         raSession.spawnSunItem(new Sun(1, 1, 100, SunType.NORMAL, false));
         Zombie ra = zombies.createZombie("ZombieRa", 8, 1);
         raSession.addZombie(ra);
-        run(raSession, 10);
+        run(raSession, 30);
         assertTrue(raSession.getSunItems().isEmpty());
         ra.takeDirectDamage(ra.getHealth());
         assertEquals(150, raSession.getSunBalance());
@@ -61,7 +63,15 @@ class ZombieMappedSpecialIntegrationTest {
     void tombRaiserDodoAndTroglobiteChangeTheBoard() {
         GameSession tombSession = session();
         tombSession.addZombie(zombies.createZombie("ZombieTombRaiser", 8, 2));
-        run(tombSession, 70);
+        tombSession.start();
+        for (int i = 0; i < 60; i++) {
+            tombSession.tick();
+        }
+        assertEquals(0, countGraves(tombSession.getBoard()));
+        assertFalse(tombSession.getPendingGraveLandings().isEmpty());
+        for (int i = 0; i < 35; i++) {
+            tombSession.tick();
+        }
         assertTrue(countGraves(tombSession.getBoard()) >= 2);
 
         GameSession dodoSession = session();
@@ -78,6 +88,7 @@ class ZombieMappedSpecialIntegrationTest {
         long ice = java.util.stream.IntStream.range(0, iceSession.getBoard().getCols())
                 .filter(col -> iceSession.getBoard().getTile(col, 1).isIce()).count();
         assertEquals(3, ice);
+        assertEquals("push", iceSession.getZombies().getFirst().getPresentationClip());
     }
 
     @Test
@@ -126,6 +137,9 @@ class ZombieMappedSpecialIntegrationTest {
         pianoSession.addZombie(nearby);
         run(pianoSession, 1);
         assertNotEquals(2, nearby.getRow());
+        PianoObstacle instrument = pianoSession.getPianoObstacles().getFirst();
+        assertEquals(piano.getX() - PianoObstacle.FOLLOW_OFFSET, instrument.getX(), 0.0001);
+        assertEquals(piano.getRow(), instrument.getRow());
 
         GameSession arcadeSession = session();
         Zombie arcade = zombies.createZombie("ZombieArcade", 5, 1);
@@ -134,6 +148,8 @@ class ZombieMappedSpecialIntegrationTest {
         ArcadeObstacle machine = arcadeSession.getArcadeObstacles().getFirst();
         assertTrue(arcade.getArmorLayers().isEmpty());
         assertEquals(ArcadeObstacle.BUCKET_EQUIVALENT_HEALTH, machine.getHealth());
+        assertEquals(arcade.getX() - ArcadeObstacle.FOLLOW_OFFSET, machine.getX(), 0.0001);
+        assertEquals("push", arcade.getPresentationClip());
     }
 
     @Test
@@ -150,9 +166,21 @@ class ZombieMappedSpecialIntegrationTest {
         GameSession crystalSession = session();
         Plant laserTarget = place(crystalSession, "Peashooter", 4, 1);
         crystalSession.addZombie(zombies.createZombie("ZombieCrystalSkull", 8, 1));
-        run(crystalSession, 50);
+        run(crystalSession, 70);
         assertTrue(laserTarget.isDead());
         assertTrue(crystalSession.getSunBalance() < 50);
+    }
+
+    @Test
+    void octopusCoversThePlantAndWizardSheepRestoresOnDeath() {
+        GameSession octoSession = session();
+        Plant bound = place(octoSession, "Peashooter", 3, 1);
+        octoSession.addZombie(zombies.createZombie("ZombieBeachOctopus", 6, 1));
+        run(octoSession, 1);
+        assertTrue(octoSession.getPlantCoverings().stream().anyMatch(covering ->
+                covering.getType() == PlantCovering.Type.OCTOPUS
+                        && covering.getCoveredPlant() == bound));
+        assertTrue(bound.isDisabled());
     }
 
     private GameSession session() {

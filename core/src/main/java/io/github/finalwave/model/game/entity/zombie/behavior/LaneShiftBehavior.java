@@ -24,6 +24,7 @@ public final class LaneShiftBehavior implements ZombieBehavior {
         if (cooldown-- > 0) {
             return;
         }
+        boolean shifted = false;
         for (Zombie target : context.getAllZombies()) {
             if (target == zombie || target.isDead()
                     || Math.abs(target.getX() - zombie.getX()) > range) {
@@ -37,7 +38,11 @@ public final class LaneShiftBehavior implements ZombieBehavior {
             if (row >= 0 && row < context.getRowCount()) {
                 target.setRow(row);
                 shiftDown = !shiftDown;
+                shifted = true;
             }
+        }
+        if (shifted) {
+            zombie.beginAbility("play", 10);
         }
         cooldown = cooldownTicks;
     }

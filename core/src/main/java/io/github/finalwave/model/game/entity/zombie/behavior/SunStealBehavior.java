@@ -9,6 +9,11 @@ public final class SunStealBehavior implements ZombieBehavior {
 
     public enum Mode {GROUND, CHARGE_AND_LASER}
 
+    private static final int POWER_UP_TICKS = 7;
+    private static final int ATTACK_TICKS = 20;
+    private static final int POWER_DOWN_TICKS = 13;
+    private static final int LASER_FIRE_DELAY = 6;
+
     private final Mode mode;
     private final int durationTicks;
     private final int pulseTicks;
@@ -17,6 +22,7 @@ public final class SunStealBehavior implements ZombieBehavior {
     private final int laserColumns;
     private int chargeTicks;
     private int stolen;
+    private boolean awaitingPowerDown;
 
     public SunStealBehavior(Mode mode, int durationTicks, int pulseTicks,
                             int amountPerPulse, double range, int laserColumns) {
@@ -32,20 +38,48 @@ public final class SunStealBehavior implements ZombieBehavior {
     public void execute(Zombie zombie, GameContext context) {
         if (mode == Mode.GROUND) {
             if (zombie.getTickAge() % pulseTicks == 0 && stolen < amountPerPulse) {
-                stolen += context.stealGroundSun(amountPerPulse - stolen);
+                int gained = context.stealGroundSun(zombie, amountPerPulse - stolen);
+                if (gained > 0) {
+                    zombie.beginAbility(stolen == 0 ? "power_up" : "power", pulseTicks);
+                    stolen += gained;
+                }
             }
             return;
         }
         if (!hasPlantInRange(zombie, context)) {
             chargeTicks = 0;
+            awaitingPowerDown = false;
+            zombie.setStationary(false);
             return;
         }
-        chargeTicks++;
-        if (chargeTicks % pulseTicks == 0) {
-            stolen += context.withdrawSun(amountPerPulse);
+        zombie.setStationary(true);
+        if (awaitingPowerDown) {
+            chargeTicks++;
+            zombie.setPresentationClip("power_down");
+            if (chargeTicks >= POWER_DOWN_TICKS) {
+                awaitingPowerDown = false;
+                chargeTicks = 0;
+                zombie.setStationary(false);
+            }
+            return;
         }
-        if (chargeTicks >= durationTicks && zombie.tryBeginAbilityAction()) {
-            destroyPlantsAhead(zombie, context);
+        int chargeHold = Math.max(POWER_UP_TICKS + 1, durationTicks);
+        chargeTicks++;
+        if (chargeTicks <= POWER_UP_TICKS) {
+            zombie.setPresentationClip("power_up");
+            return;
+        }
+        if (chargeTicks <= chargeHold) {
+            zombie.setPresentationClip("power");
+            if (chargeTicks % pulseTicks == 0) {
+                stolen += context.withdrawSun(amountPerPulse);
+            }
+            return;
+        }
+        if (zombie.beginAbility("attack", ATTACK_TICKS)) {
+            int start = (int) Math.floor(zombie.getX());
+            context.fireLaneLaser(zombie.getRow(), start, laserColumns, LASER_FIRE_DELAY, zombie.getX());
+            awaitingPowerDown = true;
             chargeTicks = 0;
         }
     }
@@ -65,17 +99,5 @@ public final class SunStealBehavior implements ZombieBehavior {
             }
         }
         return false;
-    }
-
-    private void destroyPlantsAhead(Zombie zombie, GameContext context) {
-        int start = (int) Math.floor(zombie.getX());
-        int end = Math.max(0, start - laserColumns);
-        for (int col = start; col >= end; col--) {
-            Plant plant = context.getPlantAt(col, zombie.getRow());
-            if (plant != null && plant.canBeTargetedByZombie()) {
-                plant.takeDamage(plant.getHealth());
-                context.onPlantDestroyed(plant);
-            }
-        }
     }
 }

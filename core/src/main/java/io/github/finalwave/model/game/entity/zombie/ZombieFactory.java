@@ -152,6 +152,7 @@ public final class ZombieFactory {
     private static void configureAllStar(Zombie.Builder b, ZombieDefinition d) {
         b.addBehavior(new TransformBehavior(
                 TransformBehavior.TransformType.SMASH, 1, false));
+        b.speedMultiplier(2.0);
         b.addBehavior(new ContactAttackBehavior(true,
                 ZombieBehaviorDefaults.number(d, "RunningSpeedScale", 0.5)));
     }
@@ -194,7 +195,8 @@ public final class ZombieFactory {
     private static void configureTombRaiser(Zombie.Builder b, ZombieDefinition d) {
         b.addBehavior(new GraveRaisingBehavior(
                 ZombieBehaviorDefaults.integer(d, "NumberOfTombsToSpawn", 2),
-                ZombieBehaviorDefaults.ticks(d, "TimeBetweenRaisings", 6.0)));
+                ZombieBehaviorDefaults.ticks(d, "TimeBetweenRaisings", 6.0),
+                ZombieBehaviorDefaults.integer(d, "Ammo", 5)));
     }
 
     private static void configureDodo(Zombie.Builder b, ZombieDefinition d) {
@@ -254,6 +256,7 @@ public final class ZombieFactory {
     }
 
     private static void configurePiano(Zombie.Builder b, ZombieDefinition d) {
+        b.addBehavior(new PianoPushBehavior());
         b.addBehavior(new ContactAttackBehavior(false, 1.0));
         b.addBehavior(new LaneShiftBehavior(
                 ZombieBehaviorDefaults.STANDARD_COOLDOWN_TICKS,

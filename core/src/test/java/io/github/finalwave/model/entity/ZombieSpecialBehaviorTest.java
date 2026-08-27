@@ -9,6 +9,7 @@ import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.behavior.ContactAttackBehavior;
+import io.github.finalwave.model.game.entity.zombie.behavior.MovementBehavior;
 import io.github.finalwave.model.game.entity.zombie.behavior.PlantControlBehavior;
 import io.github.finalwave.model.game.entity.zombie.behavior.ProjectileDefenseBehavior;
 import io.github.finalwave.model.game.entity.zombie.behavior.TimedDirectionBehavior;
@@ -87,10 +88,16 @@ class ZombieSpecialBehaviorTest {
         for (int i = 0; i < 100; i++) {
             zombie.onTickUpdate(context);
         }
+        assertTrue(zombie.isAbilityHeld());
+        assertEquals("blastoff", zombie.getPresentationClip());
+
+        for (int i = 0; i < 25; i++) {
+            zombie.onTickUpdate(context);
+        }
         assertEquals(0.0, zombie.getX(), 0.0001);
-        assertTrue(zombie.isMovingRight());
 
         zombie.onTickUpdate(context);
+        assertTrue(zombie.isMovingRight());
         assertEquals(0.1, zombie.getX(), 0.0001);
     }
 
@@ -110,6 +117,26 @@ class ZombieSpecialBehaviorTest {
         wizard.takeDirectDamage(10);
         assertFalse(plant.isCatTransformed());
         assertTrue(plant.canBeTargetedByZombie());
+    }
+
+    @Test
+    void jesterSpinsInsteadOfEatingWhileDeflectingStraights() {
+        GameContext context = contextWithPlant(plant, new AtomicBoolean());
+        Zombie jester = new Zombie.Builder("ZombieDarkJuggler")
+                .maxHealth(100)
+                .speed(1.0)
+                .position(3.4, 1)
+                .addBehavior(new ProjectileDefenseBehavior(ProjectileDefenseBehavior.Mode.JESTER, 1.1))
+                .addBehavior(new MovementBehavior())
+                .build();
+        Projectile pea = new Projectile(1, 3.4, 10, ProjectileProfile.straight(),
+                ProjectileEffect.PEA, plant, 0);
+        assertTrue(jester.interceptProjectile(pea, context));
+        assertTrue(jester.isJuggling());
+        int health = plant.getHealth();
+        jester.onTickUpdate(context);
+        assertEquals(health, plant.getHealth());
+        assertTrue(jester.getX() < 3.4);
     }
 
     @Test

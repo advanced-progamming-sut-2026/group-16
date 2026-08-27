@@ -31,6 +31,7 @@ import pvz.libpvz.pam.PamPlayer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -47,6 +48,9 @@ public final class ZombieSync {
     private static final float ARM_DROP_Y = 0.7f;
     private static final float ARMOR_DROP_Y = 1.15f;
     private static final float APPEAR_SECONDS = 0.28f;
+    private static final float WALK_STRIDE_TILES = 0.32f;
+    private static final float WALK_GAIT_MIN = 0.8f;
+    private static final float WALK_GAIT_MAX = 2.2f;
     private static final String PARTICLE_HEAD = "particle_head";
     private static final String PARTICLE_ARM = "particle_arm";
 
@@ -65,10 +69,12 @@ public final class ZombieSync {
     private final List<PamActor> deathActors = new ArrayList<>();
     private final Set<PamActor> bossActors = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<PamActor, String> bossLogical = new IdentityHashMap<>();
+    private final Map<PamActor, String> abilityLatch = new IdentityHashMap<>();
     private final Set<Armor> thrownArmor = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<Armor, String> lastArmorLayers = new IdentityHashMap<>();
     private final ActorRegistry<Zombie, PamActor> iceShells = new ActorRegistry<>();
     private final Set<String> smashShaking = new HashSet<>();
+    private final Map<String, Float> clipSeconds = new HashMap<>();
     private GameSession session;
     private float tickFraction;
     private BiConsumer<Float, Float> smashShake;
@@ -127,6 +133,7 @@ public final class ZombieSync {
         bossLogical.clear();
         ArmorPartVisibility.clear();
         ZombotanyLooks.clear();
+        clipSeconds.clear();
         for (PamActor actor : deathActors) {
             actor.remove();
         }
@@ -156,14 +163,17 @@ public final class ZombieSync {
         float worldX = layout.worldX(displayX(zombie));
         float worldY = layout.worldYForRow(displayY(zombie));
         float scale = LawnLayout.ZOMBIE_SCALE;
+        float appear = 1f;
         Long started = appearStart.get(actor);
         if (started != null) {
             float t = (System.nanoTime() - started) / 1_000_000_000f / APPEAR_SECONDS;
             t = Math.max(0f, Math.min(1f, t));
+            appear = t;
             scale = LawnLayout.ZOMBIE_SCALE * (0.45f + 0.55f * Interpolation.swingOut.apply(t));
             if (t >= 1f) {
                 appearStart.remove(actor);
                 scale = LawnLayout.ZOMBIE_SCALE;
+                appear = 1f;
             }
         }
         if (zombie.isBoss()) {
@@ -177,19 +187,30 @@ public final class ZombieSync {
         } else {
             actor.setSize(layout.tileWidth(), layout.tileHeight());
         }
+        if (zombie.isSubmerged()) {
+            worldY -= layout.tileHeight() * 0.12f;
+        }
         actor.setPosition(worldX - actor.getWidth() / 2f, worldY);
-        applyClip(zombie, actor, scale);
-        actor.setFlipX(!zombie.isBoss() && (zombie.isMovingRight() || zombie.isHypnotized()));
-        actor.setTint(ZombieVisualState.tint(zombie, session));
         EntityAnimationCatalog.ClipSpec clip = ZombieVisualState.clip(zombie, clips);
+        applyClip(zombie, actor, scale);
+        actor.setTimeScale(locomotionScale(zombie, clip));
+        actor.setFlipX(shouldFlip(zombie));
+        actor.setTint(ZombieVisualState.tint(zombie, session));
         Map<String, Boolean> vis = ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(),
                 ZombieVisualState.armorVisibility(zombie, clips));
         if (ZombotanyLooks.plantFor(zombie.getType()) != null) {
             vis = ZombotanyLooks.withHeadHidden(assets.pamPlayer(), clip.path(), vis);
         }
+        vis = hideRaStaffSun(zombie, vis);
+        vis = hideExplorerTorch(zombie, vis);
         actor.setVisibility(vis);
         actor.setUserObject(zombie.getRow() * 8);
-        actor.setVisible(!zombie.isSubmerged());
+        actor.setVisible(true);
+        applySnorkelLook(zombie, actor, appear);
+        if (session != null && session.isSandboxPractice() && zombie.getX() < 0f) {
+            float fade = (float) Math.max(0.0, Math.min(1.0, (zombie.getX() + 1.8) / 1.8));
+            actor.getColor().a *= fade;
+        }
         aliases.put(actor, zombie.getType());
         hits.observe(zombie, flashHealth(zombie), actor, zombie.isBoss() ? 0.28f : 0.18f);
         throwBrokenArmor(zombie, actor, clip);
@@ -388,7 +409,7 @@ public final class ZombieSync {
             actor.setClip(ZombossClips.ICE_BLOCK_ZOMBIE, "idle", LawnLayout.ICE_BLOCK_SCALE, true);
         }
         actor.setUserObject(zombie.getRow() * 8 + 3);
-        actor.setVisible(!zombie.isSubmerged());
+        actor.setVisible(true);
     }
 
     private void maybeShakeSmash(Zombie zombie, EntityAnimationCatalog.ClipSpec clip) {
@@ -413,6 +434,21 @@ public final class ZombieSync {
     private void applyClip(Zombie zombie, PamActor actor, float scale) {
         if (!zombie.isBoss()) {
             EntityAnimationCatalog.ClipSpec clip = ZombieVisualState.clip(zombie, clips);
+            if (ZombieClips.isOneShot(zombie.getType(), clip.clip())) {
+                if (!clip.clip().equals(abilityLatch.get(actor))) {
+                    abilityLatch.put(actor, clip.clip());
+                    actor.playThen(clip.path(), clip.clip(), scale,
+                            ZombieVisualState.followClip(zombie, clips), true, null);
+                } else {
+                    actor.setDrawScale(scale);
+                }
+                return;
+            }
+            abilityLatch.remove(actor);
+            if (actor.hasFollowUp()) {
+                actor.setDrawScale(scale);
+                return;
+            }
             actor.setClip(clip.path(), clip.clip(), scale, true);
             return;
         }
@@ -425,10 +461,49 @@ public final class ZombieSync {
         clips.applyBoss(actor, zombie.getType(), logical, scale);
     }
 
+    private float locomotionScale(Zombie zombie, EntityAnimationCatalog.ClipSpec clip) {
+        if (zombie == null || clip == null || zombie.isBoss() || !isLocomotionClip(clip.clip())) {
+            return 1f;
+        }
+        float duration = clipDuration(clip);
+        if (duration < 0.25f) {
+            return 1f;
+        }
+        float gait = duration * (float) zombie.getCurrentSpeed() / WALK_STRIDE_TILES;
+        return Math.max(WALK_GAIT_MIN, Math.min(WALK_GAIT_MAX, gait));
+    }
+
+    private float clipDuration(EntityAnimationCatalog.ClipSpec clip) {
+        String key = clip.path() + "|" + clip.clip();
+        Float cached = clipSeconds.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        float duration = 3f;
+        try {
+            duration = assets.pamPlayer().clipDurationSeconds(clip.path(), clip.clip());
+        } catch (RuntimeException e) {
+            duration = 3f;
+        }
+        if (duration <= 0f) {
+            duration = 3f;
+        }
+        clipSeconds.put(key, duration);
+        return duration;
+    }
+
+    private static boolean isLocomotionClip(String clip) {
+        return "walk".equals(clip)
+                || "walk_newspaper".equals(clip)
+                || "run".equals(clip)
+                || "spin_walk".equals(clip);
+    }
+
     private void beginDeath(PamActor actor) {
         actor.flashHit();
         String alias = aliases.remove(actor);
         bossLogical.remove(actor);
+        abilityLatch.remove(actor);
         if (alias == null || !clips.hasDie(alias)) {
             actor.remove();
             return;
@@ -438,6 +513,7 @@ public final class ZombieSync {
         spawnParticles(actor, parts);
         deathActors.add(actor);
         actor.setVisibility(null);
+        actor.setTimeScale(1f);
         float scale = bossActors.remove(actor) ? LawnLayout.ZOMBOSS_SCALE : LawnLayout.ZOMBIE_SCALE;
         actor.playOnce(die.path(), die.clip(), scale,
                 () -> actor.addAction(ActorFades.holdThenFade(() -> deathActors.remove(actor))));
@@ -585,6 +661,9 @@ public final class ZombieSync {
             return lerp(zombie.getPreviousX(), zombie.getX(), tickFraction);
         }
         double modelX = zombie.getX();
+        if (zombie.isAbilityHeld()) {
+            return lerp(zombie.getPreviousX(), modelX, tickFraction);
+        }
         if (tickFraction <= 0f
                 || zombie.getState() != ZombieState.MOVING
                 || zombie.isStationary()) {
@@ -604,7 +683,52 @@ public final class ZombieSync {
         if (session != null && session.isIZombieActive()) {
             return zombie.getRow();
         }
-        return zombie.getY();
+        return zombie.getY() - zombie.flightLift();
+    }
+
+    private static boolean shouldFlip(Zombie zombie) {
+        if (zombie.isBoss()) {
+            return false;
+        }
+        if ("ZombieExplorer".equals(zombie.getType())) {
+            return zombie.isHypnotized();
+        }
+        return zombie.isMovingRight() || zombie.isHypnotized();
+    }
+
+    private static void applySnorkelLook(Zombie zombie, PamActor actor, float appear) {
+        float alpha = appear;
+        if (zombie.isSubmerged()) {
+            alpha *= 0.45f;
+        }
+        actor.getColor().a = alpha;
+    }
+
+    private static Map<String, Boolean> hideRaStaffSun(Zombie zombie, Map<String, Boolean> vis) {
+        if (zombie == null || !"ZombieRa".equals(zombie.getType()) || !zombie.isStaffSunConcealed()) {
+            return vis;
+        }
+        Map<String, Boolean> hidden = vis == null ? new java.util.HashMap<>() : new java.util.HashMap<>(vis);
+        hidden.put("zombie_egypt_ra_88x88", Boolean.FALSE);
+        hidden.put("zombie_egypt_ra_95x89", Boolean.FALSE);
+        hidden.put("zombie_egypt_ra_100x96", Boolean.FALSE);
+        hidden.put("zombie_egypt_ra_100x96_2", Boolean.FALSE);
+        return hidden;
+    }
+
+    private static Map<String, Boolean> hideExplorerTorch(Zombie zombie, Map<String, Boolean> vis) {
+        if (zombie == null || !"ZombieExplorer".equals(zombie.getType()) || zombie.isTorchLit()) {
+            return vis;
+        }
+        Map<String, Boolean> hidden = vis == null ? new java.util.HashMap<>() : new java.util.HashMap<>(vis);
+        hidden.put("torch_stick", Boolean.FALSE);
+        hidden.put("torch_end_lit", Boolean.FALSE);
+        hidden.put("torch_fire_frame_01", Boolean.FALSE);
+        hidden.put("torch_fire_frame_02", Boolean.FALSE);
+        hidden.put("torch_fire_frame_03", Boolean.FALSE);
+        hidden.put("torch_fire_frame_04", Boolean.FALSE);
+        hidden.put("torch_fire_fire_frame_01", Boolean.FALSE);
+        return hidden;
     }
 
     private static double lerp(double from, double to, float fraction) {

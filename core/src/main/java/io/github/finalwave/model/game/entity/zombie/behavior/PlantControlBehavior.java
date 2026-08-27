@@ -28,14 +28,22 @@ public final class PlantControlBehavior implements ZombieBehavior {
             return;
         }
         Plant target = nearestTarget(zombie, context);
-        if (target == null || !zombie.tryBeginAbilityAction()) {
+        if (target == null) {
+            return;
+        }
+        String clip = switch (mode) {
+            case HUNTER_ICE -> "throw";
+            case OCTOPUS -> "toss";
+            case WIZARD -> "sheep";
+        };
+        if (!zombie.beginAbility(clip, mode == Mode.OCTOPUS ? 31 : 12)) {
             return;
         }
         if (mode == Mode.HUNTER_ICE) {
             context.spawnProjectile(zombie, zombie.getRow(), zombie.getX() - 0.5,
                     0, "snowball");
         } else if (mode == Mode.OCTOPUS) {
-            context.coverPlant(target, PlantCovering.Type.OCTOPUS, 300);
+            context.coverPlant(target, PlantCovering.Type.OCTOPUS, 300, zombie);
         } else {
             target.transformIntoCat(zombie.getId());
         }

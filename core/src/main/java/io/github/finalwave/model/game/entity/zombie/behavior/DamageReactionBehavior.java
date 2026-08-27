@@ -38,6 +38,9 @@ public final class DamageReactionBehavior implements ZombieBehavior {
             triggered = true;
             zombie.multiplySpeed(speedMultiplier);
             zombie.multiplyEatingDamage(eatingDamageMultiplier);
+            if (trigger == Trigger.ARMOR_DESTROYED) {
+                zombie.beginAbility("newspaper_defeat", 12);
+            }
         }
     }
 

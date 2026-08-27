@@ -32,6 +32,7 @@ public final class PlantSync {
     private final ActorRegistry<Plant, PamActor> plants = new ActorRegistry<>();
     private final ActorRegistry<Plant, PamActor> iceBlocks = new ActorRegistry<>();
     private final ActorRegistry<PlantCovering, PamActor> octopi = new ActorRegistry<>();
+    private final ActorRegistry<Plant, PamActor> sheep = new ActorRegistry<>();
     private final HitFlashTracker<Plant> plantHits = new HitFlashTracker<>();
     private final HitFlashTracker<Plant> iceHits = new HitFlashTracker<>();
     private final HitFlashTracker<PlantCovering> octopusHits = new HitFlashTracker<>();
@@ -65,9 +66,11 @@ public final class PlantSync {
                 : session.getProjectileSystem().getProjectiles();
         shots.observe(projectiles);
         List<PlantCovering> octopusCoverings = liveOctopi(session);
+        List<Plant> sheeped = liveSheep(live);
         plants.sync(live, this::spawnPlant, (plant, actor) -> updatePlant(plant, actor, board, session), PamActor::remove);
         iceBlocks.sync(frozen, this::spawnIce, (plant, actor) -> updateIce(plant, actor, session), PamActor::remove);
         octopi.sync(octopusCoverings, this::spawnOctopus, this::updateOctopus, PamActor::remove);
+        sheep.sync(sheeped, this::spawnSheep, this::updateSheep, PamActor::remove);
         plantHits.retain(live);
         iceHits.retain(frozen);
         octopusHits.retain(octopusCoverings);
@@ -78,6 +81,7 @@ public final class PlantSync {
         plants.clear(PamActor::remove);
         iceBlocks.clear(PamActor::remove);
         octopi.clear(PamActor::remove);
+        sheep.clear(PamActor::remove);
         plantHits.clear();
         iceHits.clear();
         octopusHits.clear();
@@ -96,7 +100,8 @@ public final class PlantSync {
         PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
-        actor.setClip(PlantClips.ICE_BLOCK_PATH, PlantClips.ICE_BLOCK_CLIP, LawnLayout.ICE_BLOCK_SCALE, true);
+        actor.playThen(PlantClips.ICE_BLOCK_PATH, PlantClips.ICE_BLOCK_START_CLIP,
+                LawnLayout.ICE_BLOCK_SCALE, PlantClips.ICE_BLOCK_CLIP, true, null);
         layer.addActor(actor);
         return actor;
     }
@@ -117,6 +122,8 @@ public final class PlantSync {
         }
         actor.setUserObject(sortKey(plant, board, 0));
         int freeze = freezeLevel(plant, session);
+        boolean covered = isOctopusCovered(plant, session);
+        actor.setVisible(!plant.isCatTransformed() && !covered);
         if (plant.isDisabled() || plant.isCatTransformed()) {
             actor.setTint(DISABLED);
         } else if (freeze == 1) {
@@ -131,7 +138,11 @@ public final class PlantSync {
         Vector2 center = layout.cellCenter(plant.getCol(), plant.getRow());
         actor.setSize(layout.tileWidth(), layout.tileHeight());
         actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
-        actor.setClip(PlantClips.ICE_BLOCK_PATH, PlantClips.ICE_BLOCK_CLIP, LawnLayout.ICE_BLOCK_SCALE, true);
+        if (actor.hasFollowUp()) {
+            actor.setDrawScale(LawnLayout.ICE_BLOCK_SCALE);
+        } else {
+            actor.setClip(PlantClips.ICE_BLOCK_PATH, PlantClips.ICE_BLOCK_CLIP, LawnLayout.ICE_BLOCK_SCALE, true);
+        }
         actor.setUserObject(sortKey(plant, null, 2));
         iceHits.observe(plant, iceHealth(plant, session), actor);
     }
@@ -140,19 +151,65 @@ public final class PlantSync {
         PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
-        actor.setClip(PlantClips.OCTOPUS_PATH, PlantClips.OCTOPUS_CLIP, LawnLayout.PLANT_SCALE, true);
+        actor.setClip(PlantClips.OCTOPUS_PATH, PlantClips.OCTOPUS_FLY_CLIP, LawnLayout.PLANT_SCALE, false);
         layer.addActor(actor);
         return actor;
     }
 
     private void updateOctopus(PlantCovering covering, PamActor actor) {
         Plant plant = covering.getCoveredPlant();
+        float worldX = layout.worldX(covering.displayX());
+        float worldY = layout.worldYForRow(covering.displayY());
+        actor.setSize(layout.tileWidth(), layout.tileHeight());
+        actor.setPosition(worldX - actor.getWidth() / 2f, worldY);
+        if (covering.isInFlight()) {
+            if (!PlantClips.OCTOPUS_FLY_CLIP.equals(actor.clipName())) {
+                actor.setClip(PlantClips.OCTOPUS_PATH, PlantClips.OCTOPUS_FLY_CLIP,
+                        LawnLayout.PLANT_SCALE, false);
+            }
+            actor.setDrawScale(LawnLayout.PLANT_SCALE);
+        } else if (PlantClips.OCTOPUS_IDLE_CLIP.equals(actor.clipName())
+                || PlantClips.OCTOPUS_LAND_CLIP.equals(actor.clipName())
+                || actor.hasFollowUp()) {
+            actor.setDrawScale(LawnLayout.PLANT_SCALE);
+        } else {
+            actor.playThen(PlantClips.OCTOPUS_PATH, PlantClips.OCTOPUS_LAND_CLIP,
+                    LawnLayout.PLANT_SCALE, PlantClips.OCTOPUS_IDLE_CLIP, true, null);
+        }
+        actor.setUserObject(sortKey(plant, null, 3));
+        octopusHits.observe(covering, covering.getHealth(), actor);
+    }
+
+    private PamActor spawnSheep(Plant plant) {
+        PamActor actor = assets.pamActor();
+        actor.setTouchable(Touchable.disabled);
+        actor.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
+        actor.playThen(PlantClips.SHEEP_PATH, PlantClips.SHEEP_INTRO_CLIP, LawnLayout.PLANT_SCALE,
+                PlantClips.SHEEP_IDLE_CLIP, true, null);
+        layer.addActor(actor);
+        return actor;
+    }
+
+    private void updateSheep(Plant plant, PamActor actor) {
         Vector2 center = layout.cellCenter(plant.getCol(), plant.getRow());
         actor.setSize(layout.tileWidth(), layout.tileHeight());
         actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
-        actor.setClip(PlantClips.OCTOPUS_PATH, PlantClips.OCTOPUS_CLIP, LawnLayout.PLANT_SCALE, true);
+        if (actor.hasFollowUp()) {
+            actor.setDrawScale(LawnLayout.PLANT_SCALE);
+        } else {
+            actor.setClip(PlantClips.SHEEP_PATH, PlantClips.SHEEP_IDLE_CLIP, LawnLayout.PLANT_SCALE, true);
+        }
         actor.setUserObject(sortKey(plant, null, 3));
-        octopusHits.observe(covering, covering.getHealth(), actor);
+    }
+
+    private static List<Plant> liveSheep(List<Plant> live) {
+        List<Plant> sheeped = new ArrayList<>();
+        for (Plant plant : live) {
+            if (plant.isCatTransformed()) {
+                sheeped.add(plant);
+            }
+        }
+        return sheeped;
     }
 
     private static List<PlantCovering> liveOctopi(GameSession session) {
@@ -162,7 +219,8 @@ public final class PlantSync {
                     && covering.isAlive()
                     && covering.getType() == PlantCovering.Type.OCTOPUS
                     && covering.getCoveredPlant() != null
-                    && covering.getCoveredPlant().isAlive()) {
+                    && covering.getCoveredPlant().isAlive()
+                    && !covering.isHeld()) {
                 live.add(covering);
             }
         }
@@ -182,7 +240,6 @@ public final class PlantSync {
     }
 
     private static int freezeLevel(Plant plant, GameSession session) {
-        int stacks = plant.getHostileIceStacks(null);
         for (PlantCovering covering : session.getPlantCoverings()) {
             if (covering != null
                     && covering.isAlive()
@@ -191,13 +248,23 @@ public final class PlantSync {
                 return 2;
             }
         }
-        if (stacks >= 2) {
-            return 2;
-        }
-        if (stacks >= 1) {
+        if (plant.getHostileIceStacks(null) >= 1) {
             return 1;
         }
         return 0;
+    }
+
+    private static boolean isOctopusCovered(Plant plant, GameSession session) {
+        for (PlantCovering covering : session.getPlantCoverings()) {
+            if (covering != null
+                    && covering.isAlive()
+                    && covering.getCoveredPlant() == plant
+                    && covering.getType() == PlantCovering.Type.OCTOPUS
+                    && !covering.isHeld()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static int sortKey(Plant plant, GameBoard board, int extraDepth) {

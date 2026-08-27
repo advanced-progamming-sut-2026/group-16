@@ -32,7 +32,9 @@ public final class StartWaveButton extends Table {
     }
 
     public void refresh(GameSession session) {
-        boolean active = session != null && session.isPrepPhaseActive();
+        boolean active = session != null
+                && session.isPrepPhaseActive()
+                && !session.isSandboxPractice();
         if (active != shown) {
             shown = active;
             setVisible(active);

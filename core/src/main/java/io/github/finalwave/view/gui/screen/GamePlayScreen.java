@@ -55,6 +55,7 @@ import io.github.finalwave.view.gui.hud.SpeedButton;
 import io.github.finalwave.view.gui.hud.SunCounter;
 import io.github.finalwave.view.gui.hud.WaveProgressMeter;
 import io.github.finalwave.view.gui.hud.ZombieRosterBar;
+import io.github.finalwave.view.gui.hud.ZombieSandboxPanel;
 import io.github.finalwave.view.gui.hud.special.BeghouledUpgradeBar;
 import io.github.finalwave.view.gui.hud.special.ConveyorBeltBar;
 import io.github.finalwave.view.gui.hud.special.LoveYourPlantsCounter;
@@ -82,6 +83,7 @@ import io.github.finalwave.view.gui.render.clip.ZombotanyLooks;
 import io.github.finalwave.view.gui.render.sync.ArcadeObstacleSync;
 import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
+import io.github.finalwave.view.gui.render.sync.PianoObstacleSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 import io.github.finalwave.view.gui.render.sync.VaseSync;
@@ -114,6 +116,7 @@ public final class GamePlayScreen extends MenuScreen {
     private LawnInputController input;
     private SeedBankBar seedBank;
     private ZombieRosterBar zombieRoster;
+    private ZombieSandboxPanel zombieSandbox;
     private BeghouledUpgradeBar upgradeBar;
     private ConveyorBeltBar conveyorBeltBar;
     private StartWaveButton startWaveButton;
@@ -477,7 +480,7 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (waveMeter != null) {
             boolean boss = session != null && session.isBossActive();
-            waveMeter.setVisible(!vaseMode && !iZombieMode && !boss);
+            waveMeter.setVisible(!sandboxMatch() && !vaseMode && !iZombieMode && !boss);
         }
         if (zombossMeter != null) {
             boolean boss = session != null && session.isBossActive();
@@ -510,6 +513,7 @@ public final class GamePlayScreen extends MenuScreen {
                 zombieRoster.setVisible(false);
             }
         }
+        layoutSandbox();
         if (upgradeBar != null) {
             upgradeBar.refresh(session);
         }
@@ -682,6 +686,8 @@ public final class GamePlayScreen extends MenuScreen {
         hudTop.add().expandX();
         Table utilities = new Table();
         utilities.add(speedButton.actor()).size(72f).padRight(2f);
+        zombieSandbox = new ZombieSandboxPanel(assets, sandboxHost());
+        zombieSandbox.setVisible(false);
         utilities.add(pause).size(72f).padRight(4f);
         utilities.add(currencyBar);
         hudTop.add(utilities).padTop(6f).padRight(8f);
@@ -720,6 +726,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         hudLayer.add(hudBottom).growX();
         hudLayer.addActor(conveyorBeltBar);
+        if (zombieSandbox != null) {
+            hudLayer.addActor(zombieSandbox);
+        }
 
         if (alertBanner != null) {
             alertBanner.remove();
@@ -759,8 +768,8 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void startIntroDialog() {
-        if (npcDialog == null || controller == null || vaseBreaker != null || walnutBowling != null
-                || iZombie != null || beghouled != null || zombotany != null) {
+        if (sandboxMatch() || npcDialog == null || controller == null || vaseBreaker != null
+                || walnutBowling != null || iZombie != null || beghouled != null || zombotany != null) {
             showObjectiveIfNeeded();
             return;
         }
@@ -781,8 +790,8 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void showObjectiveIfNeeded() {
-        if (objectiveBanner == null || controller == null || vaseBreaker != null || walnutBowling != null
-                || iZombie != null || beghouled != null || zombotany != null) {
+        if (sandboxMatch() || objectiveBanner == null || controller == null || vaseBreaker != null
+                || walnutBowling != null || iZombie != null || beghouled != null || zombotany != null) {
             resumeAfterIntro();
             return;
         }
@@ -809,8 +818,8 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private boolean shouldPlayStartChant() {
-        if (controller == null || vaseBreaker != null || walnutBowling != null || iZombie != null
-                || beghouled != null || zombotany != null) {
+        if (sandboxMatch() || controller == null || vaseBreaker != null || walnutBowling != null
+                || iZombie != null || beghouled != null || zombotany != null) {
             return false;
         }
         GameSession session = controller.session();
@@ -1311,7 +1320,10 @@ public final class GamePlayScreen extends MenuScreen {
         }
         preload(PlantClips.ICE_BLOCK_PATH);
         preload(PlantClips.OCTOPUS_PATH);
+        preload(ExplosionLooks.BONE_HIT_PATH);
+        assets.region(ExplosionLooks.BONE_PROJECTILE_IMAGE);
         preload(ArcadeObstacleSync.PAM_PATH);
+        preload(PianoObstacleSync.PAM_PATH);
         preload(SunSync.SUN_PATH);
         preload(mowerPath(ChapterId.fromName(session.getChapterId())));
         for (String gravePath : GraveClips.preloadPaths(ChapterId.fromName(session.getChapterId()))) {
@@ -1352,6 +1364,145 @@ public final class GamePlayScreen extends MenuScreen {
             case BIG_WAVE_BEACH -> "768/FULL/MOWERS/MOWER_BEACH/MOWER_BEACH.PAM";
             case DARK_AGES -> "768/FULL/MOWERS/MOWER_DARK/MOWER_DARK.PAM";
         };
+    }
+
+    private boolean sandboxMatch() {
+        GameSession session = matchSession();
+        return session != null && session.isSandboxPractice();
+    }
+
+    private void layoutSandbox() {
+        if (zombieSandbox == null) {
+            return;
+        }
+        if (!sandboxMatch()) {
+            zombieSandbox.setVisible(false);
+            return;
+        }
+        zombieSandbox.setVisible(true);
+        zombieSandbox.pack();
+        float x = Math.max(12f, hudLayer.getWidth() - zombieSandbox.getWidth() - 14f);
+        float y = 18f;
+        zombieSandbox.setPosition(x, y);
+        zombieSandbox.toFront();
+    }
+
+    private ZombieSandboxPanel.Host sandboxHost() {
+        return new ZombieSandboxPanel.Host() {
+            @Override
+            public void spawnSolo(String alias, int row) {
+                sandboxSpawn(alias, row);
+            }
+
+            @Override
+            public void spawnPack(String alias) {
+                sandboxPack(alias);
+            }
+
+            @Override
+            public void spawnWave() {
+                sandboxWave();
+            }
+
+            @Override
+            public void clearZombies() {
+                sandboxClear();
+            }
+
+            @Override
+            public void dropSun() {
+                sandboxDropSun();
+            }
+        };
+    }
+
+    private void sandboxSpawn(String alias, int row) {
+        GameSession session = matchSession();
+        if (session == null || alias == null) {
+            return;
+        }
+        int lanes = Math.max(1, session.getBoard().getRows());
+        int lane = Math.max(0, Math.min(lanes - 1, row));
+        double x = Math.max(0.5, session.getBoard().getCols() - 0.6);
+        if (session.isPrepPhaseActive() && !session.isSandboxPractice()) {
+            session.startZombieWaves();
+        }
+        if (controller != null) {
+            controller.cheatSpawnZombie(alias, lane, x);
+            return;
+        }
+        session.spawnZombieOfType(alias, lane, x);
+    }
+
+    private void sandboxWave() {
+        GameSession session = matchSession();
+        if (session == null) {
+            return;
+        }
+        if (session.isPrepPhaseActive() && !session.isSandboxPractice()) {
+            session.startZombieWaves();
+        }
+        int rows = Math.max(1, session.getBoard().getRows());
+        double right = session.getBoard().getCols() - 0.4;
+        List<String> aliases = ZombieSandboxPanel.ALIASES;
+        for (int i = 0; i < aliases.size(); i++) {
+            int row = i % rows;
+            int column = i / rows;
+            double x = Math.max(right - 6.5, right - column * 1.05);
+            if (controller != null) {
+                controller.cheatSpawnZombie(aliases.get(i), row, x);
+            } else {
+                session.spawnZombieOfType(aliases.get(i), row, x);
+            }
+        }
+    }
+
+    private void sandboxPack(String alias) {
+        GameSession session = matchSession();
+        if (session == null || alias == null) {
+            return;
+        }
+        if (session.isPrepPhaseActive() && !session.isSandboxPractice()) {
+            session.startZombieWaves();
+        }
+        int rows = Math.max(1, session.getBoard().getRows());
+        double right = session.getBoard().getCols() - 0.5;
+        for (int i = 0; i < 8; i++) {
+            int row = i % rows;
+            double x = Math.max(right - 3.2, right - (i / rows) * 0.9);
+            if (controller != null) {
+                controller.cheatSpawnZombie(alias, row, x);
+            } else {
+                session.spawnZombieOfType(alias, row, x);
+            }
+        }
+    }
+
+    private void sandboxClear() {
+        if (controller != null) {
+            controller.cheatNuke();
+            return;
+        }
+        GameSession session = matchSession();
+        if (session != null) {
+            session.nukeAllZombies();
+        }
+    }
+
+    private void sandboxDropSun() {
+        GameSession session = matchSession();
+        if (session == null) {
+            return;
+        }
+        int rows = session.getBoard().getRows();
+        int col = Math.max(1, session.getBoard().getCols() / 2);
+        for (int row = 0; row < rows; row++) {
+            if (controller != null) {
+                controller.cheatDropSun(col, row, 25);
+            } else {
+                session.spawnSkySun(col, row, 25);
+            }
+        }
     }
 
     private GameSession matchSession() {

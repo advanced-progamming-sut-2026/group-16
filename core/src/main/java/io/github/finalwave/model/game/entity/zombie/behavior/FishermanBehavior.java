@@ -26,11 +26,16 @@ public final class FishermanBehavior implements ZombieBehavior {
             return;
         }
         Plant target = findTarget(zombie, context);
-        if (target == null || !zombie.tryBeginAbilityAction()) {
+        if (target == null) {
             cooldown = cooldownTicks;
             return;
         }
-        if (zombie.getX() - target.getCol() <= 1.5) {
+        boolean close = zombie.getX() - target.getCol() <= 1.5;
+        if (!zombie.beginAbility(close ? "toss" : "reel", close ? 12 : 10)) {
+            cooldown = cooldownTicks;
+            return;
+        }
+        if (close) {
             target.takeDamage(target.getHealth());
             context.onPlantDestroyed(target);
         } else {

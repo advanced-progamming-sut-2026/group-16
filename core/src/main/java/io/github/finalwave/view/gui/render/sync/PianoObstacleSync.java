@@ -3,7 +3,7 @@ package io.github.finalwave.view.gui.render.sync;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import io.github.finalwave.model.game.GameSession;
-import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
+import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.ActorRegistry;
 import io.github.finalwave.view.gui.render.LawnLayout;
@@ -14,17 +14,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public final class ArcadeObstacleSync {
-    public static final String PAM_PATH = "768/FULL/EFFECTS/80S_ARCADE_CABINET/80S_ARCADE_CABINET.PAM";
+public final class PianoObstacleSync {
+    public static final String PAM_PATH = "768/FULL/ZOMBIE/PIANO/PIANO.PAM";
     public static final String IDLE_CLIP = "idle";
+    public static final String PLAY_CLIP = "play";
 
     private final GameAssets assets;
     private final LawnLayout layout;
     private final Group layer;
-    private final ActorRegistry<ArcadeObstacle, PamActor> cabinets = new ActorRegistry<>();
-    private final HitFlashTracker<ArcadeObstacle> hits = new HitFlashTracker<>();
+    private final ActorRegistry<PianoObstacle, PamActor> pianos = new ActorRegistry<>();
+    private final HitFlashTracker<PianoObstacle> hits = new HitFlashTracker<>();
 
-    public ArcadeObstacleSync(GameAssets assets, LawnLayout layout, Group layer) {
+    public PianoObstacleSync(GameAssets assets, LawnLayout layout, Group layer) {
         this.assets = assets;
         this.layout = layout;
         this.layer = layer;
@@ -34,22 +35,22 @@ public final class ArcadeObstacleSync {
         if (session == null) {
             return;
         }
-        List<ArcadeObstacle> live = new ArrayList<>();
-        for (ArcadeObstacle obstacle : session.getArcadeObstacles()) {
+        List<PianoObstacle> live = new ArrayList<>();
+        for (PianoObstacle obstacle : session.getPianoObstacles()) {
             if (obstacle != null && obstacle.isAlive()) {
                 live.add(obstacle);
             }
         }
-        cabinets.sync(live, this::spawn, this::update, PamActor::remove);
+        pianos.sync(live, this::spawn, this::update, PamActor::remove);
         hits.retain(live);
     }
 
     public void clear() {
-        cabinets.clear(PamActor::remove);
+        pianos.clear(PamActor::remove);
         hits.clear();
     }
 
-    private PamActor spawn(ArcadeObstacle obstacle) {
+    private PamActor spawn(PianoObstacle obstacle) {
         PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.ZOMBIE_ANCHOR_Y);
@@ -57,14 +58,15 @@ public final class ArcadeObstacleSync {
         return actor;
     }
 
-    private void update(ArcadeObstacle obstacle, PamActor actor) {
+    private void update(PianoObstacle obstacle, PamActor actor) {
         float worldX = layout.worldX(obstacle.getX());
         float worldY = layout.worldYForRow(obstacle.getRow());
         actor.setSize(layout.tileWidth(), layout.tileHeight());
         actor.setPosition(worldX - actor.getWidth() / 2f, worldY);
-        actor.setDrawOffset(-layout.tileWidth() * 0.22f, 0f);
-        actor.setClip(PAM_PATH, obstacle.isPushed() ? "active" : IDLE_CLIP, LawnLayout.ZOMBIE_SCALE, true);
-        actor.setUserObject(obstacle.getRow() * 8 + 2);
+        actor.setDrawOffset(layout.tileWidth() * 0.22f, 0f);
+        String clip = obstacle.isPlaying() ? PLAY_CLIP : IDLE_CLIP;
+        actor.setClip(PAM_PATH, clip, LawnLayout.ZOMBIE_SCALE, true);
+        actor.setUserObject(obstacle.getRow() * 8 - 1);
         hits.observe(obstacle, obstacle.getHealth(), actor);
     }
 }
