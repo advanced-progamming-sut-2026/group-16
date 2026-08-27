@@ -60,6 +60,7 @@ public final class Zombie extends Entity {
     private boolean staffSunConcealed;
     private boolean torchLit = true;
     private boolean juggling;
+    private boolean sandstormSpawn;
 
     private Zombie(Builder b) {
         super(b.alias + "-" + NEXT_ID.incrementAndGet(), b.maxHealth, b.x, b.y);
@@ -492,6 +493,14 @@ public final class Zombie extends Entity {
 
     public void setGlowing(boolean g) {
         this.glowing = g;
+    }
+
+    public void markSandstormSpawn() {
+        sandstormSpawn = true;
+    }
+
+    public boolean isSandstormSpawn() {
+        return sandstormSpawn;
     }
 
     public boolean isHypnotized() {
