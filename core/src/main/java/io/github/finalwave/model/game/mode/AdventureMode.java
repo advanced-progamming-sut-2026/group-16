@@ -170,6 +170,7 @@ public class AdventureMode extends GameMode {
             rows.add(random.nextInt(rowCount));
         }
         for (int row : rows) {
+            session.applyRowEffect(row, GameSession.ROW_EFFECT_ICE_WIND, GameSession.ICE_WIND_DURATION_TICKS);
             for (var plant : board.getAllPlants()) {
                 if (plant.getRow() != row || !plant.isAlive()) {
                     continue;

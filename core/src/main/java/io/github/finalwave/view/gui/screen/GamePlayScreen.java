@@ -87,6 +87,7 @@ import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.PianoObstacleSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SandstormSync;
+import io.github.finalwave.view.gui.render.sync.SlipperyTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 import io.github.finalwave.view.gui.render.sync.VaseSync;
 
@@ -1351,6 +1352,11 @@ public final class GamePlayScreen extends MenuScreen {
         if (ChapterId.fromName(session.getChapterId()) == ChapterId.ANCIENT_EGYPT) {
             preload(SandstormSync.REAR_PATH);
             preload(SandstormSync.TOP_PATH);
+        }
+        if (ChapterId.fromName(session.getChapterId()) == ChapterId.FROSTBITE_CAVES) {
+            preload(SlipperyTileSync.UP_PATH);
+            preload(SlipperyTileSync.DOWN_PATH);
+            preload(ZombossClips.CHILL_WIND);
         }
         for (String gravePath : GraveClips.preloadPaths(ChapterId.fromName(session.getChapterId()))) {
             preload(gravePath);
