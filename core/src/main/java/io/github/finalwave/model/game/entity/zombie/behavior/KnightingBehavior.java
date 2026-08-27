@@ -14,6 +14,7 @@ public final class KnightingBehavior implements ZombieBehavior {
     private final int verticalRange;
     private final Set<String> validTargetKeys;
     private int cooldown;
+    private boolean parked;
 
     public KnightingBehavior(int cooldownTicks, double horizontalRange, int verticalRange) {
         this(cooldownTicks, horizontalRange, verticalRange,
@@ -31,12 +32,16 @@ public final class KnightingBehavior implements ZombieBehavior {
     @Override
     public void execute(Zombie zombie, GameContext context) {
         zombie.setStationary(true);
-        zombie.setPosition(Math.max(0, context.getColCount() - 1), zombie.getRow());
+        double parkedX = Math.max(0, context.getColCount() - 1);
+        if (!parked || Math.abs(zombie.getX() - parkedX) > 0.05) {
+            zombie.setPosition(parkedX, zombie.getRow());
+            parked = true;
+        }
         if (cooldown-- > 0) {
             return;
         }
         for (Zombie target : context.getAllZombies()) {
-            if (validTarget(zombie, target) && zombie.tryBeginAbilityAction()) {
+            if (validTarget(zombie, target) && zombie.beginAbility("special", 12)) {
                 target.grantArmor(new Armor("KingShoulderArmor", "shoulder", 1600, false, false));
                 target.grantArmor(new Armor("KingKnightHelm", "helm", 1600, true, true));
                 break;

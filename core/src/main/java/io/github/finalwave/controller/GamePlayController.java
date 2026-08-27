@@ -110,7 +110,8 @@ public class GamePlayController extends ViewController implements MatchListener 
     }
 
     public void saveAndExit() {
-        if (!(this instanceof ScoreGamePlayController) && chapter != null && level != null) {
+        if (!(this instanceof ScoreGamePlayController) && !session.isSandboxPractice()
+                && chapter != null && level != null) {
             MatchSaveSnapshot snap = MatchSaveSnapshot.capture(
                     chapter.getId().getKey(),
                     level.getIndex(),
@@ -123,6 +124,12 @@ public class GamePlayController extends ViewController implements MatchListener 
     }
 
     public void restartMatch() {
+        if (session.isSandboxPractice()) {
+            GamePlayController next = SandboxMatch.create(user, userDatabase);
+            navigator.replace(next);
+            next.session().start();
+            return;
+        }
         userDatabase.clearMatchSave(user);
         PlantRegistry plants = App.getInstance().getPlantRegistry();
         ZombieRegistry zombies = PlantSelectionController.loadZombieRegistry();
@@ -259,6 +266,17 @@ public class GamePlayController extends ViewController implements MatchListener 
         session.nukeAllZombies();
         getGamePlayView().showNukeActivated();
         maybeReturnAfterMatch();
+    }
+
+    public void cheatSpawnZombie(String alias, int row, double x) {
+        if (session.isPrepPhaseActive() && !session.isSandboxPractice()) {
+            session.startZombieWaves();
+        }
+        session.spawnZombieOfType(alias, row, x);
+    }
+
+    public void cheatDropSun(int col, int row, int value) {
+        session.spawnSkySun(col, row, value);
     }
 
     @Override

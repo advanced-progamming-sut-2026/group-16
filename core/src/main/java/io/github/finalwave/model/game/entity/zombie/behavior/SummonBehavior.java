@@ -34,16 +34,26 @@ public final class SummonBehavior implements ZombieBehavior {
 
     @Override
     public void execute(Zombie zombie, GameContext context) {
-        if (summoned) return;
-        if (zombie.getHealthRatio() > triggerHealthRatio) return;
-        if (!zombie.tryBeginAbilityAction()) return;
+        if (summoned) {
+            return;
+        }
+        if (zombie.getHealthRatio() > triggerHealthRatio) {
+            return;
+        }
+        if (!zombie.beginAbility("fire", 10)) {
+            return;
+        }
 
         summoned = true;
         int row = Math.max(0, Math.min(context.getRowCount() - 1, zombie.getRow() + spawnRowOffset));
-        double x = fixedColumn == null
+        double landX = fixedColumn == null
                 ? Math.max(0, Math.min(context.getColCount() - 1, zombie.getX() + spawnOffsetX))
                 : Math.max(0, Math.min(context.getColCount() - 1, fixedColumn));
+        double spawnX = Math.max(0, Math.min(context.getColCount() - 1, zombie.getX()));
 
-        context.spawnZombieOfType(summonedAlias, row, x);
+        Zombie spawned = context.spawnZombieOfType(summonedAlias, row, spawnX);
+        if (spawned != null) {
+            spawned.beginThrownFlight(landX, 12, 6);
+        }
     }
 }

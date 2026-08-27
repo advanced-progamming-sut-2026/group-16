@@ -21,12 +21,10 @@ public final class TimedDirectionBehavior implements ZombieBehavior {
         if (triggered || extinguished || zombie.getTickAge() < triggerTicks) {
             return;
         }
-        if (!zombie.tryBeginAbilityAction()) {
+        if (!zombie.beginBlastOffFlight(0.0, 8, 12, 6)) {
             return;
         }
         triggered = true;
-        zombie.setPosition(0.0, zombie.getRow());
-        zombie.setMovingRight(true);
     }
 
     @Override

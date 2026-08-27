@@ -48,6 +48,17 @@ public final class Zombie extends Entity {
     private int stunTicksRemaining;
     private int bossPhase = 1;
     private String presentationClip = "idle";
+    private int abilityTicksRemaining;
+    private int blastTicksRemaining;
+    private int flyTicksRemaining;
+    private int flyTicksTotal;
+    private int landTicksRemaining;
+    private double arcFromX;
+    private double arcToX;
+    private boolean afterArcMoveRight;
+    private boolean staffSunConcealed;
+    private boolean torchLit = true;
+    private boolean juggling;
 
     private Zombie(Builder b) {
         super(b.alias + "-" + NEXT_ID.incrementAndGet(), b.maxHealth, b.x, b.y);
@@ -64,6 +75,7 @@ public final class Zombie extends Entity {
         this.tickAge = 0;
         this.basicKnightTarget = b.basicKnightTarget;
         this.knightTargetKey = b.knightTargetKey;
+        this.permanentSpeedMultiplier = b.speedMultiplier;
     }
 
     @Override
@@ -82,6 +94,13 @@ public final class Zombie extends Entity {
                 return;
             }
             presentationClip = "idle";
+        }
+        if (abilityTicksRemaining > 0) {
+            tickHeldAbility();
+            if (abilityTicksRemaining > 0) {
+                return;
+            }
+            finishHeldAbility();
         }
         state = ZombieState.MOVING;
         if (hypnotized) {
@@ -225,6 +244,137 @@ public final class Zombie extends Entity {
         if (clip != null && !clip.isBlank()) {
             presentationClip = clip;
         }
+    }
+
+    public boolean isAbilityHeld() {
+        return abilityTicksRemaining > 0;
+    }
+
+    public void concealStaffSun() {
+        staffSunConcealed = true;
+    }
+
+    public boolean isStaffSunConcealed() {
+        return staffSunConcealed;
+    }
+
+    public void setTorchLit(boolean torchLit) {
+        this.torchLit = torchLit;
+    }
+
+    public boolean isTorchLit() {
+        return torchLit;
+    }
+
+    public void setJuggling(boolean juggling) {
+        this.juggling = juggling;
+    }
+
+    public boolean isJuggling() {
+        return juggling;
+    }
+
+    public boolean beginAbility(String clip, int holdTicks) {
+        if (isDead() || abilityTicksRemaining > 0 || actionThisTick != Action.NONE) {
+            return false;
+        }
+        actionThisTick = Action.ABILITY;
+        state = ZombieState.ABILITY;
+        if (clip != null && !clip.isBlank()) {
+            presentationClip = clip;
+        }
+        abilityTicksRemaining = Math.max(1, holdTicks);
+        return true;
+    }
+
+    public boolean beginThrownFlight(double toX, int flyTicks, int landTicks) {
+        int fly = Math.max(1, flyTicks);
+        int land = Math.max(1, landTicks);
+        if (!beginAbility("fly", fly + land)) {
+            return false;
+        }
+        arcFromX = getX();
+        arcToX = toX;
+        flyTicksTotal = fly;
+        flyTicksRemaining = fly;
+        landTicksRemaining = land;
+        blastTicksRemaining = 0;
+        afterArcMoveRight = false;
+        return true;
+    }
+
+    public boolean beginBlastOffFlight(double toX, int blastTicks, int flyTicks, int landTicks) {
+        int blast = Math.max(1, blastTicks);
+        int fly = Math.max(1, flyTicks);
+        int land = Math.max(1, landTicks);
+        if (!beginAbility("blastoff", blast + fly + land)) {
+            return false;
+        }
+        blastTicksRemaining = blast;
+        flyTicksTotal = fly;
+        flyTicksRemaining = 0;
+        landTicksRemaining = land;
+        arcFromX = getX();
+        arcToX = toX;
+        afterArcMoveRight = true;
+        return true;
+    }
+
+    public double flightLift() {
+        if (flyTicksTotal <= 0 || flyTicksRemaining <= 0) {
+            return 0;
+        }
+        double progress = 1.0 - (flyTicksRemaining / (double) flyTicksTotal);
+        return Math.sin(Math.PI * progress) * 0.4;
+    }
+
+    private void tickHeldAbility() {
+        abilityTicksRemaining--;
+        state = ZombieState.ABILITY;
+        if (blastTicksRemaining > 0) {
+            presentationClip = "blastoff";
+            blastTicksRemaining--;
+            if (blastTicksRemaining == 0 && flyTicksTotal > 0) {
+                presentationClip = "fly";
+                flyTicksRemaining = flyTicksTotal;
+                arcFromX = getX();
+            }
+            return;
+        }
+        if (flyTicksRemaining > 0) {
+            presentationClip = "fly";
+            flyTicksRemaining--;
+            double t = 1.0 - (flyTicksRemaining / (double) flyTicksTotal);
+            setX(arcFromX + (arcToX - arcFromX) * t);
+            if (flyTicksRemaining == 0) {
+                setX(arcToX);
+                presentationClip = "land";
+            }
+            return;
+        }
+        if (landTicksRemaining > 0 && flyTicksTotal > 0) {
+            presentationClip = "land";
+            landTicksRemaining--;
+            setX(arcToX);
+            if (landTicksRemaining == 0 && afterArcMoveRight) {
+                setMovingRight(true);
+            }
+        }
+    }
+
+    private void finishHeldAbility() {
+        if (afterArcMoveRight) {
+            setMovingRight(true);
+            setX(arcToX);
+        }
+        if (!boss) {
+            presentationClip = "idle";
+        }
+        flyTicksTotal = 0;
+        flyTicksRemaining = 0;
+        landTicksRemaining = 0;
+        blastTicksRemaining = 0;
+        afterArcMoveRight = false;
     }
 
     public void moveRight(double amount) {
@@ -450,7 +600,7 @@ public final class Zombie extends Entity {
     }
 
     public boolean tryBeginAbilityAction() {
-        if (isDead() || actionThisTick != Action.NONE) {
+        if (isDead() || actionThisTick != Action.NONE || abilityTicksRemaining > 0) {
             return false;
         }
         actionThisTick = Action.ABILITY;
@@ -583,6 +733,7 @@ public final class Zombie extends Entity {
         private boolean glowing = false;
         private boolean basicKnightTarget;
         private String knightTargetKey;
+        private double speedMultiplier = 1.0;
 
         public Builder(String alias) {
             if (alias == null || alias.isBlank()) {
@@ -625,6 +776,14 @@ public final class Zombie extends Entity {
         public Builder knightTarget(boolean basic, String key) {
             this.basicKnightTarget = basic;
             this.knightTargetKey = key;
+            return this;
+        }
+
+        public Builder speedMultiplier(double v) {
+            if (!Double.isFinite(v) || v < 0) {
+                throw new IllegalArgumentException("multiplier must be finite and non-negative");
+            }
+            this.speedMultiplier = v;
             return this;
         }
 

@@ -6,6 +6,7 @@ import io.github.finalwave.model.game.entity.Vase;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantStatsCalculator;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
+import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.model.item.SunType;
 import io.github.finalwave.model.minigame.GroundSeedPacket;
@@ -248,7 +249,7 @@ final class GameSessionPlanting {
     }
 
     boolean collectSun(Sun sun) {
-        if (sun == null || !sunItems.contains(sun)) {
+        if (sun == null || !sunItems.contains(sun) || sun.isAttracted() || sun.isExpired()) {
             return false;
         }
         if (sun.getType() == SunType.RADIOACTIVE && sun.isFalling()) {
@@ -289,20 +290,45 @@ final class GameSessionPlanting {
         }
     }
 
-    int stealGroundSun(int maximum) {
+    int stealGroundSun(Zombie thief, int maximum) {
         int remaining = Math.max(0, maximum);
         int stolen = 0;
-        Iterator<Sun> iterator = sunItems.iterator();
-        while (iterator.hasNext() && remaining > 0) {
-            Sun sun = iterator.next();
+        while (remaining > 0) {
+            Sun sun = nearestStealableSun(thief);
+            if (sun == null) {
+                break;
+            }
             int value = sun.takeValue(remaining);
             stolen += value;
             remaining -= value;
-            if (sun.getValue() == 0) {
-                iterator.remove();
+            if (thief != null && value > 0) {
+                sun.attractTo(thief.getId());
+            } else if (sun.getValue() == 0) {
+                sunItems.remove(sun);
             }
         }
         return stolen;
+    }
+
+    private Sun nearestStealableSun(Zombie thief) {
+        Sun best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (Sun sun : sunItems) {
+            if (sun == null || sun.isExpired() || sun.isAttracted() || sun.getValue() <= 0) {
+                continue;
+            }
+            if (thief == null) {
+                return sun;
+            }
+            double dx = thief.getX() - sun.getCol();
+            double dy = thief.getRow() - sun.getRow();
+            double distance = dx * dx + dy * dy;
+            if (distance < bestDistance) {
+                best = sun;
+                bestDistance = distance;
+            }
+        }
+        return best;
     }
 
     void tickSunItems() {
@@ -310,12 +336,28 @@ final class GameSessionPlanting {
         MatchListener matchListener = session.getMatchListener();
         while (iterator.hasNext()) {
             Sun sun = iterator.next();
+            String thiefId = sun.attractZombieId();
             boolean justLanded = sun.tick();
             if (justLanded && matchListener != null) {
                 matchListener.onSunReachedGround(sun.getCol(), sun.getRow());
             }
             if (sun.isExpired()) {
+                if (thiefId != null) {
+                    concealRaStaffSun(thiefId);
+                }
                 iterator.remove();
+            }
+        }
+    }
+
+    private void concealRaStaffSun(String zombieId) {
+        if (zombieId == null) {
+            return;
+        }
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie != null && zombieId.equals(zombie.getId())) {
+                zombie.concealStaffSun();
+                return;
             }
         }
     }

@@ -33,7 +33,11 @@ public final class ContactAttackBehavior implements ZombieBehavior {
         if (!canHitPlant && hypnotizedTarget == null) {
             return;
         }
-        if (!zombie.tryBeginAbilityAction()) {
+        if ("ZombieModernAllStar".equals(zombie.getType())) {
+            if (!zombie.beginAbility("kick", 16)) {
+                return;
+            }
+        } else if (!zombie.tryBeginAbilityAction()) {
             return;
         }
         if (canHitPlant) {

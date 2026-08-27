@@ -9,6 +9,7 @@ import io.github.finalwave.model.game.entity.plant.PlantCovering;
 import io.github.finalwave.model.game.entity.plant.PlantSpecialModifiers;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
+import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.GameContext;
 
@@ -160,6 +161,14 @@ public final class ProjectileSystem {
             }
         }
         for (ArcadeObstacle obstacle : context.getArcadeObstacles()) {
+            if (obstacle.isAlive() && obstacle.blocksStraightProjectiles()
+                    && obstacle.getRow() == projectile.getRow()
+                    && Math.abs(obstacle.getX() - projectile.getX()) <= 0.35) {
+                obstacle.takeDamage(projectile.getDamage());
+                return true;
+            }
+        }
+        for (PianoObstacle obstacle : context.getPianoObstacles()) {
             if (obstacle.isAlive() && obstacle.blocksStraightProjectiles()
                     && obstacle.getRow() == projectile.getRow()
                     && Math.abs(obstacle.getX() - projectile.getX()) <= 0.35) {

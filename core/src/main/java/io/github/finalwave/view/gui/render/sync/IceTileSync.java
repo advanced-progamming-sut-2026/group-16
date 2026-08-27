@@ -70,7 +70,7 @@ public final class IceTileSync {
     private PamActor spawn() {
         PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
-        actor.setAnchor(0.5f, LawnLayout.GRAVE_ANCHOR_Y);
+        actor.setAnchor(0.5f, LawnLayout.ZOMBIE_ANCHOR_Y);
         layer.addActor(actor);
         return actor;
     }
@@ -78,9 +78,9 @@ public final class IceTileSync {
     private void layout(PamActor actor, int col, int row) {
         Vector2 center = layout.cellCenter(col, row);
         actor.setSize(layout.tileWidth(), layout.tileHeight());
-        actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
-        actor.setClip(ZombossClips.GLACIER, "idle", LawnLayout.ICE_BLOCK_SCALE, true);
-        actor.setUserObject(row);
+        actor.setPosition(center.x - actor.getWidth() / 2f, layout.worldYForRow(row));
+        actor.setClip(ZombossClips.ICE_BLOCK_ZOMBIE, "idle", LawnLayout.ICE_BLOCK_SCALE, true);
+        actor.setUserObject(row * 8 + 1);
     }
 
     private static String key(int col, int row) {

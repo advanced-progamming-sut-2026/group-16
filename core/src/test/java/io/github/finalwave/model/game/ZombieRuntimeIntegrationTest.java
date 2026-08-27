@@ -56,7 +56,9 @@ class ZombieRuntimeIntegrationTest {
                 .findFirst().orElseThrow();
         int baseHealth = zombies.getDefinition("ZombieImp").getHitpoints();
         assertEquals("ZombieImp", imp.getType());
-        assertEquals(2.0, imp.getX(), 0.0001);
+        assertEquals(8.0, imp.getX(), 0.0001);
+        assertEquals("fly", imp.getPresentationClip());
+        assertTrue(imp.isAbilityHeld());
         assertEquals(2, imp.getRow());
         assertEquals((int) Math.round(baseHealth * 1.2), imp.getMaxHealth());
     }

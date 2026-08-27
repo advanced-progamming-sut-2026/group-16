@@ -11,8 +11,11 @@ public final class Sun {
     private SunType type;
     private int lifetimeTicks;
     private int fallTicksRemaining;
-    private final boolean fromPlant;
+    private boolean fromPlant;
     private boolean reachedGround;
+    private String attractZombieId;
+    private boolean consumed;
+    private int attractTicksRemaining;
 
     public Sun(int col, int row, int value, SunType type, boolean fromPlant) {
         this.col = col;
@@ -78,6 +81,15 @@ public final class Sun {
     }
 
     public boolean tick() {
+        if (attractTicksRemaining > 0) {
+            attractTicksRemaining--;
+            if (attractTicksRemaining == 0) {
+                finishAttract();
+            }
+        }
+        if (consumed) {
+            return false;
+        }
         if (fromPlant) {
             return false;
         }
@@ -101,6 +113,36 @@ public final class Sun {
     }
 
     public boolean isExpired() {
+        if (consumed) {
+            return true;
+        }
+        if (attractZombieId != null) {
+            return false;
+        }
         return !fromPlant && reachedGround && lifetimeTicks <= 0;
+    }
+
+    public void attractTo(String zombieId) {
+        if (zombieId != null && !zombieId.isBlank()) {
+            attractZombieId = zombieId;
+            attractTicksRemaining = Math.max(attractTicksRemaining, 12);
+        }
+    }
+
+    public String attractZombieId() {
+        return attractZombieId;
+    }
+
+    public boolean isAttracted() {
+        return attractZombieId != null && !consumed;
+    }
+
+    public void finishAttract() {
+        attractZombieId = null;
+        attractTicksRemaining = 0;
+        consumed = true;
+        value = 0;
+        lifetimeTicks = 0;
+        reachedGround = true;
     }
 }

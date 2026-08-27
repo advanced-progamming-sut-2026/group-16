@@ -14,6 +14,7 @@ import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.render.sync.ArcadeObstacleSync;
+import io.github.finalwave.view.gui.render.sync.PianoObstacleSync;
 import io.github.finalwave.view.gui.render.sync.BeghouledPlantSync;
 import io.github.finalwave.view.gui.render.sync.BossFxSync;
 import io.github.finalwave.view.gui.render.sync.BowlingLineSync;
@@ -72,6 +73,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private BowlingLineSync bowlingLineSync;
     private BrainSync brainSync;
     private ArcadeObstacleSync arcadeObstacleSync;
+    private PianoObstacleSync pianoObstacleSync;
     private BeghouledPlantSync beghouledPlantSync;
     private LawnBurstSync lawnBurstSync;
     private Predicate<Sun> sunCollector;
@@ -124,6 +126,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             bowlingLineSync = null;
             brainSync = null;
             arcadeObstacleSync = null;
+            pianoObstacleSync = null;
             lawnBurstSync = null;
             return;
         }
@@ -144,6 +147,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         bowlingLineSync = new BowlingLineSync(layout, highlightLayer);
         brainSync = new BrainSync(assets, layout, mowerLayer);
         arcadeObstacleSync = new ArcadeObstacleSync(assets, layout, zombieLayer);
+        pianoObstacleSync = new PianoObstacleSync(assets, layout, zombieLayer);
         beghouledPlantSync = new BeghouledPlantSync(assets, layout, new PlantClips(catalog), plantLayer, this);
         lawnBurstSync = new LawnBurstSync(assets, layout, fxLayer);
     }
@@ -270,11 +274,14 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (arcadeObstacleSync != null) {
             arcadeObstacleSync.sync(session);
         }
+        if (pianoObstacleSync != null) {
+            pianoObstacleSync.sync(session);
+        }
         if (projectileSync != null) {
             projectileSync.sync(session, tickFraction);
             sortByRow(projectileLayer, BattlefieldGroup::sortKey);
         }
-        if (zombieSync != null || arcadeObstacleSync != null) {
+        if (zombieSync != null || arcadeObstacleSync != null || pianoObstacleSync != null) {
             sortByRow(zombieLayer, BattlefieldGroup::sortKey);
         }
         if (mowerSync != null) {
@@ -380,6 +387,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (arcadeObstacleSync != null) {
             arcadeObstacleSync.clear();
+        }
+        if (pianoObstacleSync != null) {
+            pianoObstacleSync.clear();
         }
         if (beghouledPlantSync != null) {
             beghouledPlantSync.clear();

@@ -68,7 +68,8 @@ public final class ProjectileClips {
             return PEA;
         }
         return switch (effect) {
-            case ICE, SNOWBALL -> ICE;
+            case ICE -> ICE;
+            case SNOWBALL -> SPLAT_SNOWBALL;
             case FIRE -> FIRE;
             case CABBAGE -> CABBAGE;
             case KERNEL -> KERNEL;

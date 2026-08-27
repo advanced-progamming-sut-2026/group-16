@@ -7,6 +7,7 @@ import io.github.finalwave.model.game.entity.plant.PlantCovering;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
+import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 
 import java.util.ArrayList;
@@ -52,9 +53,16 @@ public interface GameContext {
     default void reflectProjectile(Zombie reflector, Projectile projectile) {
     }
 
-    void spawnZombieOfType(String alias, int row, double x);
+    Zombie spawnZombieOfType(String alias, int row, double x);
 
     void onZombieReachedHouse(Zombie zombie);
+
+    default boolean zombiesWalkOffLawn() {
+        return false;
+    }
+
+    default void despawnWalkOffZombie(Zombie zombie) {
+    }
 
     void onZombieKilled(Zombie zombie);
 
@@ -122,6 +130,10 @@ public interface GameContext {
     }
 
     default int stealGroundSun(int maximum) {
+        return stealGroundSun(null, maximum);
+    }
+
+    default int stealGroundSun(Zombie thief, int maximum) {
         return 0;
     }
 
@@ -130,6 +142,12 @@ public interface GameContext {
     }
 
     default void pushIceInRow(int row) {
+    }
+
+    default void pushIceAhead(Zombie zombie) {
+        if (zombie != null) {
+            pushIceInRow(zombie.getRow());
+        }
     }
 
     default void createIceBlocks(int row, int startCol, int count) {
@@ -144,6 +162,10 @@ public interface GameContext {
     }
 
     default PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health) {
+        return coverPlant(plant, type, health, null);
+    }
+
+    default PlantCovering coverPlant(Plant plant, PlantCovering.Type type, int health, Zombie source) {
         return null;
     }
 
@@ -154,6 +176,28 @@ public interface GameContext {
         return List.of();
     }
 
+    default int throwTombBones(Zombie source, int count, int maxGraves) {
+        return 0;
+    }
+
+    default boolean canThrowTombBones(Zombie source, int count, int maxGraves) {
+        return false;
+    }
+
+    default void queuePlantBurn(int col, int row) {
+    }
+
+    default void fireLaneLaser(int row, int fromCol, int span) {
+    }
+
+    default void fireLaneLaser(int row, int fromCol, int span, int delayTicks) {
+        fireLaneLaser(row, fromCol, span, delayTicks, fromCol + 0.5);
+    }
+
+    default void fireLaneLaser(int row, int fromCol, int span, int delayTicks, double originX) {
+        fireLaneLaser(row, fromCol, span);
+    }
+
     default void pushArcadeObstacle(Zombie pusher) {
     }
 
@@ -161,6 +205,16 @@ public interface GameContext {
     }
 
     default List<ArcadeObstacle> getArcadeObstacles() {
+        return List.of();
+    }
+
+    default void pushPianoObstacle(Zombie pusher) {
+    }
+
+    default void releasePianoObstacle(String pusherId) {
+    }
+
+    default List<PianoObstacle> getPianoObstacles() {
         return List.of();
     }
 

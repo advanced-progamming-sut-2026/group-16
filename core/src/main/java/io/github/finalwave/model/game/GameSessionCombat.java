@@ -31,6 +31,7 @@ final class GameSessionCombat {
         session.getTileEffects().tickAdjacentFireIceMelt();
         tickLivingPlants();
         tickZombies();
+        session.getTileEffects().followPushedObstacles();
         tickMowers();
         session.getProjectileSystem().tick(
                 session.getBoard(),
@@ -263,6 +264,9 @@ final class GameSessionCombat {
     }
 
     void handleZombieReachedHouse(Zombie zombie) {
+        if (session.isSandboxPractice()) {
+            return;
+        }
         if (zombie == null || session.getMatchResult() != MatchResult.IN_PROGRESS) {
             return;
         }
@@ -359,6 +363,9 @@ final class GameSessionCombat {
     }
 
     void checkWinCondition() {
+        if (session.isSandboxPractice()) {
+            return;
+        }
         if (session.getMatchResult() != MatchResult.IN_PROGRESS || session.getWaveManager() == null) {
             return;
         }
@@ -383,6 +390,9 @@ final class GameSessionCombat {
     }
 
     void winMatch() {
+        if (session.isSandboxPractice()) {
+            return;
+        }
         if (session.getMatchResult() != MatchResult.IN_PROGRESS) {
             return;
         }
@@ -402,7 +412,7 @@ final class GameSessionCombat {
     }
 
     void loseMatch() {
-        if (session.getMatchResult() != MatchResult.IN_PROGRESS) {
+        if (session.isSandboxPractice() || session.getMatchResult() != MatchResult.IN_PROGRESS) {
             return;
         }
         session.setMatchResult(MatchResult.LOST);

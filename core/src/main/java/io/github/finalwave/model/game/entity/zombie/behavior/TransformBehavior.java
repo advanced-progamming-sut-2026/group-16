@@ -38,9 +38,9 @@ public final class TransformBehavior implements ZombieBehavior {
 
         Plant target = context.getPlantInFront(zombie.getX(), zombie.getRow());
         if (target == null || !target.canBeTargetedByZombie()) return;
-        if (!zombie.tryBeginAbilityAction()) return;
-
-        // Vault: jump over the plant, move 1.5 columns past it
+        if (!zombie.tryBeginAbilityAction()) {
+            return;
+        }
         used = true;
         zombie.moveLeft(1.5);
     }
@@ -52,8 +52,8 @@ public final class TransformBehavior implements ZombieBehavior {
         }
 
         Plant target = context.getPlantInFront(zombie.getX(), zombie.getRow());
-        if (target != null && target.canBeTargetedByZombie() && zombie.tryBeginAbilityAction()) {
-            zombie.attackPlant(target, target.getHealth()); // instakill
+        if (target != null && target.canBeTargetedByZombie() && zombie.beginAbility("smash_left", 18)) {
+            zombie.attackPlant(target, target.getHealth());
             context.onPlantDestroyed(target);
             ticksUntilNextSmash = cooldownTicks;
         }

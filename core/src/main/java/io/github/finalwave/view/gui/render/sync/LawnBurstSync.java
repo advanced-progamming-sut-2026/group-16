@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 public final class LawnBurstSync {
+    private static final float LASER_SKULL_OFFSET_X = 0.62f;
+    private static final float LASER_FROM_ORIGIN_Y = -0.58f;
     private static final float SCORCH_TILE_WIDTH = 1.85f;
     private static final float SCORCH_HOLD = 0.4f;
     private static final float SCORCH_FADE = 0.55f;
@@ -69,6 +71,10 @@ public final class LawnBurstSync {
             return;
         }
         LawnBurst.Kind kind = burst.kind() == null ? LawnBurst.Kind.GENERIC : burst.kind();
+        if (kind == LawnBurst.Kind.LASER) {
+            spawnLaser(burst);
+            return;
+        }
         Vector2 center = layout.cellCenter(burst.col(), burst.row());
         float scale = ExplosionLooks.scale(kind);
         String clip = ExplosionLooks.clip(kind);
@@ -80,9 +86,28 @@ public final class LawnBurstSync {
             playBurst(center, burst.row(), rear, clip, scale, kind);
         }
         playBurst(center, burst.row(), ExplosionLooks.path(kind), clip, scale, kind);
-        if (onShake != null) {
+        if (onShake != null && ExplosionLooks.shakeSeconds(kind) > 0f) {
             onShake.accept(ExplosionLooks.shakeSeconds(kind), ExplosionLooks.shakePixels(kind));
         }
+    }
+
+    private void spawnLaser(LawnBurst burst) {
+        int span = Math.max(1, burst.span());
+        float rightX = layout.worldX(burst.originX() - LASER_SKULL_OFFSET_X);
+        float width = layout.tileWidth() * span;
+        float height = layout.tileHeight();
+        PamActor actor = assets.pamActor();
+        actor.setTouchable(Touchable.disabled);
+        actor.setAnchor(1f, 0.42f);
+        actor.setSize(width, height);
+        actor.setPosition(rightX - width,
+                layout.worldYForRow(burst.row())
+                        + layout.tileHeight() * (LawnLayout.ZOMBIE_ANCHOR_Y + LASER_FROM_ORIGIN_Y));
+        actor.setUserObject(burst.row());
+        layer.addActor(actor);
+        playing.add(actor);
+        actor.playOnce(ExplosionLooks.path(LawnBurst.Kind.LASER), ExplosionLooks.clip(LawnBurst.Kind.LASER),
+                1.0f, actor::remove);
     }
 
     private void spawnScorch(Vector2 center, int row) {

@@ -24,7 +24,7 @@ public final class MovementBehavior implements ZombieBehavior {
             return;
         }
 
-        if (target != null && target.isAlive() && !zombie.shouldBypass(target)) {
+        if (!zombie.isJuggling() && target != null && target.isAlive() && !zombie.shouldBypass(target)) {
             eatPlant(zombie, target, context);
         } else {
             walk(zombie, context);
@@ -79,6 +79,12 @@ public final class MovementBehavior implements ZombieBehavior {
         applySlipperyTile(zombie, context);
 
         if (!zombie.isMovingRight() && zombie.getX() <= 0.0) {
+            if (context.zombiesWalkOffLawn()) {
+                if (zombie.getX() <= -1.75) {
+                    context.despawnWalkOffZombie(zombie);
+                }
+                return;
+            }
             context.onZombieReachedHouse(zombie);
         }
     }

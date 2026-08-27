@@ -99,6 +99,7 @@ public final class MenuAssetIds {
     public static final String QUEST_CARD_BACKGROUND = "IMAGE_UI_JOUST_MATCHLOADING_PLAYERPANEL_BG";
     public static final String QUEST_COMPLETE_FRAME = "IMAGE_UI_QUESTS_TRAVEL_LOG_PANEL_EPIC_COMPLETE";
     public static final String QUEST_ICON_DAILY = "IMAGE_UI_QUESTS_QUESTICONS_ZOMBIE";
+    public static final String SANDBOX_ICON = QUEST_ICON_DAILY;
     public static final String QUEST_ICON_MAIN = "IMAGE_UI_QUESTS_QUESTICONS_PLANT";
     public static final String QUEST_ICON_EPIC = "IMAGE_UI_QUESTS_QUESTICONS_LOTD";
     public static final String QUEST_REWARD_COINS = "IMAGE_UI_QUESTS_EPIC_REWARD_COINS";

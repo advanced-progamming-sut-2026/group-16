@@ -30,6 +30,7 @@ public final class PamActor extends Actor {
     private float stateTime;
     private boolean playing = true;
     private float playbackSpeed = 1f;
+    private float timeScale = 1f;
     private boolean loop = true;
     private float drawScale = 1f;
     private boolean flipX;
@@ -114,6 +115,10 @@ public final class PamActor extends Actor {
         return flipX;
     }
 
+    public boolean hasFollowUp() {
+        return followUpClip != null;
+    }
+
     public String clipName() {
         return clipName;
     }
@@ -147,6 +152,10 @@ public final class PamActor extends Actor {
 
     public void setPlaybackSpeed(float playbackSpeed) {
         this.playbackSpeed = Math.max(0f, playbackSpeed);
+    }
+
+    public void setTimeScale(float timeScale) {
+        this.timeScale = Math.max(0f, timeScale);
     }
 
     public void setFlipX(boolean flipX) {
@@ -189,7 +198,7 @@ public final class PamActor extends Actor {
         if (pamPath == null) {
             return;
         }
-        stateTime += delta * playbackSpeed;
+        stateTime += delta * playbackSpeed * timeScale;
         if (loop || clipFinished) {
             return;
         }

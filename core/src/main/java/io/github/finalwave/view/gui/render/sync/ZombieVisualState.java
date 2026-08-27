@@ -36,17 +36,39 @@ public final class ZombieVisualState {
         if (zombie.isBoss()) {
             return clips.boss(type, zombie.getPresentationClip());
         }
+        String presented = zombie.getPresentationClip();
+        if (zombie.isAbilityHeld() || zombie.getState() == ZombieState.ABILITY
+                || ZombieClips.isSpecial(presented)) {
+            return clips.ability(type, presented);
+        }
         boolean newspaper = hasNewspaper(zombie);
         if (zombie.getState() == ZombieState.EATING) {
             return newspaper ? clips.eatNewspaper(type) : clips.eat(type);
         }
-        if (zombie.getState() == ZombieState.ABILITY) {
-            return clips.ability(type);
+        if (isAllStarCharge(zombie)) {
+            return clips.named(type, "run", "walk", "idle");
         }
         if (zombie.getState() == ZombieState.MOVING && !zombie.isStationary() && !isNearlyStopped(zombie)) {
             return newspaper ? clips.walkNewspaper(type) : clips.walk(type);
         }
         return clips.idle(type);
+    }
+
+    public static String followClip(Zombie zombie, ZombieClips clips) {
+        boolean newspaper = hasNewspaper(zombie);
+        if (zombie.getState() == ZombieState.EATING) {
+            return newspaper ? clips.eatNewspaper(zombie.getType()).clip() : clips.eat(zombie.getType()).clip();
+        }
+        if (isAllStarCharge(zombie)) {
+            return clips.named(zombie.getType(), "run", "walk").clip();
+        }
+        return newspaper ? clips.walkNewspaper(zombie.getType()).clip() : clips.walk(zombie.getType()).clip();
+    }
+
+    private static boolean isAllStarCharge(Zombie zombie) {
+        return "ZombieModernAllStar".equals(zombie.getType())
+                && zombie.getCurrentSpeed() > zombie.getBaseSpeed() * 1.5
+                && zombie.getState() != ZombieState.EATING;
     }
 
     private static boolean hasNewspaper(Zombie zombie) {

@@ -18,6 +18,7 @@ public final class TorchBehavior implements ZombieBehavior {
 
     @Override
     public void execute(Zombie zombie, GameContext context) {
+        zombie.setTorchLit(lit);
         if (!lit) {
             return;
         }
@@ -25,6 +26,7 @@ public final class TorchBehavior implements ZombieBehavior {
         if (target != null && target.canBeTargetedByZombie()
                 && zombie.getX() - target.getCol() < reach
                 && zombie.tryBeginAbilityAction()) {
+            context.queuePlantBurn(target.getCol(), target.getRow());
             target.takeDamage(target.getHealth());
             context.onPlantDestroyed(target);
         }
@@ -37,6 +39,7 @@ public final class TorchBehavior implements ZombieBehavior {
         } else if (projectile.getEffect() == ProjectileEffect.FIRE) {
             lit = true;
         }
+        zombie.setTorchLit(lit);
         return false;
     }
 

@@ -48,6 +48,12 @@ public class GameController extends ViewController {
         navigator.push(new ShopController(user, userDatabase));
     }
 
+    public void openZombieSandbox() {
+        GamePlayController gameplay = SandboxMatch.create(user, userDatabase);
+        navigator.push(gameplay);
+        gameplay.session().start();
+    }
+
     public void enterChapter(ChapterId chapterId) {
         if (chapterId == null) {
             getGameView().errorUnknownChapter("");
