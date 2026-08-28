@@ -5,10 +5,11 @@ import java.util.Map;
 
 public final class PlantPacketIds {
     private static final Map<String, String> OVERRIDES = Map.ofEntries(
-            Map.entry(normalize("Mega Gatling Pea"), "IMAGE_UI_PACKETS_MEGAGATLING"),
-            Map.entry(normalize("Cherry Bomb"), "IMAGE_UI_PACKETS_CHERRY_BOMB"),
-            Map.entry(normalize("Goo Peashooter"), "IMAGE_UI_PACKETS_PEASHOOTER"),
-            Map.entry(normalize("Giant Wall-nut"), "IMAGE_UI_PACKETS_TALLNUT")
+            Map.entry(PlantNameAliases.normalize("Mega Gatling Pea"), "IMAGE_UI_PACKETS_MEGAGATLING"),
+            Map.entry(PlantNameAliases.normalize("Cherry Bomb"), "IMAGE_UI_PACKETS_CHERRY_BOMB"),
+            Map.entry(PlantNameAliases.normalize("Goo Peashooter"), "IMAGE_UI_PACKETS_PEASHOOTER"),
+            Map.entry(PlantNameAliases.normalize("Giant Wall-nut"), "IMAGE_UI_PACKETS_TALLNUT"),
+            Map.entry(PlantNameAliases.normalize("Twin Sunflower"), "IMAGE_UI_PACKETS_TWINSUNFLOWER")
     );
 
     private PlantPacketIds() {
@@ -18,15 +19,15 @@ public final class PlantPacketIds {
         if (plantName == null || plantName.isBlank()) {
             return LawnAssetIds.PACKET_EMPTY;
         }
-        String key = normalize(plantName);
+        String key = PlantNameAliases.normalize(plantName);
         String override = OVERRIDES.get(key);
         if (override != null) {
             return override;
         }
-        return "IMAGE_UI_PACKETS_" + key;
+        return "IMAGE_UI_PACKETS_" + PlantNameAliases.pamKey(plantName);
     }
 
     public static String normalize(String name) {
-        return name.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+        return PlantNameAliases.normalize(name);
     }
 }

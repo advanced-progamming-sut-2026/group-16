@@ -11,7 +11,7 @@ public final class Projectile {
             new java.util.concurrent.atomic.AtomicLong(1);
 
     private final String id = "proj-" + NEXT_ID.getAndIncrement();
-    private int row;
+    private double y;
     private double x;
     private final int damage;
     private final ProjectileProfile profile;
@@ -20,12 +20,21 @@ public final class Projectile {
     private int pierceRemaining;
     private int lifetimeTicks;
     private boolean fromZombie;
+    private boolean reverse;
+    private boolean directed;
+    private double vx;
+    private double vy;
+    private float visualScale = 1f;
+    private double visualLaneOffset;
+    private float visualAnchorY = -1f;
+    private int bowlingBouncesRemaining;
     private String hostileSourceId;
+    private String visualClip;
     private final Set<String> hitEntityIds = new HashSet<>();
 
     public Projectile(int row, double x, int damage, ProjectileProfile profile,
                       ProjectileEffect effect, Plant source, int pierceRemaining) {
-        this.row = row;
+        this.y = row;
         this.x = x;
         this.damage = damage;
         this.profile = profile;
@@ -54,6 +63,11 @@ public final class Projectile {
                 original.getEffect(), null, 0);
         p.fromZombie = true;
         p.hostileSourceId = sourceId == null || sourceId.isBlank() ? "reflected" : sourceId;
+        p.visualScale = original.visualScale;
+        p.visualLaneOffset = original.visualLaneOffset;
+        if (original.directed) {
+            p.setVelocity(-original.vx, original.vy);
+        }
         return p;
     }
 
@@ -62,11 +76,19 @@ public final class Projectile {
     }
 
     public int getRow() {
-        return row;
+        return (int) Math.round(y);
+    }
+
+    public double getY() {
+        return y;
     }
 
     public void setRow(int row) {
-        this.row = row;
+        this.y = row;
+    }
+
+    public void setY(double y) {
+        this.y = y;
     }
 
     public double getX() {
@@ -95,6 +117,81 @@ public final class Projectile {
 
     public boolean isFromZombie() {
         return fromZombie;
+    }
+
+    public boolean isReverse() {
+        return reverse;
+    }
+
+    public void setReverse(boolean reverse) {
+        this.reverse = reverse;
+    }
+
+    public boolean isDirected() {
+        return directed;
+    }
+
+    public void setVelocity(double vx, double vy) {
+        this.directed = true;
+        this.vx = vx;
+        this.vy = vy;
+        if (vx < 0) {
+            this.reverse = true;
+        }
+    }
+
+    public double getVx() {
+        return vx;
+    }
+
+    public double getVy() {
+        return vy;
+    }
+
+    public float getVisualScale() {
+        return visualScale;
+    }
+
+    public void setVisualScale(float visualScale) {
+        this.visualScale = Math.max(0.1f, visualScale);
+    }
+
+    public double getVisualLaneOffset() {
+        return visualLaneOffset;
+    }
+
+    public void setVisualLaneOffset(double visualLaneOffset) {
+        this.visualLaneOffset = visualLaneOffset;
+    }
+
+    public float getVisualAnchorY() {
+        return visualAnchorY;
+    }
+
+    public void setVisualAnchorY(float visualAnchorY) {
+        this.visualAnchorY = visualAnchorY;
+    }
+
+    public int getBowlingBouncesRemaining() {
+        return bowlingBouncesRemaining;
+    }
+
+    public void setBowlingBouncesRemaining(int bowlingBouncesRemaining) {
+        this.bowlingBouncesRemaining = Math.max(0, bowlingBouncesRemaining);
+    }
+
+    public void consumeBowlingBounce() {
+        if (bowlingBouncesRemaining > 0) {
+            bowlingBouncesRemaining--;
+        }
+    }
+
+    public void setVisualClip(String visualClip) {
+        this.visualClip = visualClip == null || visualClip.isBlank() ? null : visualClip;
+    }
+
+    public String getVisualClip() {
+        return visualClip;
     }
 
     public String getHostileSourceId() {
@@ -132,6 +229,6 @@ public final class Projectile {
     }
 
     public boolean isExpired() {
-        return lifetimeTicks <= 0 || x < 0;
+        return lifetimeTicks <= 0 || x < -0.75 || x > 10.5 || y < -0.75 || y > 5.5;
     }
 }

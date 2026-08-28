@@ -11,11 +11,11 @@ public final class PlantAbilityFactory {
 
     public static PlantAbility create(PlantDefinition definition, PlantCategory category) {
         PlantAbilityType abilityType = PlantAbilityType.fromDefinition(definition.getAbilityType());
+        String name = definition.getName();
         return switch (abilityType) {
             case PRODUCE_SUN -> new SunProductionAbility(definition.getAbilityValue());
             case INSTANT_SUN_BURST -> new InstantSunBurstAbility(definition.getAbilityValue());
-            case SHOOT_PROJECTILE -> new ProjectileAttackAbility(
-                    (int) definition.getAbilityValue(), resolveProjectileProfile(category));
+            case SHOOT_PROJECTILE -> createProjectileAbility(definition, category, name);
             case MELEE_ATTACK -> new MeleeAttackAbility(definition.hasTag("AOE"));
             case DELAYED_EXPLOSIVE -> new ExplosiveAbility(resolveExplosionRadius(definition), false);
             case INSTANT_EXPLOSIVE -> new ExplosiveAbility(resolveExplosionRadius(definition), true);
@@ -25,7 +25,28 @@ public final class PlantAbilityFactory {
         };
     }
 
-    private static ProjectileProfile resolveProjectileProfile(PlantCategory category) {
+    private static PlantAbility createProjectileAbility(
+            PlantDefinition definition, PlantCategory category, String name) {
+        ProjectileProfile profile = resolveProjectileProfile(category, name);
+        if ("Bowling Bulb".equals(name)) {
+            return new BowlingBulbAbility(profile);
+        }
+        if ("Cactus".equals(name)) {
+            return new CactusAbility((int) definition.getAbilityValue(), profile);
+        }
+        if ("Citron".equals(name)) {
+            return new CitronAbility(profile);
+        }
+        return new ProjectileAttackAbility((int) definition.getAbilityValue(), profile);
+    }
+
+    private static ProjectileProfile resolveProjectileProfile(PlantCategory category, String name) {
+        if ("Citron".equals(name) || "Caulipower".equals(name) || "Electric Blueberry".equals(name)) {
+            return ProjectileProfile.homingProfile();
+        }
+        if ("Bowling Bulb".equals(name)) {
+            return ProjectileProfile.straight();
+        }
         return switch (category) {
             case LOBBER -> ProjectileProfile.arcing();
             case STRIKE_THROUGH -> ProjectileProfile.piercingProfile();

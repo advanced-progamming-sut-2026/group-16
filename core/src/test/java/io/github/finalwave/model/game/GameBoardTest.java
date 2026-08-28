@@ -56,6 +56,26 @@ class GameBoardTest {
     }
 
     @Test
+    void peaPodStacksOnItself() {
+        session.setSunBalance(9990);
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Pea Pod", 2, 2, 1));
+        Plant first = board.getGroundPlantAt(2, 2);
+        assertNotNull(first);
+        assertEquals(1, first.getStackCount());
+        session.getCooldownTracker().resetAll();
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Pea Pod", 2, 2, 1));
+        assertEquals(2, first.getStackCount());
+        assertNull(board.getOverlayPlantAt(2, 2));
+        for (int i = 0; i < 3; i++) {
+            session.getCooldownTracker().resetAll();
+            assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Pea Pod", 2, 2, 1));
+        }
+        assertEquals(5, first.getStackCount());
+        session.getCooldownTracker().resetAll();
+        assertEquals(PlantPlacementResult.GROUND_OCCUPIED, session.tryPlant("Pea Pod", 2, 2, 1));
+    }
+
+    @Test
     void deductsSunOnPlacement() {
         int before = session.getSunBalance();
         session.tryPlant("Sunflower", 1, 0, 1);
@@ -111,5 +131,18 @@ class GameBoardTest {
         Plant duplicate = new io.github.finalwave.model.game.entity.plant.PlantFactory()
                 .createBaseLevel(registry.getDefinition("Sunflower"), 0, 0);
         assertThrows(IllegalArgumentException.class, () -> board.placePlant(duplicate));
+    }
+
+    @Test
+    void sandboxAllowsAquaticPlantsOnNormalGround() {
+        assertEquals(PlantPlacementResult.REQUIRES_WATER,
+                board.canPlace(registry.getDefinition("Sea-shroom"), 2, 2));
+        board.setSandboxAquaticOnLand(true);
+        assertEquals(PlantPlacementResult.SUCCESS,
+                board.canPlace(registry.getDefinition("Sea-shroom"), 2, 2));
+        session.enableSandboxPractice();
+        assertEquals(PlantPlacementResult.SUCCESS,
+                session.tryPlant("Sea-shroom", 2, 2, 1));
+        assertNotNull(board.getPlantAt(2, 2));
     }
 }

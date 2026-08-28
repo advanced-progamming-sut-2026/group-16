@@ -13,6 +13,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import io.github.finalwave.model.shop.ShopOffer;
 import io.github.finalwave.view.gui.assets.GameAssets;
+import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
 import io.github.finalwave.view.gui.assets.PlantAnimationCatalog;
 import io.github.finalwave.view.gui.assets.PlantPacketIds;
@@ -164,8 +165,29 @@ public final class ShopItemCard extends Stack {
         if (knownImage(assets, mapped)) {
             return mapped;
         }
-        String id = MenuAssetIds.SEED_PACKET_PREFIX + plantName.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+        String id = MenuAssetIds.SEED_PACKET_PREFIX + PlantPacketIds.normalize(plantName);
         return knownImage(assets, id) ? id : MenuAssetIds.SEED_PACKET_MULTI;
+    }
+
+    public static boolean hasPacketImage(GameAssets assets, String plantName) {
+        String imageId = packetImageId(assets, plantName);
+        return imageId != null
+                && !MenuAssetIds.SEED_PACKET_MULTI.equals(imageId)
+                && !LawnAssetIds.PACKET_EMPTY.equals(imageId)
+                && knownImage(assets, imageId);
+    }
+
+    public static Actor plantArt(GameAssets assets, String plantName, float pamScale) {
+        if (hasPacketImage(assets, plantName)) {
+            Image image = new Image(new TextureRegionDrawable(assets.region(packetImageId(assets, plantName))));
+            image.setScaling(Scaling.fit);
+            image.setTouchable(Touchable.disabled);
+            return image;
+        }
+        PamActor pam = new PamActor(assets.pamPlayer());
+        pam.freezeClip(assets.plantAnims().idleFor(plantName), pamScale);
+        pam.setTouchable(Touchable.disabled);
+        return pam;
     }
 
     private static boolean knownImage(GameAssets assets, String imageId) {

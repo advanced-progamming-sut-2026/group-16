@@ -50,7 +50,7 @@ public final class PlantAnimationCatalog {
             }
             String clip = firstClip(animation.get("clips"), "idle");
             ClipSpec spec = new ClipSpec(path, clip);
-            String key = normalize(name);
+            String key = PlantNameAliases.normalize(name);
             ClipSpec existing = idleByKey.get(key);
             if (existing == null || isPreferred(path, existing.path())) {
                 idleByKey.put(key, spec);
@@ -62,7 +62,10 @@ public final class PlantAnimationCatalog {
         if (plantName == null || plantName.isBlank()) {
             return SPROUT;
         }
-        ClipSpec spec = idleByKey.get(normalize(plantName));
+        ClipSpec spec = idleByKey.get(PlantNameAliases.pamKey(plantName));
+        if (spec == null) {
+            spec = idleByKey.get(PlantNameAliases.normalize(plantName));
+        }
         return spec == null ? SPROUT : spec;
     }
 
@@ -86,9 +89,5 @@ public final class PlantAnimationCatalog {
             return clips.child.name;
         }
         return preferred;
-    }
-
-    private static String normalize(String name) {
-        return name.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
     }
 }

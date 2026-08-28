@@ -190,23 +190,45 @@ final class GameSessionPlanting {
         }
         int cost = PlantStatsCalculator.compute(definition, level).cost();
         boolean conveyor = special.isConveyorBeltActive();
-        if (!conveyor && !special.isPrepPhaseActive() && !session.getCooldownTracker().isReady(plantName)) {
+        boolean sandbox = session.isSandboxPractice();
+        if (!sandbox && !conveyor && !special.isPrepPhaseActive()
+                && !session.getCooldownTracker().isReady(plantName)) {
             return PlantPlacementResult.ON_COOLDOWN;
         }
-        if (!conveyor && session.getSunBalance() < cost) {
+        if (!sandbox && !conveyor && session.getSunBalance() < cost) {
             return PlantPlacementResult.INSUFFICIENT_SUN;
         }
         PlantPlacementResult placement = session.getBoard().canPlace(definition, col, row);
         if (placement != PlantPlacementResult.SUCCESS) {
             return placement;
         }
+        Plant existing = session.getBoard().getGroundPlantAt(col, row);
+        if (Plant.isPeaPod(plantName) && existing != null && Plant.isPeaPod(existing.getName())) {
+            if (!existing.addStack()) {
+                return PlantPlacementResult.GROUND_OCCUPIED;
+            }
+            if (!sandbox && !conveyor) {
+                session.withdrawSun(cost);
+            }
+            if (!sandbox && !conveyor && !special.isPrepPhaseActive()) {
+                session.getCooldownTracker().startCooldown(
+                        plantName, existing.getStats().recharge(), GameSession.TICKS_PER_SECOND);
+            }
+            if (!sandbox && !conveyor) {
+                session.getEventBus().publish(new GameEvent.SunSpent(cost));
+            }
+            if (conveyor) {
+                special.removeConveyorBeltPlant(plantName);
+            }
+            return PlantPlacementResult.SUCCESS;
+        }
         Plant plant = session.getPlantFactory().create(definition, level, col, row);
-        if (!conveyor) {
+        if (!sandbox && !conveyor) {
             session.withdrawSun(cost);
         }
         session.getBoard().placePlant(plant);
         plant.onPlanted(session.getContext());
-        if (!conveyor && !special.isPrepPhaseActive()) {
+        if (!sandbox && !conveyor && !special.isPrepPhaseActive()) {
             session.getCooldownTracker().startCooldown(
                     plantName, plant.getStats().recharge(), GameSession.TICKS_PER_SECOND);
         }
@@ -216,7 +238,7 @@ final class GameSessionPlanting {
                 col,
                 row,
                 plant.hasTag(PlantTag.NIGHT) || plant.hasTag(PlantTag.SHROOM)));
-        if (!conveyor) {
+        if (!sandbox && !conveyor) {
             session.getEventBus().publish(new GameEvent.SunSpent(cost));
         }
         if (conveyor) {

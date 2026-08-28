@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -37,7 +38,7 @@ public final class CollectionPlantCard extends Table {
     private final Skin skin;
     private MintFamilyBadge familyBadge;
     private Container<Label> levelContainer;
-    private Image plantImage;
+    private Actor plantArt;
     private Image darkOverlay;
     private Image lockIcon;
     private boolean conveyorLook;
@@ -72,7 +73,7 @@ public final class CollectionPlantCard extends Table {
         clearChildren();
         familyBadge = null;
         levelContainer = null;
-        plantImage = null;
+        plantArt = null;
         darkOverlay = null;
         lockIcon = null;
         conveyorLook = conveyor;
@@ -81,14 +82,12 @@ public final class CollectionPlantCard extends Table {
 
         setBackground(new TextureRegionDrawable(assets.region(CollectionCardLooks.packetBackground(entry))));
 
-        plantImage = new Image(new TextureRegionDrawable(
-                assets.region(ShopItemCard.packetImageId(assets, entry.name()))));
-        plantImage.setScaling(Scaling.fit);
-        plantImage.setTouchable(Touchable.disabled);
+        plantArt = plantPortrait(entry);
+        plantArt.setTouchable(Touchable.disabled);
         if (conveyor) {
-            addActor(plantImage);
+            addActor(plantArt);
         } else {
-            add(plantImage).size(98f).expand().center().padTop(8f).row();
+            add(plantArt).size(98f).expand().center().padTop(8f).row();
             add(seedProgress(entry)).growX().height(16f).padBottom(6f).padLeft(10f).padRight(10f).bottom();
         }
 
@@ -119,6 +118,10 @@ public final class CollectionPlantCard extends Table {
         badge.bind(entry.category());
         familyBadge = badge;
         addActor(badge);
+    }
+
+    private Actor plantPortrait(CollectionPlantEntry entry) {
+        return ShopItemCard.plantArt(assets, entry.name(), 0.38f);
     }
 
     private Stack seedProgress(CollectionPlantEntry entry) {
@@ -158,11 +161,11 @@ public final class CollectionPlantCard extends Table {
     @Override
     public void layout() {
         super.layout();
-        if (conveyorLook && plantImage != null) {
+        if (conveyorLook && plantArt != null) {
             float plantHeight = getHeight() * 0.88f;
             float plantWidth = Math.min(getWidth() * 0.72f, plantHeight);
-            plantImage.setSize(plantWidth, plantHeight);
-            plantImage.setPosition(0f, (getHeight() - plantHeight) * 0.5f);
+            plantArt.setSize(plantWidth, plantHeight);
+            plantArt.setPosition(0f, (getHeight() - plantHeight) * 0.5f);
         }
         float badgeSize = conveyorLook ? Math.min(BADGE_SIZE, getHeight() * 0.38f) : BADGE_SIZE;
         if (familyBadge != null) {

@@ -23,6 +23,7 @@ import io.github.finalwave.view.gui.render.sync.BrainSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.FireTileSync;
 import io.github.finalwave.view.gui.render.sync.GraveSync;
+import io.github.finalwave.view.gui.render.sync.GooPuddleSync;
 import io.github.finalwave.view.gui.render.sync.GroundSeedPacketSync;
 import io.github.finalwave.view.gui.render.sync.IceTileSync;
 import io.github.finalwave.view.gui.render.sync.LawnBurstSync;
@@ -64,6 +65,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private ProtectTileSync protectTileSync;
     private GraveSync graveSync;
     private FireTileSync fireTileSync;
+    private GooPuddleSync gooPuddleSync;
     private IceTileSync iceTileSync;
     private BossFxSync bossFxSync;
     private DeadLineSync deadLineSync;
@@ -117,6 +119,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             protectTileSync = null;
             graveSync = null;
             fireTileSync = null;
+            gooPuddleSync = null;
             iceTileSync = null;
             bossFxSync = null;
             deadLineSync = null;
@@ -130,14 +133,16 @@ public final class BattlefieldGroup extends WidgetGroup {
             lawnBurstSync = null;
             return;
         }
+        ProjectileClips projectileClips = new ProjectileClips();
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
         zombieSync = new ZombieSync(assets, layout, new ZombieClips(catalog), new PlantClips(catalog), zombieLayer);
-        projectileSync = new ProjectileSync(assets, layout, new ProjectileClips(), projectileLayer);
+        projectileSync = new ProjectileSync(assets, layout, projectileClips, projectileLayer);
         sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
         mowerSync = new MowerSync(assets, layout, mowerLayer);
         protectTileSync = new ProtectTileSync(layout, environmentLayer);
         graveSync = new GraveSync(assets, layout, environmentLayer);
         fireTileSync = new FireTileSync(assets, layout, environmentLayer);
+        gooPuddleSync = new GooPuddleSync(assets, layout, projectileClips, environmentLayer);
         iceTileSync = new IceTileSync(assets, layout, environmentLayer);
         bossFxSync = new BossFxSync(assets, layout, fxLayer);
         deadLineSync = new DeadLineSync(assets, layout, deadlineLayer);
@@ -222,6 +227,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (fireTileSync != null) {
             fireTileSync.sync(session);
+        }
+        if (gooPuddleSync != null) {
+            gooPuddleSync.sync(session);
         }
         if (iceTileSync != null) {
             iceTileSync.sync(session);
@@ -357,6 +365,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (fireTileSync != null) {
             fireTileSync.clear();
+        }
+        if (gooPuddleSync != null) {
+            gooPuddleSync.clear();
         }
         if (iceTileSync != null) {
             iceTileSync.clear();

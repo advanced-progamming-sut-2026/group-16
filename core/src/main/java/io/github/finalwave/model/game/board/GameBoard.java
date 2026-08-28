@@ -18,6 +18,7 @@ public final class GameBoard {
     private final int cols;
     private final Tile[][] tiles;
     private final PlantCell[][] cells;
+    private boolean sandboxAquaticOnLand;
 
     public GameBoard() {
         this(DEFAULT_ROWS, DEFAULT_COLS);
@@ -105,7 +106,9 @@ public final class GameBoard {
             return PlantPlacementResult.TILE_BLOCKED;
         }
         if (definition.hasTag("WATER") && !tile.isWater()) {
-            return PlantPlacementResult.REQUIRES_WATER;
+            if (!sandboxAquaticOnLand) {
+                return PlantPlacementResult.REQUIRES_WATER;
+            }
         }
         PlantCell cell = cells[row][col];
         if (tile.isWater()) {
@@ -121,6 +124,20 @@ public final class GameBoard {
             }
             return definition.hasTag("WATER")
                     ? PlantPlacementResult.GROUND_OCCUPIED : PlantPlacementResult.SUCCESS;
+        }
+        boolean peaPod = Plant.isPeaPod(definition.getName());
+        if (peaPod) {
+            Plant ground = cell.getGround();
+            if (ground == null) {
+                if (!tile.canPlant(definition)) {
+                    return PlantPlacementResult.TILE_BLOCKED;
+                }
+                return PlantPlacementResult.SUCCESS;
+            }
+            if (Plant.isPeaPod(ground.getName()) && ground.getStackCount() < 5) {
+                return PlantPlacementResult.SUCCESS;
+            }
+            return PlantPlacementResult.GROUND_OCCUPIED;
         }
         boolean stack = definition.hasTag("STACK");
         if (stack) {
@@ -155,8 +172,8 @@ public final class GameBoard {
         if (tiles[row][col].isWater() && cell.getGround() == null
                 && plant.hasTag(PlantTag.WATER)) {
             cell.setGround(plant);
-        } else if (plant.hasTag(PlantTag.STACK)
-                || (tiles[row][col].isWater() && cell.getGround() != null)) {
+        } else if (!Plant.isPeaPod(plant.getName()) && (plant.hasTag(PlantTag.STACK)
+                || (tiles[row][col].isWater() && cell.getGround() != null))) {
             cell.setOverlay(plant);
         } else {
             cell.setGround(plant);
@@ -193,5 +210,9 @@ public final class GameBoard {
 
     public boolean inBounds(int col, int row) {
         return col >= 0 && col < cols && row >= 0 && row < rows;
+    }
+
+    public void setSandboxAquaticOnLand(boolean sandboxAquaticOnLand) {
+        this.sandboxAquaticOnLand = sandboxAquaticOnLand;
     }
 }

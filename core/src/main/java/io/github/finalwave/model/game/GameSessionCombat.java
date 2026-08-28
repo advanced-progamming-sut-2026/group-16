@@ -27,6 +27,7 @@ final class GameSessionCombat {
         session.getCooldownTracker().tick();
         session.getTileEffects().expireTimedEffects();
         session.getTileEffects().tickFireTiles();
+        session.getTileEffects().tickGooPuddles();
         session.getTileEffects().tickCoveringsAndObstacles();
         session.getTileEffects().tickAdjacentFireIceMelt();
         tickLivingPlants();

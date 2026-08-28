@@ -5,17 +5,15 @@ import io.github.finalwave.model.adventure.AdventureRegistry;
 import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.adventure.LevelConfig;
-import io.github.finalwave.model.collection.CollectionService;
 import io.github.finalwave.model.definition.PlantRegistry;
 import io.github.finalwave.model.definition.ZombieRegistry;
+import io.github.finalwave.model.definition.plant.PlantDefinition;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.mode.AdventureMode;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
@@ -35,22 +33,15 @@ public final class SandboxMatch {
         session.enableSandboxPractice();
         session.setSunBalance(9990);
         session.setPlantFoodCount(GameSession.MAX_PLANT_FOOD);
-        session.setSelectedLoadout(loadout(user, plants));
+        session.setSelectedLoadout(loadout(plants));
         return new GamePlayController(
                 user, userDatabase, mode, session, chapter, level, Set.of(), false);
     }
 
-    private static Set<String> loadout(User user, PlantRegistry plants) {
-        List<String> names = new ArrayList<>(CollectionService.selectablePlantNames(user, plants));
-        if (names.isEmpty()) {
-            names.addAll(List.of("Sunflower", "Peashooter", "Wall-nut", "Potato Mine", "Cabbage-pult"));
-        }
+    private static Set<String> loadout(PlantRegistry plants) {
         LinkedHashSet<String> selected = new LinkedHashSet<>();
-        for (String name : names) {
-            if (selected.size() >= 8) {
-                break;
-            }
-            selected.add(name);
+        for (PlantDefinition definition : plants.getAllDefinitions()) {
+            selected.add(definition.getName());
         }
         return Set.copyOf(selected);
     }

@@ -6,7 +6,9 @@ import io.github.finalwave.model.game.entity.zombie.Armor;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieState;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
+import io.github.finalwave.view.gui.render.clip.ArmorPartVisibility;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
+import pvz.libpvz.pam.PamPlayer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -155,6 +157,37 @@ public final class ZombieVisualState {
                 vis = new HashMap<>();
             }
             vis.put(part, Boolean.TRUE);
+        }
+        return vis;
+    }
+
+    public static Map<String, Boolean> inkVisibility(Zombie zombie, PamPlayer player, String pamPath) {
+        if (zombie == null || player == null || pamPath == null || zombie.getPoisonTicksRemaining() <= 0) {
+            return null;
+        }
+        Map<String, Boolean> vis = null;
+        for (String part : ArmorPartVisibility.partNames(player, pamPath)) {
+            if (!part.equals("ink") && !part.startsWith("ink_")) {
+                continue;
+            }
+            if (vis == null) {
+                vis = new HashMap<>();
+            }
+            vis.put(part, Boolean.TRUE);
+        }
+        return vis;
+    }
+
+    public static Map<String, Boolean> partVisibility(
+            Zombie zombie, ZombieClips clips, PamPlayer player, String pamPath) {
+        Map<String, Boolean> vis = armorVisibility(zombie, clips);
+        Map<String, Boolean> ink = inkVisibility(zombie, player, pamPath);
+        if (ink != null) {
+            if (vis == null) {
+                vis = new HashMap<>(ink);
+            } else {
+                vis.putAll(ink);
+            }
         }
         return vis;
     }

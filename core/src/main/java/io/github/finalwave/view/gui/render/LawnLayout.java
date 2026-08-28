@@ -28,6 +28,7 @@ public record LawnLayout(
     public static final float MOWER_MODEL_X = -0.5f;
     public static final float PROJECTILE_SCALE = 1.0f;
     public static final float PROJECTILE_ANCHOR_Y = 0.55f;
+    public static final float CACTUS_SPIKE_ANCHOR_Y = 0.88f;
     public static final float GRAVE_SCALE = 1.0f;
     public static final float GRAVE_ANCHOR_Y = 0.42f;
 

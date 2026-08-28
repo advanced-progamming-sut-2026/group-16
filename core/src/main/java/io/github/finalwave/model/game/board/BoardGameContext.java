@@ -1,6 +1,7 @@
 package io.github.finalwave.model.game.board;
 
 import io.github.finalwave.model.game.GameSession;
+import io.github.finalwave.model.game.GooPuddle;
 import io.github.finalwave.model.game.LawnBurst;
 import io.github.finalwave.model.game.MatchListener;
 import io.github.finalwave.model.game.PendingGraveLanding;
@@ -15,6 +16,7 @@ import io.github.finalwave.model.game.entity.plant.PlantCovering;
 import io.github.finalwave.model.game.entity.plant.PlantSpecialModifiers;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.plant.ability.ExplosiveAbility;
+import io.github.finalwave.model.game.entity.plant.ability.PlantShotPatterns;
 import io.github.finalwave.model.game.entity.plant.ability.ProjectileAttackAbility;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
@@ -184,7 +186,87 @@ public final class BoardGameContext implements GameContext {
                 ? ProjectileEffect.FIRE
                 : plant.projectileEffect();
         session.getProjectileSystem().spawnFromPlant(
-                plant, resolvedDamage, shots, profile, effect);
+                plant, resolvedDamage, shots, profile, effect, false);
+    }
+
+    @Override
+    public void spawnReverseProjectile(Plant plant, int damage, int shots, ProjectileProfile profile) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        ProjectileEffect effect = hasFirePlantAhead(plant)
+                ? ProjectileEffect.FIRE
+                : plant.projectileEffect();
+        session.getProjectileSystem().spawnFromPlant(
+                plant, resolvedDamage, shots, profile, effect, true);
+    }
+
+    @Override
+    public void spawnDirectedProjectile(Plant plant, int damage, double vx, double vy, float visualScale) {
+        spawnDirectedProjectile(plant, damage, vx, vy, visualScale, 0, 0);
+    }
+
+    @Override
+    public void spawnDirectedProjectile(Plant plant, int damage, double vx, double vy, float visualScale,
+                                        double laneOffset, double extraX) {
+        spawnDirectedProjectile(plant, damage, vx, vy, visualScale, laneOffset, extraX, null);
+    }
+
+    @Override
+    public void spawnDirectedProjectile(Plant plant, int damage, double vx, double vy, float visualScale,
+                                        double laneOffset, double extraX, ProjectileEffect effect) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        ProjectileProfile profile = plant.getAbility() instanceof ProjectileAttackAbility attack
+                ? attack.getProfile()
+                : ProjectileProfile.straight();
+        ProjectileEffect resolvedEffect = effect != null ? effect : resolveDirectedEffect(plant, visualScale);
+        session.getProjectileSystem().spawnDirectedFromPlant(
+                plant, resolvedDamage, vx, vy, profile, resolvedEffect, visualScale, laneOffset, extraX);
+    }
+
+    @Override
+    public void spawnPoisonLaneBall(Plant plant, int damage) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getProjectileSystem().spawnPoisonLaneBallFromPlant(plant, resolvedDamage);
+    }
+
+    @Override
+    public void addGooLaneTrail(Plant plant, int durationTicks) {
+        session.addGooLaneTrail(plant, durationTicks);
+    }
+
+    @Override
+    public void addGooPuddle(int col, int row, int durationTicks) {
+        session.addGooPuddle(col, row, durationTicks);
+    }
+
+    @Override
+    public List<GooPuddle> getGooPuddles() {
+        return session.getGooPuddles();
+    }
+
+    private static ProjectileEffect resolveDirectedEffect(Plant plant, float visualScale) {
+        if (visualScale >= PlantShotPatterns.GIANT_PEA_SCALE) {
+            return ProjectileEffect.GIANT_PEA;
+        }
+        return plant.projectileEffect();
+    }
+
+    @Override
+    public void spawnLaneClearProjectile(Plant plant, int damage, ProjectileEffect effect) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getProjectileSystem().spawnLaneClearFromPlant(plant, resolvedDamage, effect);
+    }
+
+    @Override
+    public void spawnBowlingProjectile(Plant plant, int damage, ProjectileEffect effect,
+                                       ProjectileProfile profile) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getProjectileSystem().spawnBowlingFromPlant(plant, resolvedDamage, effect);
+    }
+
+    @Override
+    public void spawnPiercingProjectile(Plant plant, int damage, ProjectileEffect effect, int pierce) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getProjectileSystem().spawnPiercingFromPlant(plant, resolvedDamage, effect, pierce);
     }
 
     @Override
@@ -199,6 +281,11 @@ public final class BoardGameContext implements GameContext {
 
     @Override
     public void spawnSun(Plant plant, double total) {
+        spawnSun(plant, total, SunType.NORMAL);
+    }
+
+    @Override
+    public void spawnSun(Plant plant, double total, SunType type) {
         double amount = total;
         if (session.isFamilyBoosted(plant.getCategory())) {
             amount *= 2.0;
@@ -213,11 +300,21 @@ public final class BoardGameContext implements GameContext {
                 value *= 2;
             }
         }
-        session.spawnSunItem(new Sun(plant.getCol(), plant.getRow(), value, SunType.NORMAL, true));
+        SunType resolved = type == null ? SunType.NORMAL : type;
+        session.spawnSunItem(new Sun(plant.getCol(), plant.getRow(), value, resolved, true));
+        plant.beginSunProduce(GameSession.TICKS_PER_SECOND);
         MatchListener listener = session.getMatchListener();
         if (listener != null) {
             listener.onSunProduced(plant, plant.getCol(), plant.getRow());
         }
+    }
+
+    @Override
+    public void spawnSunAt(int col, int row, int value, SunType type) {
+        int clampedCol = Math.max(0, Math.min(session.getBoard().getCols() - 1, col));
+        int clampedRow = Math.max(0, Math.min(session.getBoard().getRows() - 1, row));
+        session.spawnSunItem(new Sun(clampedCol, clampedRow, Math.max(1, value),
+                type == null ? SunType.NORMAL : type, true));
     }
 
     @Override

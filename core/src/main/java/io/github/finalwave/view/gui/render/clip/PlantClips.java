@@ -34,7 +34,11 @@ public final class PlantClips {
     }
 
     public boolean hasAttack(String plantName) {
-        return catalog.hasClip(catalog.plantIdle(plantName).path(), "attack");
+        return hasClip(plantName, "attack");
+    }
+
+    public boolean hasClip(String plantName, String clipName) {
+        return catalog.hasClip(catalog.plantIdle(plantName).path(), clipName);
     }
 
     public EntityAnimationCatalog.ClipSpec clip(String plantName, String... preferredClips) {

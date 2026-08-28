@@ -197,6 +197,18 @@ public final class GameSession {
         return tileEffects.getPlantCoverings();
     }
 
+    public List<GooPuddle> getGooPuddles() {
+        return tileEffects.getGooPuddles();
+    }
+
+    public void addGooLaneTrail(Plant plant, int durationTicks) {
+        tileEffects.addGooLaneTrail(plant, durationTicks);
+    }
+
+    public void addGooPuddle(int col, int row, int durationTicks) {
+        tileEffects.addGooPuddle(col, row, durationTicks);
+    }
+
     public List<ArcadeObstacle> getArcadeObstacles() {
         return tileEffects.getArcadeObstacles();
     }
@@ -727,6 +739,7 @@ public final class GameSession {
 
     public void enableSandboxPractice() {
         sandboxPractice = true;
+        board.setSandboxAquaticOnLand(true);
         setWavesAutoStart(false);
     }
 

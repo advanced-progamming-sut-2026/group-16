@@ -1,14 +1,17 @@
 package io.github.finalwave.model.game.entity;
 
 import io.github.finalwave.model.game.board.tile.Tile;
+import io.github.finalwave.model.game.GooPuddle;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCategory;
 import io.github.finalwave.model.game.entity.plant.PlantCovering;
+import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
 import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
+import io.github.finalwave.model.item.SunType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,11 +75,50 @@ public interface GameContext {
 
     void spawnProjectile(Plant plant, int damage, int shots, ProjectileProfile profile);
 
+    default void spawnReverseProjectile(Plant plant, int damage, int shots, ProjectileProfile profile) {
+        spawnProjectile(plant, damage, shots, profile);
+    }
+
+    default void spawnDirectedProjectile(Plant plant, int damage, double vx, double vy, float visualScale) {
+        spawnDirectedProjectile(plant, damage, vx, vy, visualScale, 0, 0);
+    }
+
+    default void spawnDirectedProjectile(Plant plant, int damage, double vx, double vy, float visualScale,
+                                         double laneOffset, double extraX) {
+        spawnProjectile(plant, damage, 1, ProjectileProfile.straight());
+    }
+
+    default void spawnDirectedProjectile(Plant plant, int damage, double vx, double vy, float visualScale,
+                                         double laneOffset, double extraX, ProjectileEffect effect) {
+        spawnDirectedProjectile(plant, damage, vx, vy, visualScale, laneOffset, extraX);
+    }
+
+    default void spawnPoisonLaneBall(Plant plant, int damage) {
+        spawnLaneClearProjectile(plant, damage, ProjectileEffect.POISON);
+    }
+
+    default void addGooLaneTrail(Plant plant, int durationTicks) {
+    }
+
+    default void addGooPuddle(int col, int row, int durationTicks) {
+    }
+
+    default List<GooPuddle> getGooPuddles() {
+        return List.of();
+    }
+
     void boostFamily(Plant plant, PlantCategory boostedFamily, double extendedDuration);
 
     void resetFamilyCooldowns(PlantCategory boostedFamily);
 
     void spawnSun(Plant plant, double total);
+
+    default void spawnSun(Plant plant, double total, SunType type) {
+        spawnSun(plant, total);
+    }
+
+    default void spawnSunAt(int col, int row, int value, SunType type) {
+    }
 
     void armTrap(Plant plant);
 
@@ -101,6 +143,19 @@ public interface GameContext {
     void pullUnderwater(Plant plant, double value);
 
     void localAreaAttack(Plant plant, double value);
+
+    default void spawnLaneClearProjectile(Plant plant, int damage, ProjectileEffect effect) {
+        spawnProjectile(plant, damage, 1, ProjectileProfile.piercingProfile());
+    }
+
+    default void spawnBowlingProjectile(Plant plant, int damage, ProjectileEffect effect,
+                                      ProjectileProfile profile) {
+        spawnProjectile(plant, damage, 1, profile);
+    }
+
+    default void spawnPiercingProjectile(Plant plant, int damage, ProjectileEffect effect, int pierce) {
+        spawnProjectile(plant, damage, 1, ProjectileProfile.piercingProfile());
+    }
 
     default List<Plant> getAllPlants() {
         ArrayList<Plant> plants = new java.util.ArrayList<>();
