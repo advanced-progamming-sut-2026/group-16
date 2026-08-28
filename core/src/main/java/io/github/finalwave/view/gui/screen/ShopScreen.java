@@ -246,9 +246,7 @@ public final class ShopScreen extends MenuScreen {
         Stack stack = new Stack();
         stack.add(glow);
         Table inner = new Table();
-        Image portrait = new Image(new TextureRegionDrawable(
-                assets.region(ShopItemCard.packetImageId(assets, plant))));
-        portrait.setScaling(Scaling.fit);
+        Actor portrait = ShopItemCard.plantArt(assets, plant, 0.42f);
         Label name = new Label(plant, skin, outlineStyle(skin));
         name.setAlignment(Align.center);
         name.setColor(BODY_WHITE);

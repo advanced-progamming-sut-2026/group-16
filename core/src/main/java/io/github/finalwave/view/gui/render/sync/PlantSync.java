@@ -9,6 +9,7 @@ import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCovering;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
+import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.ActorRegistry;
@@ -111,13 +112,16 @@ public final class PlantSync {
         actor.setSize(layout.tileWidth(), layout.tileHeight());
         actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
         boolean justFired = shots.consume(plant);
-        EntityAnimationCatalog.ClipSpec spec = PlantVisualState.clip(plant, clips, justFired);
-        EntityAnimationCatalog.ClipSpec idle = clips.idle(plant.getName());
+        List<Zombie> zombies = session.getZombies();
+        EntityAnimationCatalog.ClipSpec spec = PlantVisualState.clip(
+                plant, clips, justFired, zombies, actor.clipName());
+        EntityAnimationCatalog.ClipSpec idle = PlantVisualState.idle(plant, clips);
         float scale = clips.scale(plant.getName());
-        boolean playingAttack = PlantVisualState.isAttackClip(actor.clipName());
-        if (PlantVisualState.isAttack(spec) && !playingAttack) {
-            actor.playThen(spec.path(), spec.clip(), scale, idle.clip(), true, null);
-        } else if (!playingAttack) {
+        boolean playingOneShot = PlantVisualState.isOneShotClip(actor.clipName());
+        if (PlantVisualState.isOneShot(plant, spec) && !playingOneShot) {
+            String followUp = followUpClip(plant, spec, idle, zombies);
+            actor.playThen(spec.path(), spec.clip(), scale, followUp, true, null);
+        } else if (!playingOneShot) {
             actor.setClip(spec.path(), spec.clip(), scale, true);
         }
         actor.setUserObject(sortKey(plant, board, 0));
@@ -225,6 +229,61 @@ public final class PlantSync {
             }
         }
         return live;
+    }
+
+    private static String followUpClip(
+            Plant plant, EntityAnimationCatalog.ClipSpec spec, EntityAnimationCatalog.ClipSpec idle,
+            List<Zombie> zombies) {
+        String clip = spec == null ? null : spec.clip();
+        if ("down".equals(clip) || "down_attack".equals(clip)) {
+            return PlantVisualState.cactusDown(plant, zombies) ? "down_idle" : idle.clip();
+        }
+        if (plant.isUsingPlantFood()) {
+            if ("plantfood_on".equals(clip)) {
+                if ("Rotobaga".equals(plant.getName())) {
+                    return idle.clip();
+                }
+                if ("Snow Pea".equals(plant.getName()) || "Bowling Bulb".equals(plant.getName())) {
+                    return plantFoodFollowUp(plant);
+                }
+                return "plantfood";
+            }
+            if ("plantfood_start".equals(clip)) {
+                return "plantfood_loop";
+            }
+            if ("plantfood_end".equals(clip)) {
+                return idle.clip();
+            }
+            if ("Sun-shroom".equals(plant.getName()) && clip != null && clip.startsWith("plantfood_stage")) {
+                return "idle_stage" + plant.pamStage();
+            }
+            if ("plantfood_off".equals(clip) || "plantfood2".equals(clip)) {
+                return idle.clip();
+            }
+            if ("Cactus".equals(plant.getName()) && "plantfood".equals(clip)) {
+                return "idle_plantfood";
+            }
+            if ("Fire Peashooter".equals(plant.getName()) && "plantfood".equals(clip)) {
+                return "plantfood_loop";
+            }
+            if ("Fire Peashooter".equals(plant.getName()) && "plantfood_end".equals(clip)) {
+                return idle.clip();
+            }
+            if ("Puff-shroom".equals(plant.getName()) && "plantfood_on".equals(clip)) {
+                return "plantfood";
+            }
+            if ("Sea-shroom".equals(plant.getName()) && "pf".equals(clip)) {
+                return idle.clip();
+            }
+        }
+        return idle.clip();
+    }
+
+    private static String plantFoodFollowUp(Plant plant) {
+        if ("Bowling Bulb".equals(plant.getName())) {
+            return "plantfood_idle";
+        }
+        return "plantfood";
     }
 
     private static int iceHealth(Plant plant, GameSession session) {

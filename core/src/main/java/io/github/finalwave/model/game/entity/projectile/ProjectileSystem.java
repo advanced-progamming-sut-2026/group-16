@@ -20,6 +20,10 @@ import java.util.function.Consumer;
 
 public final class ProjectileSystem {
 
+    private static final float CACTUS_SPIKE_ANCHOR_Y = 0.88f;
+    private static final double HOMING_PROJECTILE_SPEED = 0.34;
+    private static final double BOWLING_SPEED = 0.32;
+
     private final List<Projectile> projectiles = new java.util.ArrayList<>();
     private final List<Projectile> pendingProjectiles = new java.util.ArrayList<>();
     private final Random random = new Random();
@@ -53,20 +57,162 @@ public final class ProjectileSystem {
 
     public void spawnFromPlant(Plant plant, int damage, int shots,
                                ProjectileProfile profile, ProjectileEffect effect) {
+        spawnFromPlant(plant, damage, shots, profile, effect, false);
+    }
+
+    public void spawnFromPlant(Plant plant, int damage, int shots,
+                               ProjectileProfile profile, ProjectileEffect effect, boolean reverse) {
         int additionalPierce = (int) plant.getStats()
                 .specialModifier(PlantSpecialModifiers.ADDITIONAL_PIERCE);
         int pierce = profile.piercing() ? 1 + additionalPierce : additionalPierce;
+        double startX = reverse ? plant.getCol() - 0.15 : plant.getCol() + 0.5;
         for (int i = 0; i < shots; i++) {
             ProjectileEffect resolvedEffect = resolveEffect(plant, effect);
-            projectiles.add(new Projectile(
+            Projectile projectile = new Projectile(
                     plant.getRow(),
-                    plant.getCol() + 0.5,
+                    startX,
                     damage,
                     profile,
                     resolvedEffect,
                     plant,
-                    pierce));
+                    pierce);
+            projectile.setReverse(reverse);
+            applyPlantSpawnVisuals(plant, resolvedEffect, projectile);
+            applyPlantProjectileClip(plant, resolvedEffect, projectile);
+            projectiles.add(projectile);
         }
+    }
+
+    public void spawnBowlingFromPlant(Plant plant, int damage, ProjectileEffect effect) {
+        ProjectileEffect resolvedEffect = resolveEffect(plant, effect);
+        Projectile projectile = new Projectile(
+                plant.getRow(),
+                plant.getCol() + 0.5,
+                damage,
+                ProjectileProfile.straight(),
+                resolvedEffect,
+                plant,
+                0);
+        projectile.setBowlingBouncesRemaining(bowlingBouncesForEffect(resolvedEffect));
+        projectiles.add(projectile);
+    }
+
+    private static void applyPlantSpawnVisuals(Plant plant, ProjectileEffect effect, Projectile projectile) {
+        if (plant == null) {
+            return;
+        }
+        if ("Cactus".equals(plant.getName())
+                && (effect == ProjectileEffect.SPIKE || effect == ProjectileEffect.SPIKE_PF)) {
+            projectile.setVisualAnchorY(CACTUS_SPIKE_ANCHOR_Y);
+        }
+    }
+
+    private static void applyPlantProjectileClip(Plant plant, ProjectileEffect effect, Projectile projectile) {
+        if (plant == null || effect == null) {
+            return;
+        }
+        if (effect == ProjectileEffect.GOO) {
+            int tier = Math.min(3, Math.max(1, plant.getLevel()));
+            projectile.setVisualClip("projectile_t" + tier);
+            return;
+        }
+        if (effect == ProjectileEffect.STAR) {
+            int tier = Math.min(3, Math.max(1, plant.getLevel()));
+            projectile.setVisualClip(tier == 1 ? "animation" : "animation" + tier);
+            return;
+        }
+        if (effect == ProjectileEffect.MEGA_GATLING_PEA) {
+            projectile.setVisualClip(plant.isUsingPlantFood() ? "animation3" : "animation");
+            return;
+        }
+        if (effect == ProjectileEffect.SEA_SHROOM && plant.isUsingPlantFood()) {
+            projectile.setVisualClip("animation2");
+        }
+    }
+
+    private static int bowlingBouncesForEffect(ProjectileEffect effect) {
+        return switch (effect) {
+            case BOWLING_BLUE -> 2;
+            case BOWLING_ORANGE, BOWLING_PF -> 3;
+            case BOWLING_CYAN -> 1;
+            default -> 0;
+        };
+    }
+
+    private static boolean isBowlingEffect(ProjectileEffect effect) {
+        return effect == ProjectileEffect.BOWLING_CYAN
+                || effect == ProjectileEffect.BOWLING_BLUE
+                || effect == ProjectileEffect.BOWLING_ORANGE
+                || effect == ProjectileEffect.BOWLING_PF;
+    }
+
+    public void spawnDirectedFromPlant(Plant plant, int damage, double vx, double vy,
+                                       ProjectileProfile profile, ProjectileEffect effect, float visualScale) {
+        spawnDirectedFromPlant(plant, damage, vx, vy, profile, effect, visualScale, 0, 0);
+    }
+
+    public void spawnDirectedFromPlant(Plant plant, int damage, double vx, double vy,
+                                       ProjectileProfile profile, ProjectileEffect effect, float visualScale,
+                                       double laneOffset, double extraX) {
+        int additionalPierce = (int) plant.getStats()
+                .specialModifier(PlantSpecialModifiers.ADDITIONAL_PIERCE);
+        int pierce = profile.piercing() ? 1 + additionalPierce : additionalPierce;
+        Projectile resolved = new Projectile(
+                plant.getRow(),
+                plant.getCol() + 0.5 + extraX,
+                damage,
+                profile,
+                resolveEffect(plant, effect),
+                plant,
+                pierce);
+        resolved.setY(plant.getRow());
+        resolved.setVelocity(vx, vy);
+        resolved.setVisualScale(visualScale);
+        resolved.setVisualLaneOffset(laneOffset);
+        applyPlantSpawnVisuals(plant, resolveEffect(plant, effect), resolved);
+        applyPlantProjectileClip(plant, resolveEffect(plant, effect), resolved);
+        projectiles.add(resolved);
+    }
+
+    public void spawnLaneClearFromPlant(Plant plant, int damage, ProjectileEffect effect) {
+        ProjectileProfile profile = ProjectileProfile.piercingProfile();
+        float scale = switch (effect) {
+            case PLASMA_PF -> 1.65f;
+            case GOO_PF -> 1f;
+            default -> 1.45f;
+        };
+        double speed = effect == ProjectileEffect.GOO_PF ? 0.45 : 0.55;
+        Projectile projectile = new Projectile(
+                plant.getRow(),
+                plant.getCol() + 0.5,
+                damage,
+                profile,
+                resolveEffect(plant, effect),
+                plant,
+                99);
+        projectile.setVelocity(speed, 0);
+        projectile.setVisualScale(scale);
+        applyPlantSpawnVisuals(plant, resolveEffect(plant, effect), projectile);
+        applyPlantProjectileClip(plant, effect, projectile);
+        projectiles.add(projectile);
+    }
+
+    public void spawnPoisonLaneBallFromPlant(Plant plant, int damage) {
+        spawnLaneClearFromPlant(plant, damage, ProjectileEffect.GOO_PF);
+    }
+
+    public void spawnPiercingFromPlant(Plant plant, int damage, ProjectileEffect effect, int pierce) {
+        ProjectileEffect resolvedEffect = resolveEffect(plant, effect);
+        Projectile projectile = new Projectile(
+                plant.getRow(),
+                plant.getCol() + 0.5,
+                damage,
+                ProjectileProfile.piercingProfile(),
+                resolvedEffect,
+                plant,
+                Math.max(1, pierce));
+        applyPlantSpawnVisuals(plant, resolvedEffect, projectile);
+        projectiles.add(projectile);
     }
 
     private ProjectileEffect resolveEffect(Plant plant, ProjectileEffect requestedEffect) {
@@ -121,6 +267,10 @@ public final class ProjectileSystem {
                     }
                     projectile.recordHit(hit.getId());
                     applyHit(projectile, hit, board, zombies, onZombieKilled, context);
+                    if (tryBowlingBounce(projectile, hit, context)) {
+                        projectile.decrementLifetime();
+                        continue;
+                    }
                     if (!projectile.canPierce()) iterator.remove();
                      else projectile.consumePierce();
                 }
@@ -182,13 +332,13 @@ public final class ProjectileSystem {
     private void move(Projectile projectile, GameBoard board, List<Zombie> zombies,
                       GameContext context) {
         if (projectile.getProfile().homing() && !projectile.isFromZombie()) {
-            Zombie target = nearestLivingZombieAhead(projectile, zombies);
-            if (target != null) {
-                projectile.setRow(target.getRow());
-            }
+            steerHomingProjectile(projectile, zombies);
         }
         double speed = projectile.getProfile().trajectory() == ProjectileProfile.Trajectory.ARCING ? 0.25 : 0.3;
-        if (projectile.isFromZombie()) {
+        if (projectile.isDirected()) {
+            projectile.setX(projectile.getX() + projectile.getVx());
+            projectile.setY(projectile.getY() + projectile.getVy());
+        } else if (projectile.isFromZombie() || projectile.isReverse()) {
             projectile.setX(projectile.getX() - speed);
         } else {
             projectile.setX(projectile.getX() + speed);
@@ -241,6 +391,100 @@ public final class ProjectileSystem {
         }
     }
 
+    private void steerHomingProjectile(Projectile projectile, List<Zombie> zombies) {
+        Zombie target = nearestHomingTarget(projectile, zombies);
+        if (target == null) {
+            return;
+        }
+        double dx = target.getX() + 0.15 - projectile.getX();
+        double dy = target.getRow() - projectile.getY();
+        double length = Math.max(0.001, Math.sqrt(dx * dx + dy * dy));
+        double travelSpeed = 0.34;
+        projectile.setVelocity(travelSpeed * dx / length, travelSpeed * dy / length);
+    }
+
+    private Zombie nearestHomingTarget(Projectile projectile, List<Zombie> zombies) {
+        Zombie nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
+        boolean prioritizeGargantuars = projectile.getSource() != null
+                && projectile.getSource().getStats()
+                .hasSpecialModifier(PlantSpecialModifiers.PRIORITIZE_GARGANTUARS);
+        if (prioritizeGargantuars) {
+            for (Zombie zombie : zombies) {
+                if (!isHomingCandidate(zombie)) {
+                    continue;
+                }
+                if (!zombie.getType().toLowerCase().contains("gargantuar")) {
+                    continue;
+                }
+                double distance = distanceTo(projectile, zombie);
+                if (distance < nearestDistance) {
+                    nearest = zombie;
+                    nearestDistance = distance;
+                }
+            }
+            if (nearest != null) {
+                return nearest;
+            }
+        }
+        for (Zombie zombie : zombies) {
+            if (!isHomingCandidate(zombie)) {
+                continue;
+            }
+            double distance = distanceTo(projectile, zombie);
+            if (distance < nearestDistance) {
+                nearest = zombie;
+                nearestDistance = distance;
+            }
+        }
+        return nearest;
+    }
+
+    private static double distanceTo(Projectile projectile, Zombie zombie) {
+        double dx = zombie.getX() - projectile.getX();
+        double dy = zombie.getRow() - projectile.getY();
+        return Math.sqrt(dx * dx + dy * dy * 4.0);
+    }
+
+    private static boolean isHomingCandidate(Zombie zombie) {
+        if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean tryBowlingBounce(Projectile projectile, Zombie hit, GameContext context) {
+        if (!isBowlingEffect(projectile.getEffect()) || projectile.getBowlingBouncesRemaining() <= 0) {
+            return false;
+        }
+        int rowCount = context == null ? 5 : context.getRowCount();
+        int currentRow = projectile.getRow();
+        int targetRow = resolveBowlingDeflectRow(projectile, hit, rowCount);
+        if (targetRow == currentRow) {
+            return false;
+        }
+        projectile.consumeBowlingBounce();
+        projectile.setRow(targetRow);
+        projectile.setY(currentRow);
+        double rowDelta = targetRow - currentRow;
+        projectile.setVelocity(0.32, rowDelta * 0.22);
+        return true;
+    }
+
+    private static int resolveBowlingDeflectRow(Projectile projectile, Zombie hit, int rowCount) {
+        int currentRow = projectile.getRow();
+        int maxRow = Math.max(0, rowCount - 1);
+        int preferred = projectile.getY() <= hit.getRow() - 0.05 ? currentRow - 1 : currentRow + 1;
+        if (preferred >= 0 && preferred <= maxRow && preferred != currentRow) {
+            return preferred;
+        }
+        int alternate = preferred < currentRow ? currentRow + 1 : currentRow - 1;
+        if (alternate >= 0 && alternate <= maxRow && alternate != currentRow) {
+            return alternate;
+        }
+        return currentRow;
+    }
+
     private Zombie nearestLivingZombieAhead(Projectile projectile, List<Zombie> zombies) {
         Zombie nearest = null;
         double nearestDistance = Double.MAX_VALUE;
@@ -278,13 +522,26 @@ public final class ProjectileSystem {
                     || projectile.hasHit(zombie.getId())) {
                 continue;
             }
+            double dx = zombie.getX() - projectile.getX();
+            double reach = zombie.isBoss() ? 1.45 : 0.3;
+            if (projectile.isDirected()) {
+                double dy = zombie.getRow() - projectile.getY();
+                if (Math.abs(dx) <= reach && Math.abs(dy) <= 0.55) {
+                    return zombie;
+                }
+                continue;
+            }
             if (!zombie.occupiesRow(projectile.getRow())) {
                 continue;
             }
-            double dx = zombie.getX() - projectile.getX();
-            double reach = zombie.isBoss() ? 1.45 : 0.3;
             if (projectile.isFromZombie()) {
                 if (Math.abs(dx) <= reach) {
+                    return zombie;
+                }
+                continue;
+            }
+            if (projectile.isReverse()) {
+                if (dx <= 0.35 && dx >= -reach) {
                     return zombie;
                 }
                 continue;
@@ -303,12 +560,24 @@ public final class ProjectileSystem {
             damage *= 2;
             zombie.clearColdStatuses();
         }
-        if (projectile.getEffect() == ProjectileEffect.POISON) {
+        if (projectile.getEffect() == ProjectileEffect.POISON
+                || projectile.getEffect() == ProjectileEffect.GOO
+                || projectile.getEffect() == ProjectileEffect.GOO_PF) {
+            zombie.setSuppressHitFlash(true);
             int poisonBonus = projectile.getSource() == null ? 0
                     : (int) projectile.getSource().getStats()
                     .specialModifier(PlantSpecialModifiers.POISON_TICK_BUFF);
-            zombie.applyPoison(50, 5 + poisonBonus);
+            int poisonTicks = projectile.getEffect() == ProjectileEffect.GOO_PF ? 120 : 50;
+            int poisonDamage = projectile.getEffect() == ProjectileEffect.GOO_PF ? 8 : 5 + poisonBonus;
+            zombie.applyPoison(poisonTicks, poisonDamage);
+            zombie.applyChill(projectile.getEffect() == ProjectileEffect.GOO_PF ? 120 : 20);
             zombie.takeDirectDamage(damage);
+            if (projectile.getEffect() == ProjectileEffect.GOO_PF) {
+                zombie.moveRight(0.75);
+                if (context != null) {
+                    context.addGooPuddle((int) Math.floor(zombie.getX()), zombie.getRow(), 80);
+                }
+            }
         } else if (projectile.getEffect() == ProjectileEffect.ICE
                 || projectile.getEffect() == ProjectileEffect.SNOWBALL
                 || projectile.getEffect() == ProjectileEffect.WINTER_MELON) {
@@ -323,6 +592,8 @@ public final class ProjectileSystem {
         } else if (projectile.getEffect() == ProjectileEffect.BUTTER) {
             zombie.applyFreeze(20);
             zombie.takeDamage(damage);
+        } else if (projectile.getEffect() == ProjectileEffect.MAGIC_BEAM) {
+            zombie.hypnotize(1.0, 1.0);
         } else if (projectile.getEffect() == ProjectileEffect.PEPPER) {
             zombie.clearColdStatuses();
             zombie.takeDamage(damage);
@@ -379,7 +650,8 @@ public final class ProjectileSystem {
         ProjectileEffect effect = projectile.getEffect();
         if (effect == ProjectileEffect.MELON
                 || effect == ProjectileEffect.WINTER_MELON
-                || effect == ProjectileEffect.PEPPER) {
+                || effect == ProjectileEffect.PEPPER
+                || effect == ProjectileEffect.PLASMA) {
             return true;
         }
         Plant source = projectile.getSource();
@@ -393,6 +665,9 @@ public final class ProjectileSystem {
             if (bonus > 0) {
                 return bonus;
             }
+        }
+        if (projectile.getEffect() == ProjectileEffect.PLASMA) {
+            return Math.max(1, projectile.getDamage() / 2);
         }
         return projectile.getDamage();
     }
@@ -409,6 +684,7 @@ public final class ProjectileSystem {
         ProjectileEffect effect = projectile.getEffect();
         return effect == ProjectileEffect.FUME
                 || effect == ProjectileEffect.SPIKE
+                || effect == ProjectileEffect.SPIKE_PF
                 || effect == ProjectileEffect.PUFF;
     }
 

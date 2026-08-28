@@ -39,6 +39,28 @@ public final class Plant extends Entity {
     private int lifespanTicksRemaining = -1;
     private boolean armedTrap;
     private boolean attacking;
+    private int producingSunTicks;
+    private int growthAdvanceTicks;
+    private int consumeDelayTicks;
+    private int stackCount = 1;
+    private int plantFoodTicksRemaining;
+    private int plantFoodDurationTicks;
+    private int plantFoodSetupTicks;
+    private int plantFoodFinaleTicks;
+    private int recoveryTicksRemaining;
+    private int reloadTicksRemaining;
+    private int bowlingAmmo = 1;
+    private boolean bowlingReloading;
+    private boolean megaGatlingBoosted;
+    private int visualIdleVariant = 1;
+    private SplitFireVisual splitFireVisual = SplitFireVisual.NONE;
+
+    public enum SplitFireVisual {
+        NONE,
+        FORWARD,
+        BACKWARD,
+        BOTH
+    }
 
     public Plant(String id, PlantDefinition definition, int level, int col, int row) {
         super(id, PlantStatsCalculator.compute(definition, level).maxHealth(), col, row);
@@ -83,7 +105,31 @@ public final class Plant extends Entity {
     @Override
     public void onTickUpdate(GameContext context) {
         lastContext = context;
+        if (producingSunTicks > 0) {
+            producingSunTicks--;
+        }
+        if (growthAdvanceTicks > 0) {
+            growthAdvanceTicks--;
+        }
+        if (consumeDelayTicks > 0) {
+            consumeDelayTicks--;
+            if (consumeDelayTicks == 0) {
+                consumeInstantly();
+                return;
+            }
+        }
+        if (plantFoodTicksRemaining > 0) {
+            foodEffect.tick(this, context);
+            plantFoodTicksRemaining--;
+            if (plantFoodTicksRemaining == 0) {
+                foodEffect.end(this, context);
+            }
+        }
         if (isDead() || isDisabled() || stats.actionInterval() <= 0) {
+            return;
+        }
+        if (isUsingPlantFood()) {
+            PlantBehaviorSupport.tick(this, context.getTicksPerSecond());
             return;
         }
         PlantBehaviorSupport.tick(this, context.getTicksPerSecond());
@@ -95,9 +141,15 @@ public final class Plant extends Entity {
         if (actionCooldownTicks <= 0) {
             if (PlantBehaviorSupport.canAct(this)) {
                 if (ability.tryAction(this, context)) {
-                    double interval = PlantBehaviorSupport.actionIntervalTicks(
-                            this, context.getTicksPerSecond());
-                    actionCooldownTicks = Math.max(1, interval - ability.actionWindupTicks());
+                    if (hasTag(PlantTag.CHARGE)) {
+                        chargeTicksRemaining = (int) Math.ceil(
+                                PlantBehaviorSupport.actionIntervalTicks(this, context.getTicksPerSecond()));
+                        actionCooldownTicks = 0;
+                    } else {
+                        double interval = PlantBehaviorSupport.actionIntervalTicks(
+                                this, context.getTicksPerSecond());
+                        actionCooldownTicks = Math.max(1, interval - ability.actionWindupTicks());
+                    }
                 } else {
                     actionCooldownTicks = 0;
                 }
@@ -139,6 +191,80 @@ public final class Plant extends Entity {
 
     public void consumeInstantly() {
         takeDamage(getMaxHealth());
+    }
+
+    public void consumeAfter(int ticks) {
+        consumeDelayTicks = Math.max(1, ticks);
+    }
+
+    public void beginSunProduce(int ticks) {
+        producingSunTicks = Math.max(producingSunTicks, Math.max(1, ticks));
+    }
+
+    public void beginPlantFood(int durationTicks, int setupTicks) {
+        beginPlantFood(durationTicks, setupTicks, 0);
+    }
+
+    public void beginPlantFood(int durationTicks, int setupTicks, int finaleTicks) {
+        this.plantFoodDurationTicks = Math.max(1, durationTicks);
+        this.plantFoodTicksRemaining = this.plantFoodDurationTicks;
+        this.plantFoodSetupTicks = Math.max(0, setupTicks);
+        this.plantFoodFinaleTicks = Math.max(0, finaleTicks);
+    }
+
+    public boolean isUsingPlantFood() {
+        return plantFoodTicksRemaining > 0;
+    }
+
+    public boolean isPlantFoodIntro() {
+        return isUsingPlantFood() && plantFoodElapsed() < plantFoodSetupTicks;
+    }
+
+    public boolean isPlantFoodFinale() {
+        return isUsingPlantFood() && plantFoodFinaleTicks > 0
+                && plantFoodTicksRemaining <= plantFoodFinaleTicks;
+    }
+
+    public boolean isPlantFoodOutro() {
+        if (!isUsingPlantFood() || plantFoodSetupTicks <= 0) {
+            return false;
+        }
+        int outro = Math.min(5, Math.max(1, plantFoodDurationTicks / 5));
+        return plantFoodTicksRemaining <= outro;
+    }
+
+    public int plantFoodElapsed() {
+        return plantFoodDurationTicks - plantFoodTicksRemaining;
+    }
+
+    public void growToMaxStage(int ticksPerSecond) {
+        while (growthStage < maxGrowthStage()) {
+            advanceGrowthStage(ticksPerSecond);
+        }
+    }
+
+    public boolean isProducingSun() {
+        return producingSunTicks > 0;
+    }
+
+    public boolean isGrowing() {
+        return growthAdvanceTicks > 0;
+    }
+
+    public int getStackCount() {
+        return stackCount;
+    }
+
+    public boolean addStack() {
+        if (stackCount >= 5) {
+            return false;
+        }
+        stackCount++;
+        return true;
+    }
+
+    public static boolean isPeaPod(String name) {
+        return "Pea Pod".equals(name);
     }
 
     public boolean upgrade() {
@@ -192,6 +318,14 @@ public final class Plant extends Entity {
                 case "Fume-shroom" -> ProjectileEffect.FUME;
                 case "Cactus" -> ProjectileEffect.SPIKE;
                 case "Puff-shroom" -> ProjectileEffect.PUFF;
+                case "Sea-shroom" -> ProjectileEffect.SEA_SHROOM;
+                case "Goo Peashooter" -> ProjectileEffect.GOO;
+                case "Mega Gatling Pea" -> ProjectileEffect.MEGA_GATLING_PEA;
+                case "Starfruit" -> ProjectileEffect.STAR;
+                case "Rotobaga" -> ProjectileEffect.ROTOBAGA;
+                case "Citron" -> ProjectileEffect.PLASMA;
+                case "Caulipower" -> ProjectileEffect.MAGIC_BEAM;
+                case "Electric Blueberry" -> ProjectileEffect.LIGHTNING;
                 default -> null;
             };
             if (named != null) {
@@ -240,10 +374,15 @@ public final class Plant extends Entity {
 
     public void advanceGrowthStage(int ticksPerSecond) {
         growthStage++;
+        growthAdvanceTicks = Math.max(growthAdvanceTicks, ticksPerSecond);
         if (growthStage < maxGrowthStage()) {
             growthTicksRemaining = (int) Math.ceil(
                     Math.max(0.1, stats.actionInterval()) * ticksPerSecond);
         }
+    }
+
+    public int pamStage() {
+        return Math.max(1, growthStage + 1);
     }
 
     public int getChargeTicksRemaining() {
@@ -256,6 +395,88 @@ public final class Plant extends Entity {
 
     public void decrementChargeTicks() {
         chargeTicksRemaining--;
+    }
+
+    public int getRecoveryTicksRemaining() {
+        return recoveryTicksRemaining;
+    }
+
+    public void setRecoveryTicksRemaining(int recoveryTicksRemaining) {
+        this.recoveryTicksRemaining = Math.max(0, recoveryTicksRemaining);
+    }
+
+    public void decrementRecoveryTicks() {
+        if (recoveryTicksRemaining > 0) {
+            recoveryTicksRemaining--;
+        }
+    }
+
+    public int getReloadTicksRemaining() {
+        return reloadTicksRemaining;
+    }
+
+    public void setReloadTicksRemaining(int reloadTicksRemaining) {
+        this.reloadTicksRemaining = Math.max(0, reloadTicksRemaining);
+    }
+
+    public void decrementReloadTicks() {
+        if (reloadTicksRemaining > 0) {
+            reloadTicksRemaining--;
+        }
+    }
+
+    public int getBowlingAmmo() {
+        return bowlingAmmo;
+    }
+
+    public void setBowlingAmmo(int bowlingAmmo) {
+        this.bowlingAmmo = Math.max(1, Math.min(3, bowlingAmmo));
+    }
+
+    public boolean isBowlingReloading() {
+        return bowlingReloading;
+    }
+
+    public void setBowlingReloading(boolean bowlingReloading) {
+        this.bowlingReloading = bowlingReloading;
+    }
+
+    public boolean isMegaGatlingBoosted() {
+        return megaGatlingBoosted;
+    }
+
+    public void setMegaGatlingBoosted(boolean megaGatlingBoosted) {
+        this.megaGatlingBoosted = megaGatlingBoosted;
+    }
+
+    public void resetLifespanTicks(int ticks) {
+        if (lifespanTicksRemaining >= 0) {
+            lifespanTicksRemaining = Math.max(1, ticks);
+        }
+    }
+
+    public int getLifespanTicksRemaining() {
+        return lifespanTicksRemaining;
+    }
+
+    public int getVisualIdleVariant() {
+        return visualIdleVariant;
+    }
+
+    public void setVisualIdleVariant(int visualIdleVariant) {
+        this.visualIdleVariant = Math.max(1, visualIdleVariant);
+    }
+
+    public void rotateVisualIdleVariant() {
+        visualIdleVariant = visualIdleVariant >= 4 ? 1 : visualIdleVariant + 1;
+    }
+
+    public SplitFireVisual getSplitFireVisual() {
+        return splitFireVisual;
+    }
+
+    public void setSplitFireVisual(SplitFireVisual splitFireVisual) {
+        this.splitFireVisual = splitFireVisual == null ? SplitFireVisual.NONE : splitFireVisual;
     }
 
     public boolean hasTag(PlantTag tag) {

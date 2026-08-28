@@ -16,7 +16,6 @@ import io.github.finalwave.view.gui.assets.CollectionCardLooks;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
-import io.github.finalwave.view.gui.assets.PlantPacketIds;
 
 
 public final class PlantCardActor extends Group {
@@ -27,6 +26,7 @@ public final class PlantCardActor extends Group {
     private static final float SHADOW_OFFSET = 4f;
     private static final float SHADOW_ALPHA = 0.38f;
     private static final float LEVEL_FONT_SCALE = 1.05f;
+    private static final float NAME_FONT_SCALE = 0.38f;
     private static final String BIG_OUTLINE = "big_outline";
     private static final String MEDIUM_OUTLINE = "medium_outline";
     private static final Color BADGE_TINT = new Color(1f, 1f, 1f, 1f);
@@ -36,12 +36,14 @@ public final class PlantCardActor extends Group {
     private final GameAssets assets;
     private final Image background;
     private final Image packet;
+    private final PamActor pamPortrait;
     private final Image cooldownShade;
     private final Image unaffordableShade;
     private final Image lockIcon;
     private final MintFamilyBadge familyBadge;
     private final Label costLabel;
     private final Label levelLabel;
+    private final Label nameLabel;
     private final UpgradeSeedBar seedBar;
     private final Image selectFrame;
     private final Color previousBatchColor = new Color();
@@ -56,6 +58,8 @@ public final class PlantCardActor extends Group {
     private boolean boosted;
     private boolean selected;
     private boolean empty;
+    private boolean nameOverlay;
+    private int nameIndex;
 
     public PlantCardActor(GameAssets assets, Skin skin, String plantName) {
         this.assets = assets;
@@ -69,6 +73,11 @@ public final class PlantCardActor extends Group {
 
         packet = new Image();
         packet.setScaling(Scaling.fit);
+
+        pamPortrait = new PamActor(assets.pamPlayer());
+        pamPortrait.setTouchable(Touchable.disabled);
+        pamPortrait.setVisible(false);
+        pamPortrait.setAnchor(0.5f, 0.32f);
 
         cooldownShade = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.PACKET_BG)));
         cooldownShade.setColor(0f, 0f, 0f, 0.55f);
@@ -94,6 +103,11 @@ public final class PlantCardActor extends Group {
         costLabel.setColor(COST_OK);
         levelLabel = new Label("", skin, levelStyle(skin));
         levelLabel.setAlignment(Align.right);
+        nameLabel = new Label("", skin, levelStyle(skin));
+        nameLabel.setAlignment(Align.center);
+        nameLabel.setWrap(true);
+        nameLabel.setVisible(false);
+        nameLabel.setTouchable(Touchable.disabled);
         seedBar = new UpgradeSeedBar(skin);
         seedBar.setVisible(false);
 
@@ -104,6 +118,8 @@ public final class PlantCardActor extends Group {
 
         addActor(background);
         addActor(packet);
+        addActor(pamPortrait);
+        addActor(nameLabel);
         addActor(cooldownShade);
         addActor(unaffordableShade);
         addActor(seedBar);
@@ -146,10 +162,13 @@ public final class PlantCardActor extends Group {
         packetBackgroundId = LawnAssetIds.PACKET_EMPTY;
         packet.setDrawable(new TextureRegionDrawable(assets.region(LawnAssetIds.PACKET_EMPTY)));
         packet.setVisible(false);
+        pamPortrait.setVisible(false);
         familyBadge.setVisible(false);
         lockIcon.setVisible(false);
         costLabel.setText("");
         levelLabel.setText("");
+        nameLabel.setText("");
+        nameLabel.setVisible(false);
         seedBar.setVisible(false);
         locked = false;
         boosted = false;
@@ -173,13 +192,28 @@ public final class PlantCardActor extends Group {
         if (LawnAssetIds.PACKET_EMPTY.equals(packetBackgroundId)) {
             packetBackgroundId = LawnAssetIds.PACKET_BG;
         }
-        String imageId = PlantPacketIds.imageId(plantName);
-        if (!assets.hasImage(imageId)) {
-            imageId = ShopItemCard.packetImageId(assets, plantName);
+        if (ShopItemCard.hasPacketImage(assets, plantName)) {
+            packet.setDrawable(new TextureRegionDrawable(
+                    assets.region(ShopItemCard.packetImageId(assets, plantName))));
+            packet.setVisible(true);
+            pamPortrait.setVisible(false);
+        } else {
+            packet.setVisible(false);
+            pamPortrait.freezeClip(assets.plantAnims().idleFor(plantName), 0.42f);
+            pamPortrait.setVisible(true);
         }
-        packet.setDrawable(new TextureRegionDrawable(assets.region(imageId)));
-        packet.setVisible(true);
+        refreshNameOverlay();
         refreshBackground();
+    }
+
+    public void setNameOverlay(boolean show) {
+        nameOverlay = show;
+        refreshNameOverlay();
+    }
+
+    public void setNameOverlayIndex(int index) {
+        nameIndex = Math.max(0, index);
+        refreshNameOverlay();
     }
 
     public void setZombie(String alias) {
@@ -193,6 +227,7 @@ public final class PlantCardActor extends Group {
         packet.setDrawable(new TextureRegionDrawable(
                 assets.region(CollectionZombieCard.packetImageId(assets, alias))));
         packet.setVisible(true);
+        pamPortrait.setVisible(false);
         familyBadge.setVisible(false);
         seedBar.setVisible(false);
         levelLabel.setText("");
@@ -310,7 +345,7 @@ public final class PlantCardActor extends Group {
     }
 
     private void layoutChildren() {
-        if (costLabel == null) {
+        if (costLabel == null || nameLabel == null) {
             return;
         }
         float width = getWidth();
@@ -318,6 +353,10 @@ public final class PlantCardActor extends Group {
         float scale = Math.min(width / WIDTH, height / REFERENCE_HEIGHT);
 
         packet.setBounds(width * 0.04f, height * 0.12f, width * 0.58f, height * 0.78f);
+        pamPortrait.setBounds(width * 0.02f, height * 0.08f, width * 0.62f, height * 0.84f);
+
+        nameLabel.setFontScale(NAME_FONT_SCALE * scale);
+        nameLabel.setBounds(width * 0.02f, height * 0.10f, width * 0.58f, height * 0.42f);
 
         float costScale = costFontScale * scale;
         costLabel.setFontScale(costScale);
@@ -344,6 +383,20 @@ public final class PlantCardActor extends Group {
         selectFrame.toFront();
 
         cooldownShade.setWidth(width);
+    }
+
+    private void refreshNameOverlay() {
+        boolean show = nameOverlay && !empty && plantName != null && !plantName.isBlank();
+        nameLabel.setVisible(show);
+        if (!show) {
+            nameLabel.setText("");
+            return;
+        }
+        if (nameIndex > 0) {
+            nameLabel.setText(nameIndex + "  " + plantName);
+            return;
+        }
+        nameLabel.setText(plantName);
     }
 
     private void refreshBackground() {

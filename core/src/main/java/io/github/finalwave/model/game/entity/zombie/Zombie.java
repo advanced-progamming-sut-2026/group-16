@@ -31,6 +31,7 @@ public final class Zombie extends Entity {
     private int chillTicksRemaining;
     private int poisonTicksRemaining;
     private int poisonDamagePerTick;
+    private boolean suppressHitFlash;
     private Action actionThisTick = Action.NONE;
     private GameContext lastContext;
     private boolean deathBehaviorsRun;
@@ -540,6 +541,22 @@ public final class Zombie extends Entity {
 
     public int getFreezeTicksRemaining() {
         return freezeTicksRemaining;
+    }
+
+    public int getPoisonTicksRemaining() {
+        return poisonTicksRemaining;
+    }
+
+    public void setSuppressHitFlash(boolean suppressHitFlash) {
+        this.suppressHitFlash = suppressHitFlash;
+    }
+
+    public boolean consumeSuppressHitFlash() {
+        if (!suppressHitFlash) {
+            return false;
+        }
+        suppressHitFlash = false;
+        return true;
     }
 
     public void applyFreeze(int ticks) {

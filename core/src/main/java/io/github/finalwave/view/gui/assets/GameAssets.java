@@ -30,6 +30,7 @@ public final class GameAssets implements Disposable {
     private final GameAudio audio;
     private Texture missingTexture;
     private TextureRegion missingRegion;
+    private PlantAnimationCatalog plantAnims;
 
     public GameAssets(FileHandle root) {
         this.root = root;
@@ -66,6 +67,13 @@ public final class GameAssets implements Disposable {
 
     public Skin skin() {
         return skin;
+    }
+
+    public PlantAnimationCatalog plantAnims() {
+        if (plantAnims == null) {
+            plantAnims = new PlantAnimationCatalog(root);
+        }
+        return plantAnims;
     }
 
     public ResourceIndex resourceIndex() {

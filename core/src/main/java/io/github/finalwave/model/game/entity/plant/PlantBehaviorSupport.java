@@ -2,6 +2,8 @@ package io.github.finalwave.model.game.entity.plant;
 
 import io.github.finalwave.model.game.entity.GameContext;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public final class PlantBehaviorSupport {
 
     private PlantBehaviorSupport() {
@@ -13,9 +15,12 @@ public final class PlantBehaviorSupport {
             plant.setGrowthTicksRemaining((int) Math.ceil(
                     Math.max(0.1, plant.getStats().actionInterval()) * ticksPerSecond));
         }
-        if (plant.hasTag(PlantTag.CHARGE)) {
+        if (plant.hasTag(PlantTag.CHARGE) && !"Bowling Bulb".equals(plant.getName())) {
             plant.setChargeTicksRemaining((int) Math.ceil(
                     Math.max(0.1, plant.getStats().actionInterval()) * ticksPerSecond));
+        }
+        if ("Caulipower".equals(plant.getName()) || "Electric Blueberry".equals(plant.getName())) {
+            plant.setVisualIdleVariant(1 + ThreadLocalRandom.current().nextInt(4));
         }
     }
 
@@ -29,13 +34,32 @@ public final class PlantBehaviorSupport {
         if (plant.hasTag(PlantTag.CHARGE) && plant.getChargeTicksRemaining() > 0) {
             plant.decrementChargeTicks();
         }
+        if (plant.getRecoveryTicksRemaining() > 0) {
+            plant.decrementRecoveryTicks();
+        }
+        if (plant.getReloadTicksRemaining() > 0 && plant.isBowlingReloading()) {
+            plant.decrementReloadTicks();
+            if (plant.getReloadTicksRemaining() <= 0) {
+                plant.setBowlingReloading(false);
+                plant.setBowlingAmmo(1);
+            }
+        }
     }
 
     public static boolean canAct(Plant plant) {
-        if (plant.hasTag(PlantTag.WARM_UP) && plant.getGrowthStage() < plant.maxGrowthStage()) {
+        if (plant.hasTag(PlantTag.WARM_UP)
+                && plant.getGrowthStage() < plant.maxGrowthStage()
+                && plant.getCategory() != PlantCategory.SUN_PRODUCER) {
             return false;
         }
-        if (plant.hasTag(PlantTag.CHARGE) && plant.getChargeTicksRemaining() > 0) {
+        if (plant.getRecoveryTicksRemaining() > 0) {
+            return false;
+        }
+        if (plant.isBowlingReloading() || plant.getReloadTicksRemaining() > 0) {
+            return false;
+        }
+        if (plant.hasTag(PlantTag.CHARGE) && plant.getChargeTicksRemaining() > 0
+                && !"Bowling Bulb".equals(plant.getName())) {
             return false;
         }
         return true;

@@ -15,6 +15,7 @@ public final class InstantSunBurstAbility implements PlantAbility {
     public void onPlanted(Plant plant, GameContext context) {
         double total = amount + plant.getStats().specialModifier("SUN_AMOUNT_BUFF");
         context.spawnSun(plant, total);
-        plant.consumeInstantly();
+        plant.setAttacking(true);
+        plant.consumeAfter(context.getTicksPerSecond());
     }
 }

@@ -32,6 +32,7 @@ final class GameSessionTileEffects {
     private final Map<PlantCategory, Integer> familyBoostEndTicks = new HashMap<>();
     private final Map<Integer, FieldModifier> rowModifiers = new HashMap<>();
     private final Map<Integer, Map<String, Integer>> rowEffects = new HashMap<>();
+    private final List<GooPuddle> gooPuddles = new ArrayList<>();
 
     GameSessionTileEffects(GameSession session) {
         this.session = session;
@@ -408,6 +409,45 @@ final class GameSessionTileEffects {
             for (int col = 0; col < board.getCols(); col++) {
                 if (board.getTile(col, row) instanceof FireTile fire && fire.tickExpired()) {
                     board.setTile(col, row, new NormalTile());
+                }
+            }
+        }
+    }
+
+    List<GooPuddle> getGooPuddles() {
+        return List.copyOf(gooPuddles);
+    }
+
+    void addGooPuddle(int col, int row, int durationTicks) {
+        if (!session.getBoard().inBounds(col, row) || durationTicks <= 0) {
+            return;
+        }
+        int endTick = session.getCurrentTick() + durationTicks;
+        gooPuddles.removeIf(puddle -> puddle.col() == col && puddle.row() == row);
+        gooPuddles.add(new GooPuddle(col, row, endTick));
+    }
+
+    void addGooLaneTrail(Plant plant, int durationTicks) {
+        if (plant == null) {
+            return;
+        }
+        int row = plant.getRow();
+        for (int col = plant.getCol() + 1; col < session.getBoard().getCols(); col++) {
+            addGooPuddle(col, row, durationTicks);
+        }
+    }
+
+    void tickGooPuddles() {
+        int currentTick = session.getCurrentTick();
+        gooPuddles.removeIf(puddle -> puddle.endTick() <= currentTick);
+        for (GooPuddle puddle : gooPuddles) {
+            for (Zombie zombie : session.getZombies()) {
+                if (zombie == null || !zombie.isAlive() || zombie.getRow() != puddle.row()) {
+                    continue;
+                }
+                if ((int) Math.floor(zombie.getX()) == puddle.col()) {
+                    zombie.applyPoison(40, 4);
+                    zombie.applyChill(15);
                 }
             }
         }

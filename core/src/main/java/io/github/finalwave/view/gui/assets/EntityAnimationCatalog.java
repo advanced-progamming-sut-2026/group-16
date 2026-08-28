@@ -26,14 +26,6 @@ public final class EntityAnimationCatalog {
     private static final String DEFAULT_PLANT_CLIP = "idle";
     private static final String DEFAULT_ZOMBIE_CLIP = "idle";
 
-    private static final Map<String, String> PLANT_NAME_OVERRIDES = Map.of(
-            normalize("Twin Sunflower"), "SUNFLOWER_TWIN",
-            normalize("Rotobaga"), "ROTORUTABAGA",
-            normalize("Mega Gatling Pea"), "MEGAGATLING",
-            normalize("Phat Beet"), "PHATBEETS",
-            normalize("Giant Wall-nut"), "TALLNUT"
-    );
-
     private static final Map<String, String> ZOMBIE_PATHS = zombiePaths();
 
     private final Map<String, ClipSpec> plantsByKey = new HashMap<>();
@@ -76,15 +68,12 @@ public final class EntityAnimationCatalog {
         if (plantName == null || plantName.isBlank()) {
             return FALLBACK_PLANT;
         }
-        String key = normalize(plantName);
-        String overrideName = PLANT_NAME_OVERRIDES.get(key);
-        if (overrideName != null) {
-            ClipSpec override = plantsByKey.get(normalize(overrideName));
-            if (override != null) {
-                return override;
-            }
-        }
+        String key = PlantNameAliases.pamKey(plantName);
         ClipSpec spec = plantsByKey.get(key);
+        if (spec != null) {
+            return spec;
+        }
+        spec = plantsByKey.get(PlantNameAliases.normalize(plantName));
         if (spec != null) {
             return spec;
         }

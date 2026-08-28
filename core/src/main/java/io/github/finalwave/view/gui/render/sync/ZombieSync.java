@@ -197,7 +197,7 @@ public final class ZombieSync {
         actor.setFlipX(shouldFlip(zombie));
         actor.setTint(ZombieVisualState.tint(zombie, session));
         Map<String, Boolean> vis = ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(),
-                ZombieVisualState.armorVisibility(zombie, clips));
+                ZombieVisualState.partVisibility(zombie, clips, assets.pamPlayer(), clip.path()));
         if (ZombotanyLooks.plantFor(zombie.getType()) != null) {
             vis = ZombotanyLooks.withHeadHidden(assets.pamPlayer(), clip.path(), vis);
         }
@@ -212,7 +212,10 @@ public final class ZombieSync {
             actor.getColor().a *= fade;
         }
         aliases.put(actor, zombie.getType());
-        hits.observe(zombie, flashHealth(zombie), actor, zombie.isBoss() ? 0.28f : 0.18f);
+        float flashSeconds = zombie.consumeSuppressHitFlash() || zombie.getPoisonTicksRemaining() > 0
+                ? 0f
+                : (zombie.isBoss() ? 0.28f : 0.18f);
+        hits.observe(zombie, flashHealth(zombie), actor, flashSeconds);
         throwBrokenArmor(zombie, actor, clip);
         updateProducerBadge(zombie, actor);
         maybeShakeSmash(zombie, clip);

@@ -62,6 +62,11 @@ public final class PamActor extends Actor {
         setClip(spec, scale, true);
     }
 
+    public void freezeClip(PlantAnimationCatalog.ClipSpec spec, float scale) {
+        setClip(spec, scale, false);
+        setPlaying(false);
+    }
+
     public void setClip(PlantAnimationCatalog.ClipSpec spec, float scale, boolean loop) {
         if (spec == null) {
             setClip((String) null, null, scale, loop);

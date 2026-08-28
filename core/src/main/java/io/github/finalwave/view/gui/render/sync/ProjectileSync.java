@@ -35,6 +35,7 @@ public final class ProjectileSync {
     private final ActorRegistry<Projectile, PamActor> projectiles = new ActorRegistry<>();
     private final Map<PamActor, ArcFlight> arcs = new IdentityHashMap<>();
     private final Map<PamActor, ProjectileEffect> effects = new IdentityHashMap<>();
+    private final Map<PamActor, String> visualClips = new IdentityHashMap<>();
     private GameSession session;
     private float tickFraction;
 
@@ -59,6 +60,7 @@ public final class ProjectileSync {
         projectiles.clear(this::removeOnly);
         arcs.clear();
         effects.clear();
+        visualClips.clear();
         session = null;
     }
 
@@ -69,6 +71,7 @@ public final class ProjectileSync {
         layer.addActor(actor);
         assets.audio().playThrow();
         effects.put(actor, projectile.getEffect());
+        visualClips.put(actor, projectile.getVisualClip());
         if (isArcing(projectile)) {
             double launchX = projectile.getX();
             arcs.put(actor, new ArcFlight(launchX, arcSpan(projectile, launchX)));
@@ -78,20 +81,32 @@ public final class ProjectileSync {
 
     private void update(Projectile projectile, PamActor actor) {
         float displayX = (float) displayX(projectile);
+        float displayY = (float) displayY(projectile);
         float worldX = layout.worldX(displayX);
-        float worldY = layout.worldYForRow(projectile.getRow())
-                + layout.tileHeight() * LawnLayout.PROJECTILE_ANCHOR_Y;
+        float worldY = layout.worldYForRow(displayY + projectile.getVisualLaneOffset())
+                + layout.tileHeight() * anchorY(projectile);
         ArcFlight arc = arcs.get(actor);
         if (arc != null) {
             worldY += arcLift(displayX, arc);
         }
         actor.setSize(layout.tileWidth(), layout.tileHeight());
         actor.setPosition(worldX - actor.getWidth() / 2f, worldY - actor.getHeight() / 2f);
-        EntityAnimationCatalog.ClipSpec spec = clips.clip(projectile.getEffect());
-        actor.setClip(spec.path(), spec.clip(), clips.scale(projectile.getEffect()), true);
+        EntityAnimationCatalog.ClipSpec spec = clips.clip(
+                projectile.getEffect(), projectile.getVisualClip());
+        float scale = clips.scale(projectile.getEffect()) * projectile.getVisualScale();
+        actor.setClip(spec.path(), spec.clip(), scale, true);
         actor.setFlipX(projectile.isFromZombie());
-        actor.setUserObject(projectile.getRow() * 8 + 1);
+        actor.setUserObject((int) Math.round(displayY) * 8 + 1);
         effects.put(actor, projectile.getEffect());
+        visualClips.put(actor, projectile.getVisualClip());
+    }
+
+    private static float anchorY(Projectile projectile) {
+        float custom = projectile.getVisualAnchorY();
+        if (custom >= 0f) {
+            return custom;
+        }
+        return LawnLayout.PROJECTILE_ANCHOR_Y;
     }
 
     private void onHit(PamActor actor) {
@@ -103,11 +118,13 @@ public final class ProjectileSync {
     private void removeOnly(PamActor actor) {
         arcs.remove(actor);
         effects.remove(actor);
+        visualClips.remove(actor);
         actor.remove();
     }
 
     private void spawnSplat(PamActor source) {
-        EntityAnimationCatalog.ClipSpec spec = clips.splat(effects.get(source));
+        ProjectileEffect effect = effects.get(source);
+        EntityAnimationCatalog.ClipSpec spec = clips.splat(effect, visualClips.get(source));
         PamActor splat = new PamActor(assets.pamPlayer());
         splat.setTouchable(Touchable.disabled);
         splat.setAnchor(0.5f, 0.5f);
@@ -153,11 +170,26 @@ public final class ProjectileSync {
         if (tickFraction <= 0f) {
             return modelX;
         }
-        double step = speed(projectile) * tickFraction;
-        if (projectile.isFromZombie()) {
-            return modelX - step;
+        return modelX + velocityX(projectile) * tickFraction;
+    }
+
+    private double displayY(Projectile projectile) {
+        double modelY = projectile.getY();
+        if (tickFraction <= 0f || !projectile.isDirected()) {
+            return modelY;
         }
-        return modelX + step;
+        return modelY + projectile.getVy() * tickFraction;
+    }
+
+    private double velocityX(Projectile projectile) {
+        if (projectile.isDirected()) {
+            return projectile.getVx();
+        }
+        double step = speed(projectile);
+        if (projectile.isFromZombie() || projectile.isReverse()) {
+            return -step;
+        }
+        return step;
     }
 
     private static boolean isArcing(Projectile projectile) {

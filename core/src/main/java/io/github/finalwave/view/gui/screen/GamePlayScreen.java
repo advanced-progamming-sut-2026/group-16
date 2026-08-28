@@ -54,6 +54,7 @@ import io.github.finalwave.view.gui.hud.ShovelButton;
 import io.github.finalwave.view.gui.hud.SpeedButton;
 import io.github.finalwave.view.gui.hud.SunCounter;
 import io.github.finalwave.view.gui.hud.WaveProgressMeter;
+import io.github.finalwave.view.gui.hud.PlantSandboxPanel;
 import io.github.finalwave.view.gui.hud.ZombieRosterBar;
 import io.github.finalwave.view.gui.hud.ZombieSandboxPanel;
 import io.github.finalwave.view.gui.hud.special.BeghouledUpgradeBar;
@@ -117,6 +118,7 @@ public final class GamePlayScreen extends MenuScreen {
     private SeedBankBar seedBank;
     private ZombieRosterBar zombieRoster;
     private ZombieSandboxPanel zombieSandbox;
+    private PlantSandboxPanel plantSandbox;
     private BeghouledUpgradeBar upgradeBar;
     private ConveyorBeltBar conveyorBeltBar;
     private StartWaveButton startWaveButton;
@@ -498,12 +500,20 @@ public final class GamePlayScreen extends MenuScreen {
                 beghouledRemaining.setText(left + " matches left");
             }
         }
+        boolean sandbox = sandboxMatch();
         if (seedBank != null && session != null) {
-            if (hideSeeds) {
+            if (hideSeeds || sandbox) {
                 seedBank.setVisible(false);
             } else {
                 seedBank.refresh(session, user, seedBoosts(),
                         input == null ? null : input.mode());
+            }
+        }
+        if (plantSandbox != null) {
+            if (sandbox) {
+                plantSandbox.refresh(session, input == null ? null : input.mode());
+            } else {
+                plantSandbox.setVisible(false);
             }
         }
         if (zombieRoster != null) {
@@ -665,6 +675,8 @@ public final class GamePlayScreen extends MenuScreen {
         meowPointBanner = new MeowPointBanner(assets);
         plantFoodCounter = new PlantFoodCounter(assets, this::onAddPlantFood, this::onPlantFoodDragStart, this::onPlantFoodDrop);
         seedBank = new SeedBankBar(assets, this::onSeed);
+        plantSandbox = new PlantSandboxPanel(assets, this::onSeed);
+        plantSandbox.setVisible(false);
         zombieRoster = new ZombieRosterBar(assets, this::onZombie);
         upgradeBar = new BeghouledUpgradeBar(assets, this::onBeghouledUpgrade);
         conveyorBeltBar = new ConveyorBeltBar(assets, this::onSeed);
@@ -707,7 +719,7 @@ public final class GamePlayScreen extends MenuScreen {
         mid.setTouchable(Touchable.childrenOnly);
         if (iZombie != null) {
             mid.add(zombieRoster).left().top().padLeft(8f).padTop(6f);
-        } else if (!hideSeedTools()) {
+        } else if (!hideSeedTools() && !sandboxMatch()) {
             mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
         }
         mid.add().expand();
@@ -726,6 +738,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         hudLayer.add(hudBottom).growX();
         hudLayer.addActor(conveyorBeltBar);
+        if (plantSandbox != null) {
+            hudLayer.addActor(plantSandbox);
+        }
         if (zombieSandbox != null) {
             hudLayer.addActor(zombieSandbox);
         }
@@ -1147,6 +1162,9 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private float sunPad() {
+        if (sandboxMatch()) {
+            return PlantSandboxPanel.PANEL_WIDTH + 20f;
+        }
         if (conveyorBeltBar != null && conveyorBeltBar.isVisible()) {
             return conveyorBeltBar.stripWidth() + 16f;
         }
@@ -1154,6 +1172,9 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private float plantFoodPad() {
+        if (sandboxMatch()) {
+            return PlantSandboxPanel.PANEL_WIDTH + 20f;
+        }
         if (conveyorBeltBar != null && conveyorBeltBar.isVisible()) {
             return conveyorBeltBar.stripWidth() + 16f;
         }
@@ -1372,19 +1393,30 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void layoutSandbox() {
-        if (zombieSandbox == null) {
-            return;
-        }
         if (!sandboxMatch()) {
-            zombieSandbox.setVisible(false);
+            if (zombieSandbox != null) {
+                zombieSandbox.setVisible(false);
+            }
+            if (plantSandbox != null) {
+                plantSandbox.setVisible(false);
+            }
             return;
         }
-        zombieSandbox.setVisible(true);
-        zombieSandbox.pack();
-        float x = Math.max(12f, hudLayer.getWidth() - zombieSandbox.getWidth() - 14f);
-        float y = 18f;
-        zombieSandbox.setPosition(x, y);
-        zombieSandbox.toFront();
+        if (plantSandbox != null) {
+            plantSandbox.setVisible(true);
+            float height = Math.max(240f, hudLayer.getHeight() - 36f);
+            plantSandbox.setSize(PlantSandboxPanel.PANEL_WIDTH, height);
+            plantSandbox.setPosition(8f, 18f);
+            plantSandbox.validate();
+            plantSandbox.toFront();
+        }
+        if (zombieSandbox != null) {
+            zombieSandbox.setVisible(true);
+            zombieSandbox.pack();
+            float x = Math.max(12f, hudLayer.getWidth() - zombieSandbox.getWidth() - 14f);
+            zombieSandbox.setPosition(x, 18f);
+            zombieSandbox.toFront();
+        }
     }
 
     private ZombieSandboxPanel.Host sandboxHost() {
