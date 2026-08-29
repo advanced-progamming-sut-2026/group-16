@@ -124,6 +124,9 @@ public interface GameContext {
 
     void explode(Plant plant, int damage, double radius);
 
+    default void clearGraveAt(int col, int row) {
+    }
+
     void applyFieldModifier(Plant plant, double magnitude);
 
     void grantArmor(Plant plant, int armorValue);

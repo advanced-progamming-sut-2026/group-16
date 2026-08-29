@@ -1343,6 +1343,7 @@ public final class GamePlayScreen extends MenuScreen {
         }
         preload(PlantClips.ICE_BLOCK_PATH);
         preload(PlantClips.OCTOPUS_PATH);
+        preload(PlantClips.GRAVE_BUSTER_DIRT_PATH);
         preload(ExplosionLooks.BONE_HIT_PATH);
         assets.region(ExplosionLooks.BONE_PROJECTILE_IMAGE);
         preload(ArcadeObstacleSync.PAM_PATH);

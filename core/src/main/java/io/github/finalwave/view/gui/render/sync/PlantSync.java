@@ -8,6 +8,7 @@ import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCovering;
+import io.github.finalwave.model.game.entity.plant.ability.GraveBusterAbility;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
@@ -19,12 +20,16 @@ import io.github.finalwave.view.gui.widget.HitFlashTracker;
 import io.github.finalwave.view.gui.widget.PamActor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public final class PlantSync {
     private static final Color ICE_TINT = new Color(0.55f, 0.9f, 1f, 1f);
     private static final Color DISABLED = new Color(0.62f, 0.62f, 0.62f, 1f);
+    private static final Map<String, Boolean> GRAVE_BUSTER_BODY_ONLY = Map.of(PlantClips.GRAVE_BUSTER_DIRT_PART, false);
+    private final Map<Plant, Integer> graveBusterStartTick = new HashMap<>();
 
     private final GameAssets assets;
     private final LawnLayout layout;
@@ -57,6 +62,9 @@ public final class PlantSync {
             if (plant == null || !plant.isAlive()) {
                 continue;
             }
+            if (isMint(plant.getName())) {
+                continue;
+            }
             live.add(plant);
             if (freezeLevel(plant, session) >= 2) {
                 frozen.add(plant);
@@ -76,6 +84,7 @@ public final class PlantSync {
         iceHits.retain(frozen);
         octopusHits.retain(octopusCoverings);
         shots.retain(live, projectiles);
+        graveBusterStartTick.keySet().retainAll(live);
     }
 
     public void clear() {
@@ -87,6 +96,7 @@ public final class PlantSync {
         iceHits.clear();
         octopusHits.clear();
         shots.clear();
+        graveBusterStartTick.clear();
     }
 
     private PamActor spawnPlant(Plant plant) {
@@ -117,12 +127,14 @@ public final class PlantSync {
                 plant, clips, justFired, zombies, actor.clipName());
         EntityAnimationCatalog.ClipSpec idle = PlantVisualState.idle(plant, clips);
         float scale = clips.scale(plant.getName());
-        boolean playingOneShot = PlantVisualState.isOneShotClip(actor.clipName());
-        if (PlantVisualState.isOneShot(plant, spec) && !playingOneShot) {
-            String followUp = followUpClip(plant, spec, idle, zombies);
-            actor.playThen(spec.path(), spec.clip(), scale, followUp, true, null);
-        } else if (!playingOneShot) {
-            actor.setClip(spec.path(), spec.clip(), scale, true);
+        if (!applyGraveBusterClip(plant, actor, scale, session)) {
+            boolean playingOneShot = PlantVisualState.isOneShotClip(actor.clipName());
+            if (PlantVisualState.isOneShot(plant, spec) && !playingOneShot) {
+                String followUp = followUpClip(plant, spec, idle, zombies);
+                actor.playThen(spec.path(), spec.clip(), scale, followUp, true, null);
+            } else if (!playingOneShot) {
+                actor.setClip(spec.path(), spec.clip(), scale, true);
+            }
         }
         actor.setUserObject(sortKey(plant, board, 0));
         int freeze = freezeLevel(plant, session);
@@ -136,6 +148,66 @@ public final class PlantSync {
             actor.setTint(Color.WHITE);
         }
         plantHits.observe(plant, plant.getHealth(), actor);
+    }
+
+    private boolean applyGraveBusterClip(Plant plant, PamActor actor, float scale, GameSession session) {
+        if (!"Grave Buster".equals(plant.getName())) {
+            actor.clearGroundClip();
+            return false;
+        }
+        if (plant.isAttacking()) {
+            int start = graveBusterStartTick.computeIfAbsent(plant, k -> session.getCurrentTick());
+            float sink = graveBusterSink(plant, session, start);
+            actor.setVisibility(GRAVE_BUSTER_BODY_ONLY);
+            actor.setTimeScale(1f);
+            actor.setDrawOffset(0f, -sink);
+            actor.setGroundClip(layout.worldYForRow(plant.getRow()) + layout.tileHeight() * 0.22f);
+            if (!PlantClips.GRAVE_BUSTER_ATTACK.equals(actor.clipName()) || actor.hasFollowUp()) {
+                actor.playThen(
+                        PlantClips.GRAVE_BUSTER_PATH,
+                        PlantClips.GRAVE_BUSTER_ATTACK,
+                        scale,
+                        PlantClips.GRAVE_BUSTER_EAT,
+                        false,
+                        null);
+            }
+            return true;
+        }
+        if (plant.isGraveBusting()) {
+            int start = graveBusterStartTick.computeIfAbsent(plant, k -> session.getCurrentTick());
+            float sink = graveBusterSink(plant, session, start);
+            float eatSeconds = GraveBusterAbility.eatSeconds(plant);
+            float timeScale = GraveBusterAbility.ATTACK1_CLIP_SECONDS / eatSeconds;
+            actor.setVisibility(GRAVE_BUSTER_BODY_ONLY);
+            actor.setDrawOffset(0f, -sink);
+            actor.setGroundClip(layout.worldYForRow(plant.getRow()) + layout.tileHeight() * 0.22f);
+            if (!PlantClips.GRAVE_BUSTER_EAT.equals(actor.clipName())
+                    || actor.loop()
+                    || Math.abs(actor.timeScale() - timeScale) > 0.0001f) {
+                actor.setClip(
+                        PlantClips.GRAVE_BUSTER_PATH,
+                        PlantClips.GRAVE_BUSTER_EAT,
+                        scale,
+                        false);
+                actor.setStateTime(0f);
+            }
+            actor.setTimeScale(timeScale);
+            return true;
+        }
+        actor.setVisibility(null);
+        actor.setTimeScale(1f);
+        actor.setDrawOffset(0f, 0f);
+        actor.clearGroundClip();
+        return false;
+    }
+
+    private float graveBusterSink(Plant plant, GameSession session, int startTick) {
+        int elapsed = session.getCurrentTick() - startTick;
+        float eatSeconds = GraveBusterAbility.eatSeconds(plant);
+        int eatTicks = Math.max(1, (int) Math.round(eatSeconds * GameSession.TICKS_PER_SECOND));
+        int totalTicks = GameSession.TICKS_PER_SECOND + eatTicks;
+        float progress = Math.min(1f, Math.max(0f, elapsed / (float) totalTicks));
+        return layout.tileHeight() * 1.05f * progress;
     }
 
     private void updateIce(Plant plant, PamActor actor, GameSession session) {
@@ -276,6 +348,9 @@ public final class PlantSync {
                 return idle.clip();
             }
         }
+        if ("Grave Buster".equals(plant.getName()) && "attack".equals(clip)) {
+            return "attack1";
+        }
         return idle.clip();
     }
 
@@ -332,5 +407,19 @@ public final class PlantSync {
             depth = 1;
         }
         return plant.getRow() * 8 + depth;
+    }
+
+    private static boolean isMint(String name) {
+        if (name == null) {
+            return false;
+        }
+        String lower = name.toLowerCase();
+        return lower.equals("enlighten-mint")
+                || lower.equals("appease-mint")
+                || lower.equals("arma-mint")
+                || lower.equals("bombard-mint")
+                || lower.equals("enforce-mint")
+                || lower.equals("reinforce-mint")
+                || lower.equals("enchant-mint");
     }
 }

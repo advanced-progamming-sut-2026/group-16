@@ -68,12 +68,11 @@ public final class EntityAnimationCatalog {
         if (plantName == null || plantName.isBlank()) {
             return FALLBACK_PLANT;
         }
-        String key = PlantNameAliases.pamKey(plantName);
-        ClipSpec spec = plantsByKey.get(key);
-        if (spec != null) {
-            return spec;
+        if ("Grave Buster".equals(plantName)) {
+            ClipSpec spec = lookupPlantSpec(plantName);
+            return spec == null ? FALLBACK_PLANT : new ClipSpec(spec.path(), "attack1");
         }
-        spec = plantsByKey.get(PlantNameAliases.normalize(plantName));
+        ClipSpec spec = lookupPlantSpec(plantName);
         if (spec != null) {
             return spec;
         }
@@ -84,9 +83,15 @@ public final class EntityAnimationCatalog {
     }
 
     public ClipSpec plantClip(String plantName, String... preferredClips) {
-        ClipSpec idle = plantIdle(plantName);
-        String clip = pick(idle.path(), DEFAULT_PLANT_CLIP, preferredClips);
-        return new ClipSpec(idle.path(), clip);
+        ClipSpec base = lookupPlantSpec(plantName);
+        if (base == null) {
+            if (missingPlants.add(plantName)) {
+                Gdx.app.error(TAG, "No plant PAM for " + plantName);
+            }
+            base = FALLBACK_PLANT;
+        }
+        String clip = pick(base.path(), DEFAULT_PLANT_CLIP, preferredClips);
+        return new ClipSpec(base.path(), clip);
     }
 
     public ClipSpec zombieClip(String alias, String... preferredClips) {
@@ -204,6 +209,14 @@ public final class EntityAnimationCatalog {
 
     private static String normalize(String name) {
         return name.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+    }
+
+    private ClipSpec lookupPlantSpec(String plantName) {
+        ClipSpec spec = plantsByKey.get(PlantNameAliases.pamKey(plantName));
+        if (spec != null) {
+            return spec;
+        }
+        return plantsByKey.get(PlantNameAliases.normalize(plantName));
     }
 
     private static Map<String, String> zombiePaths() {

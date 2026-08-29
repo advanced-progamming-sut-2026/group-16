@@ -108,8 +108,24 @@ public final class ShopItemCard extends Stack {
     private Actor previewActor(ShopOffer offer) {
         if (hasText(offer.previewPlant())) {
             PamActor pam = new PamActor(assets.pamPlayer());
-            pam.setClip(catalog.idleFor(offer.previewPlant()), 0.42f);
+            PlantAnimationCatalog.ClipSpec idle = catalog.idleFor(offer.previewPlant());
+            pam.setClip(idle, 0.42f);
             pam.setTouchable(Touchable.disabled);
+            if (isMint(offer.previewPlant())) {
+                PlantAnimationCatalog.ClipSpec loop = new PlantAnimationCatalog.ClipSpec(idle.path(), "loop");
+                pam.setTouchable(Touchable.enabled);
+                pam.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+                    @Override
+                    public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
+                        pam.setClip(loop, 0.42f);
+                    }
+
+                    @Override
+                    public void exit(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor toActor) {
+                        pam.setClip(idle, 0.42f);
+                    }
+                });
+            }
             return pam;
         }
         Image art = new Image(new TextureRegionDrawable(assets.region(previewImageId(offer))));
@@ -192,5 +208,19 @@ public final class ShopItemCard extends Stack {
 
     private static boolean knownImage(GameAssets assets, String imageId) {
         return assets.resourceIndex().image(imageId) != null;
+    }
+
+    private static boolean isMint(String name) {
+        if (name == null) {
+            return false;
+        }
+        String lower = name.toLowerCase();
+        return lower.equals("enlighten-mint")
+                || lower.equals("appease-mint")
+                || lower.equals("arma-mint")
+                || lower.equals("bombard-mint")
+                || lower.equals("enforce-mint")
+                || lower.equals("reinforce-mint")
+                || lower.equals("enchant-mint");
     }
 }

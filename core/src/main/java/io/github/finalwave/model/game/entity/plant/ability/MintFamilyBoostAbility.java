@@ -21,6 +21,7 @@ public final class MintFamilyBoostAbility implements PlantAbility {
         if (plant.getStats().hasSpecialModifier("RESET_FAMILY_COOLDOWNS")) {
             context.resetFamilyCooldowns(boostedFamily);
         }
-        plant.consumeInstantly();
+        int lifespan = (int) Math.ceil((extendedDuration + 4.0) * context.getTicksPerSecond());
+        plant.setLifespanTicks(lifespan);
     }
 }

@@ -270,10 +270,13 @@ public final class LawnInputController implements Disposable {
         plantGhost.setVisible(false);
         toolGhost.setVisible(false);
         if (mode instanceof ToolMode.Seed seed) {
-            EntityAnimationCatalog.ClipSpec idle = plantClips.idle(seed.plantName());
+            boolean mint = isMint(seed.plantName());
+            EntityAnimationCatalog.ClipSpec spec = mint
+                    ? plantClips.clip(seed.plantName(), "loop", "idle")
+                    : plantClips.idle(seed.plantName());
             plantGhost.setSize(layout.tileWidth(), layout.tileHeight());
             plantGhost.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
-            plantGhost.setClip(idle.path(), idle.clip(), plantClips.scale(seed.plantName()), true);
+            plantGhost.setClip(spec.path(), spec.clip(), plantClips.scale(seed.plantName()), true);
             plantGhost.setVisible(true);
             return;
         }
@@ -303,9 +306,13 @@ public final class LawnInputController implements Disposable {
             float anchor = mode instanceof ToolMode.Zombie
                     ? LawnLayout.ZOMBIE_ANCHOR_Y
                     : LawnLayout.PLANT_ANCHOR_Y;
+            float yOffset = 0f;
+            if (mode instanceof ToolMode.Seed seed && isMint(seed.plantName())) {
+                yOffset = layout.tileHeight() * LawnLayout.MINT_Y_OFFSET;
+            }
             plantGhost.setPosition(
                     x - plantGhost.getWidth() / 2f,
-                    y - plantGhost.getHeight() * anchor);
+                    y - plantGhost.getHeight() * anchor + yOffset);
         }
         if (toolGhost.isVisible()) {
             toolGhost.setPosition(x - toolGhost.getWidth() / 2f, y - toolGhost.getHeight() / 2f);
@@ -318,5 +325,19 @@ public final class LawnInputController implements Disposable {
         }
         GameSession session = host == null ? null : host.session();
         return session == null || session.getMatchResult() != MatchResult.IN_PROGRESS;
+    }
+
+    private static boolean isMint(String name) {
+        if (name == null) {
+            return false;
+        }
+        String lower = name.toLowerCase();
+        return lower.equals("enlighten-mint")
+                || lower.equals("appease-mint")
+                || lower.equals("arma-mint")
+                || lower.equals("bombard-mint")
+                || lower.equals("enforce-mint")
+                || lower.equals("reinforce-mint")
+                || lower.equals("enchant-mint");
     }
 }

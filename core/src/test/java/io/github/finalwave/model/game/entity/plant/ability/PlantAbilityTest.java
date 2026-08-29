@@ -155,6 +155,49 @@ class PlantAbilityTest {
     }
 
     @Test
+    void hotPotatoStaysAliveForAttackThenMeltsIce() {
+        session.getBoard().setTile(3, 2, new io.github.finalwave.model.game.board.tile.IceTile());
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Hot Potato", 3, 2, 1));
+        Plant potato = session.getBoard().getPlantAt(3, 2);
+        assertNotNull(potato);
+        assertTrue(potato.isAlive());
+        assertTrue(potato.isAttacking());
+        assertTrue(session.getBoard().getTile(3, 2).isIce());
+        for (int i = 0; i < 4; i++) {
+            session.tick();
+            assertTrue(potato.isAlive());
+        }
+        session.tick();
+        assertFalse(potato.isAlive());
+        assertFalse(session.getBoard().getTile(3, 2).isIce());
+    }
+
+    @Test
+    void graveBusterPlaysAttackThenEatsGrave() {
+        session.getBoard().setTile(2, 2, new io.github.finalwave.model.game.board.tile.GraveTile());
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Grave Buster", 2, 2, 1));
+        Plant buster = session.getBoard().getPlantAt(2, 2);
+        assertNotNull(buster);
+        assertTrue(buster.isAlive());
+        assertTrue(buster.isAttacking());
+        assertFalse(buster.isGraveBusting());
+        assertTrue(session.getBoard().getTile(2, 2).isGrave());
+        for (int i = 0; i < 10; i++) {
+            session.tick();
+            assertTrue(buster.isAlive());
+        }
+        assertFalse(buster.isAttacking());
+        assertTrue(buster.isGraveBusting());
+        for (int i = 0; i < 39; i++) {
+            session.tick();
+            assertTrue(buster.isAlive());
+        }
+        session.tick();
+        assertFalse(buster.isAlive());
+        assertFalse(session.getBoard().getTile(2, 2).isGrave());
+    }
+
+    @Test
     void sunShroomCanProduceBeforeMaxGrowth() {
         session.tryPlant("Sun-shroom", 1, 1, 1);
         Plant shroom = session.getBoard().getPlantAt(1, 1);

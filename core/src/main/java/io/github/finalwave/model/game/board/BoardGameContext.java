@@ -393,6 +393,11 @@ public final class BoardGameContext implements GameContext {
     }
 
     @Override
+    public void clearGraveAt(int col, int row) {
+        session.clearGraveAt(col, row);
+    }
+
+    @Override
     public void applyFieldModifier(Plant plant, double magnitude) {
         if ("Magnet-shroom".equals(plant.getName())) {
             int range = 1 + (int) plant.getStats()

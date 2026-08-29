@@ -4,7 +4,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import io.github.finalwave.view.gui.assets.PlantAnimationCatalog;
 import io.github.finalwave.view.gui.render.HitFlashShader;
 import pvz.libpvz.pam.PamPlayer;
@@ -48,6 +50,9 @@ public final class PamActor extends Actor {
     private float rotateOffsetY;
     private float hitFlashRemaining;
     private boolean drawFailed;
+    private float groundClipY = Float.NaN;
+    private final Rectangle clipBounds = new Rectangle();
+    private final Rectangle scissorBounds = new Rectangle();
 
     public PamActor(PamPlayer player) {
         this(player, null);
@@ -124,6 +129,10 @@ public final class PamActor extends Actor {
         return followUpClip != null;
     }
 
+    public boolean loop() {
+        return loop;
+    }
+
     public String clipName() {
         return clipName;
     }
@@ -151,6 +160,14 @@ public final class PamActor extends Actor {
         this.rotateOffsetY = rotateOffsetY;
     }
 
+    public void setGroundClip(float worldY) {
+        this.groundClipY = worldY;
+    }
+
+    public void clearGroundClip() {
+        this.groundClipY = Float.NaN;
+    }
+
     public void setPlaying(boolean playing) {
         this.playing = playing;
     }
@@ -161,6 +178,15 @@ public final class PamActor extends Actor {
 
     public void setTimeScale(float timeScale) {
         this.timeScale = Math.max(0f, timeScale);
+    }
+
+    public float timeScale() {
+        return timeScale;
+    }
+
+    public void setStateTime(float stateTime) {
+        this.stateTime = Math.max(0f, stateTime);
+        this.clipFinished = false;
     }
 
     public void setFlipX(boolean flipX) {
@@ -253,18 +279,22 @@ public final class PamActor extends Actor {
         boolean scaled = scaleX != 1f || scaleY != 1f;
         boolean part = drawPart != null;
         boolean restoreTransform = false;
+        boolean pushedScissor = false;
+        boolean hasClip = !Float.isNaN(groundClipY) && getStage() != null && getStage().getViewport() != null;
         try {
-            if (!part && vis == null && !rotated) {
-                player.draw(batch, pamPath, clipName, stateTime, cx, cy, scaleX, scaleY, loop);
-                return;
-            }
-            if (!part && vis != null && !scaled && !rotated) {
-                player.draw(batch, pamPath, clipName, stateTime, cx, cy, loop, vis);
-                return;
-            }
-            if (part && !scaled && !rotated) {
-                player.drawPart(batch, pamPath, clipName, stateTime, cx, cy, drawPart);
-                return;
+            if (!hasClip) {
+                if (!part && vis == null && !rotated) {
+                    player.draw(batch, pamPath, clipName, stateTime, cx, cy, scaleX, scaleY, loop);
+                    return;
+                }
+                if (!part && vis != null && !scaled && !rotated) {
+                    player.draw(batch, pamPath, clipName, stateTime, cx, cy, loop, vis);
+                    return;
+                }
+                if (part && !scaled && !rotated) {
+                    player.drawPart(batch, pamPath, clipName, stateTime, cx, cy, drawPart);
+                    return;
+                }
             }
             float ox = scaleX * rotateOffsetX;
             float oy = scaleY * rotateOffsetY;
@@ -281,6 +311,21 @@ public final class PamActor extends Actor {
             scaledTransform.translate(-cx, -cy, 0f);
             batch.setTransformMatrix(scaledTransform);
             restoreTransform = true;
+            if (hasClip) {
+                batch.flush();
+                float worldWidth = getStage().getViewport().getWorldWidth();
+                float worldHeight = getStage().getViewport().getWorldHeight();
+                float h = worldHeight - groundClipY;
+                if (h < 0f) {
+                    h = 0f;
+                }
+                clipBounds.set(0f, groundClipY, worldWidth, h);
+                ScissorStack.calculateScissors(getStage().getCamera(), scaledTransform, clipBounds, scissorBounds);
+                if (scissorBounds.width > 0f && scissorBounds.height > 0f) {
+                    batch.flush();
+                    pushedScissor = ScissorStack.pushScissors(scissorBounds);
+                }
+            }
             if (part) {
                 player.drawPart(batch, pamPath, clipName, stateTime, cx, cy, drawPart);
             } else if (vis == null) {
@@ -291,6 +336,10 @@ public final class PamActor extends Actor {
         } catch (RuntimeException e) {
             logDrawFailure(e);
         } finally {
+            if (pushedScissor) {
+                batch.flush();
+                ScissorStack.popScissors();
+            }
             if (restoreTransform) {
                 batch.setTransformMatrix(previousTransform);
             }

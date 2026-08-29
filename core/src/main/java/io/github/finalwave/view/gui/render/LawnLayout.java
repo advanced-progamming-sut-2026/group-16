@@ -31,6 +31,7 @@ public record LawnLayout(
     public static final float CACTUS_SPIKE_ANCHOR_Y = 0.88f;
     public static final float GRAVE_SCALE = 1.0f;
     public static final float GRAVE_ANCHOR_Y = 0.42f;
+    public static final float MINT_Y_OFFSET = 0.10f;
 
     public float mowerCenterX() {
         return worldX(MOWER_MODEL_X);

@@ -115,6 +115,22 @@ public final class GreenhousePotSlot extends Group {
                 GreenhouseGrid.PLANT_ANCHOR_X - GreenhouseGrid.HIT_WIDTH * 0.5f,
                 GreenhouseGrid.PLANT_ANCHOR_Y - GreenhouseGrid.HIT_HEIGHT * 0.5f);
         PvzButtons.animate(potHit, 1.05f, 0.95f, this::onClicked);
+        potHit.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+            @Override
+            public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
+                if (state != null && isMint(state.plantType()) && state.isReady(System.currentTimeMillis())) {
+                    PlantAnimationCatalog.ClipSpec idle = catalog.idleFor(state.plantType());
+                    plantActor.setClip(new PlantAnimationCatalog.ClipSpec(idle.path(), "loop"), GreenhouseGrid.READY_SCALE);
+                }
+            }
+
+            @Override
+            public void exit(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor toActor) {
+                if (state != null && isMint(state.plantType()) && state.isReady(System.currentTimeMillis())) {
+                    plantActor.setClip(catalog.idleFor(state.plantType()), GreenhouseGrid.READY_SCALE);
+                }
+            }
+        });
         addActor(potHit);
 
         overlay = new Table();
@@ -344,5 +360,19 @@ public final class GreenhousePotSlot extends Group {
         image.setSize(width, height);
         image.setScaling(Scaling.fit);
         return image;
+    }
+
+    private static boolean isMint(String name) {
+        if (name == null) {
+            return false;
+        }
+        String lower = name.toLowerCase();
+        return lower.equals("enlighten-mint")
+                || lower.equals("appease-mint")
+                || lower.equals("arma-mint")
+                || lower.equals("bombard-mint")
+                || lower.equals("enforce-mint")
+                || lower.equals("reinforce-mint")
+                || lower.equals("enchant-mint");
     }
 }
