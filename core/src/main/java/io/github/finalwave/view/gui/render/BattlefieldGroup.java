@@ -24,11 +24,13 @@ import io.github.finalwave.view.gui.render.sync.BrainSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
 import io.github.finalwave.view.gui.render.sync.FireTileSync;
 import io.github.finalwave.view.gui.render.sync.GraveSync;
+import io.github.finalwave.view.gui.render.sync.GraveBusterDirtSync;
 import io.github.finalwave.view.gui.render.sync.GooPuddleSync;
 import io.github.finalwave.view.gui.render.sync.GroundSeedPacketSync;
 import io.github.finalwave.view.gui.render.sync.IceTileSync;
 import io.github.finalwave.view.gui.render.sync.IceWindSync;
 import io.github.finalwave.view.gui.render.sync.LawnBurstSync;
+import io.github.finalwave.view.gui.render.sync.MintSync;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
@@ -68,6 +70,8 @@ public final class BattlefieldGroup extends WidgetGroup {
     private MowerSync mowerSync;
     private ProtectTileSync protectTileSync;
     private GraveSync graveSync;
+    private GraveBusterDirtSync graveBusterDirtSync;
+    private MintSync mintSync;
     private FireTileSync fireTileSync;
     private GooPuddleSync gooPuddleSync;
     private IceTileSync iceTileSync;
@@ -126,6 +130,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             mowerSync = null;
             protectTileSync = null;
             graveSync = null;
+            graveBusterDirtSync = null;
             fireTileSync = null;
             gooPuddleSync = null;
             iceTileSync = null;
@@ -143,6 +148,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             lawnBurstSync = null;
             sandstormSync = null;
             beachTideSync = null;
+            mintSync = null;
             return;
         }
         ProjectileClips projectileClips = new ProjectileClips();
@@ -153,6 +159,8 @@ public final class BattlefieldGroup extends WidgetGroup {
         mowerSync = new MowerSync(assets, layout, mowerLayer);
         protectTileSync = new ProtectTileSync(layout, environmentLayer);
         graveSync = new GraveSync(assets, layout, environmentLayer);
+        graveBusterDirtSync = new GraveBusterDirtSync(assets, layout, plantLayer);
+        mintSync = new MintSync(assets, layout, plantLayer, catalog);
         fireTileSync = new FireTileSync(assets, layout, environmentLayer);
         gooPuddleSync = new GooPuddleSync(assets, layout, projectileClips, environmentLayer);
         iceTileSync = new IceTileSync(assets, layout, environmentLayer);
@@ -241,6 +249,9 @@ public final class BattlefieldGroup extends WidgetGroup {
             graveSync.sync(session);
             sortByRow(environmentLayer, BattlefieldGroup::sortKey);
         }
+        if (graveBusterDirtSync != null) {
+            graveBusterDirtSync.sync(session);
+        }
         if (fireTileSync != null) {
             fireTileSync.sync(session);
         }
@@ -278,6 +289,9 @@ public final class BattlefieldGroup extends WidgetGroup {
             if (plantSync != null) {
                 plantSync.clear();
             }
+            if (mintSync != null) {
+                mintSync.clear();
+            }
             if (beghouledPlantSync != null) {
                 beghouledPlantSync.sync(session);
             }
@@ -288,6 +302,9 @@ public final class BattlefieldGroup extends WidgetGroup {
             if (plantSync != null) {
                 plantSync.sync(session);
             }
+            if (mintSync != null) {
+                mintSync.sync(session);
+            }
         }
         if (bowlingNutSync != null) {
             bowlingNutSync.sync(session, tickFraction);
@@ -295,7 +312,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         boolean skipPlantSort = session.isBeghouledActive()
                 && beghouledPlantSync != null
                 && beghouledPlantSync.holdsSwapOverlap();
-        if (!skipPlantSort && (plantSync != null || bowlingNutSync != null || beghouledPlantSync != null)) {
+        if (!skipPlantSort && (plantSync != null || bowlingNutSync != null || beghouledPlantSync != null || mintSync != null)) {
             sortByRow(plantLayer, BattlefieldGroup::sortKey);
         }
         if (zombieSync != null) {
@@ -390,6 +407,12 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (graveSync != null) {
             graveSync.clear();
+        }
+        if (graveBusterDirtSync != null) {
+            graveBusterDirtSync.clear();
+        }
+        if (mintSync != null) {
+            mintSync.clear();
         }
         if (fireTileSync != null) {
             fireTileSync.clear();

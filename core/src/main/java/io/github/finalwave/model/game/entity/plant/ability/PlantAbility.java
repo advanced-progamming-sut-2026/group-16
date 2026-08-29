@@ -19,4 +19,11 @@ public interface PlantAbility {
     default int actionWindupTicks() {
         return 0;
     }
+
+    default void onConsumeDelayFinished(Plant plant, GameContext context) {
+        plant.consumeInstantly();
+    }
+
+    default void onTick(Plant plant, GameContext context) {
+    }
 }

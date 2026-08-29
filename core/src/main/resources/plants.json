@@ -1205,7 +1205,7 @@
     "damage": 99999,
     "actionInterval": 0.0,
     "recharge": 10.0,
-    "abilityType": "INSTANT_EXPLOSIVE",
+    "abilityType": "GRAVE_BUSTER",
     "abilityValue": 1.0,
     "plantFoodType": "NONE",
     "plantFoodValue": 0.0,

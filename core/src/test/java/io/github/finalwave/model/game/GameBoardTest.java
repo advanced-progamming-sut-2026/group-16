@@ -111,11 +111,15 @@ class GameBoardTest {
         board.setTile(2, 2, new GraveTile());
         assertEquals(PlantPlacementResult.SUCCESS,
                 session.tryPlant("Grave Buster", 2, 2, 1));
+        assertTrue(board.getTile(2, 2).isGrave());
+        session.advanceTicks(50);
         assertFalse(board.getTile(2, 2).isGrave());
 
         board.setTile(3, 2, new IceTile());
         assertEquals(PlantPlacementResult.SUCCESS,
                 session.tryPlant("Hot Potato", 3, 2, 1));
+        assertTrue(board.getTile(3, 2).isIce());
+        session.advanceTicks(5);
         assertFalse(board.getTile(3, 2).isIce());
     }
 

@@ -456,7 +456,7 @@ public final class CollectionScreen extends MenuScreen {
 
     private Table plantPreviewColumn(CollectionPlantDetail detail) {
         Table column = new Table();
-        column.add(lawnPreview(plantCatalog.idleFor(detail.name()), 0.84f, 320f, detail, null))
+        column.add(lawnPreview(plantPreviewClip(detail), 0.84f, 320f, detail, null))
                 .size(PREVIEW_WIDTH, PREVIEW_HEIGHT)
                 .row();
         column.add(detailSeedBar(detail)).width(SEED_BAR_WIDTH + BADGE_SIZE).height(BADGE_SIZE).padTop(10f).row();
@@ -477,6 +477,23 @@ public final class CollectionScreen extends MenuScreen {
             pam.setVisibility(ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(), armorLeaves));
         }
         pam.setTouchable(Touchable.disabled);
+        if (plant != null && isMint(plant.name())) {
+            PamActor loopActor = pam;
+            PlantAnimationCatalog.ClipSpec loop = new PlantAnimationCatalog.ClipSpec(clip.path(), "loop");
+            PlantAnimationCatalog.ClipSpec idle = clip;
+            preview.setTouchable(Touchable.enabled);
+            preview.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+                @Override
+                public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
+                    loopActor.setClip(loop, scale);
+                }
+
+                @Override
+                public void exit(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor toActor) {
+                    loopActor.setClip(idle, scale);
+                }
+            });
+        }
         preview.add(pam).size(pamSize, pamSize).expand().center();
         if (plant == null || !plant.owned()) {
             return preview;
@@ -839,5 +856,26 @@ public final class CollectionScreen extends MenuScreen {
 
     private static boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private PlantAnimationCatalog.ClipSpec plantPreviewClip(CollectionPlantDetail detail) {
+        if (detail != null && isMint(detail.name())) {
+            return detail == null ? plantCatalog.idleFor(detail.name()) : plantCatalog.idleFor(detail.name());
+        }
+        return plantCatalog.idleFor(detail.name());
+    }
+
+    private static boolean isMint(String name) {
+        if (name == null) {
+            return false;
+        }
+        String lower = name.toLowerCase();
+        return lower.equals("enlighten-mint")
+                || lower.equals("appease-mint")
+                || lower.equals("arma-mint")
+                || lower.equals("bombard-mint")
+                || lower.equals("enforce-mint")
+                || lower.equals("reinforce-mint")
+                || lower.equals("enchant-mint");
     }
 }

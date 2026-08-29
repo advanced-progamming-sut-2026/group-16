@@ -18,6 +18,16 @@ public final class PlantClips {
             "768/FULL/EFFECTS/DARK_WIZARD_SHEEPENING/DARK_WIZARD_SHEEPENING.PAM";
     public static final String SHEEP_INTRO_CLIP = "animation";
     public static final String SHEEP_IDLE_CLIP = "idle";
+    public static final String GRAVE_BUSTER_PATH =
+            "768/INITIAL/PLANT/GRAVEBUSTER/GRAVEBUSTER.PAM";
+    public static final String GRAVE_BUSTER_DIRT_PATH =
+            "768/INITIAL/EFFECTS/GRAVEBUSTER_DIRT/GRAVEBUSTER_DIRT.PAM";
+    public static final String GRAVE_BUSTER_DIRT_INTRO = "gravebuster_dirt_anim";
+    public static final String GRAVE_BUSTER_DIRT_IDLE = "idle";
+    public static final String GRAVE_BUSTER_DIRT_FADE = "gravebuster_dirt_fade";
+    public static final String GRAVE_BUSTER_ATTACK = "attack";
+    public static final String GRAVE_BUSTER_EAT = "attack1";
+    public static final String GRAVE_BUSTER_DIRT_PART = "gravebuster_dirt";
 
     private final EntityAnimationCatalog catalog;
 

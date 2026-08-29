@@ -62,11 +62,37 @@ public final class PlantAnimationCatalog {
         if (plantName == null || plantName.isBlank()) {
             return SPROUT;
         }
+        if ("Grave Buster".equals(plantName)) {
+            ClipSpec spec = idleByKey.get(PlantNameAliases.pamKey(plantName));
+            if (spec == null) {
+                spec = idleByKey.get(PlantNameAliases.normalize(plantName));
+            }
+            if (spec != null) {
+                return new ClipSpec(spec.path(), "attack1");
+            }
+        }
         ClipSpec spec = idleByKey.get(PlantNameAliases.pamKey(plantName));
         if (spec == null) {
             spec = idleByKey.get(PlantNameAliases.normalize(plantName));
         }
-        return spec == null ? SPROUT : spec;
+        if (spec == null) {
+            return SPROUT;
+        }
+        if (isMint(plantName)) {
+            return new ClipSpec(spec.path(), "loop");
+        }
+        return spec;
+    }
+
+    private static boolean isMint(String plantName) {
+        String lower = plantName.toLowerCase();
+        return lower.equals("enlighten-mint")
+                || lower.equals("appease-mint")
+                || lower.equals("arma-mint")
+                || lower.equals("bombard-mint")
+                || lower.equals("enforce-mint")
+                || lower.equals("reinforce-mint")
+                || lower.equals("enchant-mint");
     }
 
     private static boolean isPreferred(String candidate, String current) {

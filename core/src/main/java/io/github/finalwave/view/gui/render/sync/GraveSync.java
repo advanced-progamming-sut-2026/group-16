@@ -13,6 +13,7 @@ import io.github.finalwave.model.game.PendingGraveLanding;
 import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.board.tile.GraveTile;
 import io.github.finalwave.model.game.board.tile.Tile;
+import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.ExplosionLooks;
@@ -53,6 +54,9 @@ public final class GraveSync {
             for (int col = 0; col < board.getCols(); col++) {
                 Tile tile = board.getTile(col, row);
                 if (!(tile instanceof GraveTile grave) || grave.isDestroyed()) {
+                    continue;
+                }
+                if (isGraveBeingBusted(board, col, row)) {
                     continue;
                 }
                 String cell = key(col, row);
@@ -165,5 +169,11 @@ public final class GraveSync {
 
     private static String key(int col, int row) {
         return col + ":" + row;
+    }
+
+    private static boolean isGraveBeingBusted(GameBoard board, int col, int row) {
+        Plant plant = board.getPlantAt(col, row);
+        return plant != null && plant.isAlive() && "Grave Buster".equals(plant.getName())
+                && plant.isGraveBusting();
     }
 }

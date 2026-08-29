@@ -19,6 +19,7 @@ public final class PlantAbilityFactory {
             case MELEE_ATTACK -> new MeleeAttackAbility(definition.hasTag("AOE"));
             case DELAYED_EXPLOSIVE -> new ExplosiveAbility(resolveExplosionRadius(definition), false);
             case INSTANT_EXPLOSIVE -> new ExplosiveAbility(resolveExplosionRadius(definition), true);
+            case GRAVE_BUSTER -> new GraveBusterAbility();
             case PASSIVE_SHIELD -> new PassiveShieldAbility((int) definition.getAbilityValue());
             case MODIFIER_UTILITY -> new ModifierUtilityAbility(definition.getAbilityValue());
             case MINT_FAMILY_BOOST -> new MintFamilyBoostAbility(category, definition.getAbilityValue());

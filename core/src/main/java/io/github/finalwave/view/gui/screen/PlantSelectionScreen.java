@@ -259,7 +259,8 @@ public final class PlantSelectionScreen extends MenuScreen {
                 : MenuAssetIds.ALMANAC_PLANT_CARD;
         card.setBackground(new TextureRegionDrawable(assets.region(previewId)));
         PamActor pam = new PamActor(assets.pamPlayer());
-        pam.setClip(plantCatalog.idleFor(detail.name()), 1.15f);
+        PlantAnimationCatalog.ClipSpec previewClip = plantCatalog.idleFor(detail.name());
+        pam.setClip(previewClip, 1.15f);
         pam.setTouchable(Touchable.disabled);
         card.add(pam).size(PREVIEW_PAM_SIZE, PREVIEW_PAM_SIZE).expand().center().padBottom(26f);
 

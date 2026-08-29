@@ -37,6 +37,9 @@ public final class PlantVisualState {
                 && spec != null && "pf".equals(spec.clip())) {
             return true;
         }
+        if (plant != null && "Grave Buster".equals(plant.getName()) && spec != null) {
+            return "attack".equals(spec.clip());
+        }
         return isOneShot(spec);
     }
 
@@ -62,6 +65,9 @@ public final class PlantVisualState {
         if (clipName.startsWith("special") || clipName.startsWith("reload")) {
             return true;
         }
+        if ("attack1".equals(clipName)) {
+            return false;
+        }
         return clipName.equals("attack") || clipName.startsWith("attack");
     }
 
@@ -80,6 +86,17 @@ public final class PlantVisualState {
         }
         if ("Gold Bloom".equals(plant.getName()) && plant.isAttacking()) {
             return new String[]{"attack", "idle"};
+        }
+        if ("Hot Potato".equals(plant.getName()) && plant.isAttacking()) {
+            return new String[]{"attack", "idle"};
+        }
+        if ("Grave Buster".equals(plant.getName())) {
+            if (plant.isAttacking()) {
+                return new String[]{"attack", "attack1"};
+            }
+            if (plant.isGraveBusting()) {
+                return new String[]{"attack1"};
+            }
         }
         if (plant.isUsingPlantFood()) {
             return plantFoodNames(plant);
@@ -296,6 +313,9 @@ public final class PlantVisualState {
         }
         if ("Sea-shroom".equals(name)) {
             return new String[]{"idle", "idle2"};
+        }
+        if ("Grave Buster".equals(name)) {
+            return new String[]{"attack1"};
         }
         return new String[]{"idle1_1", "idle"};
     }

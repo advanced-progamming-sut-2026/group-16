@@ -39,6 +39,7 @@ public final class Plant extends Entity {
     private int lifespanTicksRemaining = -1;
     private boolean armedTrap;
     private boolean attacking;
+    private boolean graveBusting;
     private int producingSunTicks;
     private int growthAdvanceTicks;
     private int consumeDelayTicks;
@@ -114,7 +115,7 @@ public final class Plant extends Entity {
         if (consumeDelayTicks > 0) {
             consumeDelayTicks--;
             if (consumeDelayTicks == 0) {
-                consumeInstantly();
+                ability.onConsumeDelayFinished(this, context);
                 return;
             }
         }
@@ -125,6 +126,7 @@ public final class Plant extends Entity {
                 foodEffect.end(this, context);
             }
         }
+        ability.onTick(this, context);
         if (isDead() || isDisabled() || stats.actionInterval() <= 0) {
             return;
         }
@@ -306,6 +308,14 @@ public final class Plant extends Entity {
         this.attacking = attacking;
     }
 
+    public boolean isGraveBusting() {
+        return graveBusting;
+    }
+
+    public void setGraveBusting(boolean graveBusting) {
+        this.graveBusting = graveBusting;
+    }
+
     public ProjectileEffect projectileEffect() {
         String name = getName();
         if (name != null) {
@@ -453,6 +463,10 @@ public final class Plant extends Entity {
         if (lifespanTicksRemaining >= 0) {
             lifespanTicksRemaining = Math.max(1, ticks);
         }
+    }
+
+    public void setLifespanTicks(int ticks) {
+        lifespanTicksRemaining = Math.max(1, ticks);
     }
 
     public int getLifespanTicksRemaining() {
