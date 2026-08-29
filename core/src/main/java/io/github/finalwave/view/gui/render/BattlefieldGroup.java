@@ -26,12 +26,14 @@ import io.github.finalwave.view.gui.render.sync.GraveSync;
 import io.github.finalwave.view.gui.render.sync.GooPuddleSync;
 import io.github.finalwave.view.gui.render.sync.GroundSeedPacketSync;
 import io.github.finalwave.view.gui.render.sync.IceTileSync;
+import io.github.finalwave.view.gui.render.sync.IceWindSync;
 import io.github.finalwave.view.gui.render.sync.LawnBurstSync;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SandstormSync;
+import io.github.finalwave.view.gui.render.sync.SlipperyTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 import io.github.finalwave.view.gui.render.sync.VaseSync;
 import io.github.finalwave.view.gui.render.sync.ZombieSync;
@@ -68,6 +70,8 @@ public final class BattlefieldGroup extends WidgetGroup {
     private FireTileSync fireTileSync;
     private GooPuddleSync gooPuddleSync;
     private IceTileSync iceTileSync;
+    private SlipperyTileSync slipperyTileSync;
+    private IceWindSync iceWindSync;
     private BossFxSync bossFxSync;
     private DeadLineSync deadLineSync;
     private VaseSync vaseSync;
@@ -123,6 +127,8 @@ public final class BattlefieldGroup extends WidgetGroup {
             fireTileSync = null;
             gooPuddleSync = null;
             iceTileSync = null;
+            slipperyTileSync = null;
+            iceWindSync = null;
             bossFxSync = null;
             deadLineSync = null;
             vaseSync = null;
@@ -147,6 +153,8 @@ public final class BattlefieldGroup extends WidgetGroup {
         fireTileSync = new FireTileSync(assets, layout, environmentLayer);
         gooPuddleSync = new GooPuddleSync(assets, layout, projectileClips, environmentLayer);
         iceTileSync = new IceTileSync(assets, layout, environmentLayer);
+        slipperyTileSync = new SlipperyTileSync(assets, layout, environmentLayer);
+        iceWindSync = new IceWindSync(assets, layout, fxLayer);
         bossFxSync = new BossFxSync(assets, layout, fxLayer);
         deadLineSync = new DeadLineSync(assets, layout, deadlineLayer);
         vaseSync = new VaseSync(assets, layout, environmentLayer);
@@ -238,6 +246,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (iceTileSync != null) {
             iceTileSync.sync(session);
         }
+        if (slipperyTileSync != null) {
+            slipperyTileSync.sync(session);
+        }
         if (bossFxSync != null) {
             bossFxSync.sync(session);
         }
@@ -285,6 +296,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (sandstormSync != null) {
             sandstormSync.sync(session);
+        }
+        if (iceWindSync != null) {
+            iceWindSync.sync(session);
         }
         if (arcadeObstacleSync != null) {
             arcadeObstacleSync.sync(session);
@@ -378,6 +392,12 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (iceTileSync != null) {
             iceTileSync.clear();
+        }
+        if (slipperyTileSync != null) {
+            slipperyTileSync.clear();
+        }
+        if (iceWindSync != null) {
+            iceWindSync.clear();
         }
         if (bossFxSync != null) {
             bossFxSync.clear();

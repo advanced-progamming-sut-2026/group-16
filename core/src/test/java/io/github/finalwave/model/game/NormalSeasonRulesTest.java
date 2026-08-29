@@ -115,9 +115,16 @@ class NormalSeasonRulesTest {
         session.addSunBalance(100);
         assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Peashooter", 0, 0, 1));
         Plant peashooter = session.getBoard().getPlantAt(0, 0);
+        boolean windRow = false;
         for (int i = 0; i < 5; i++) {
             mode.onWaveStarted(session, i + 1);
+            for (int row = 0; row < session.getBoard().getRows(); row++) {
+                if (session.isRowEffectActive(row, GameSession.ROW_EFFECT_ICE_WIND)) {
+                    windRow = true;
+                }
+            }
         }
+        assertTrue(windRow);
         assertInstanceOf(Plant.class, peashooter);
         assertTrue(peashooter.isAlive());
     }

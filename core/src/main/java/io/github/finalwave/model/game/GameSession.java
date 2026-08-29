@@ -34,6 +34,8 @@ public final class GameSession {
 
     public static final int TICKS_PER_SECOND = 10;
     public static final int MAX_PLANT_FOOD = 5;
+    public static final String ROW_EFFECT_ICE_WIND = "ice-wind";
+    public static final int ICE_WIND_DURATION_TICKS = 25;
 
     private final GameBoard board;
     private final BoardGameContext context;
