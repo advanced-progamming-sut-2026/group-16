@@ -203,12 +203,16 @@ public final class WaveManager {
             String alias = pickSpawnAlias(session, affordable, spent == 0);
             int lane = random.nextInt(rows);
             double x = spawnX;
-            if (wave.isFlagWave() && sandstormOnFinalWave) {
+            boolean sandstorm = wave.isFlagWave() && sandstormOnFinalWave;
+            if (sandstorm) {
                 int offset = sandstormMinOffset
                         + random.nextInt(sandstormMaxOffset - sandstormMinOffset + 1);
                 x = Math.max(0.5, spawnX - offset);
             }
             Zombie zombie = session.spawnZombieOfType(alias, lane, x);
+            if (sandstorm) {
+                zombie.markSandstormSpawn();
+            }
             if (random.nextInt(100) < 5) zombie.setGlowing(true);
             wave.registerSpawn(zombie);
             spent += Math.max(1, zombie.getWaveCost());

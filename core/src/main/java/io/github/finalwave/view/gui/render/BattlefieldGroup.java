@@ -31,6 +31,7 @@ import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
+import io.github.finalwave.view.gui.render.sync.SandstormSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 import io.github.finalwave.view.gui.render.sync.VaseSync;
 import io.github.finalwave.view.gui.render.sync.ZombieSync;
@@ -78,6 +79,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private PianoObstacleSync pianoObstacleSync;
     private BeghouledPlantSync beghouledPlantSync;
     private LawnBurstSync lawnBurstSync;
+    private SandstormSync sandstormSync;
     private Predicate<Sun> sunCollector;
 
     public BattlefieldGroup() {
@@ -131,6 +133,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             arcadeObstacleSync = null;
             pianoObstacleSync = null;
             lawnBurstSync = null;
+            sandstormSync = null;
             return;
         }
         ProjectileClips projectileClips = new ProjectileClips();
@@ -155,6 +158,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         pianoObstacleSync = new PianoObstacleSync(assets, layout, zombieLayer);
         beghouledPlantSync = new BeghouledPlantSync(assets, layout, new PlantClips(catalog), plantLayer, this);
         lawnBurstSync = new LawnBurstSync(assets, layout, fxLayer);
+        sandstormSync = new SandstormSync(assets, layout, environmentLayer, fxLayer);
     }
 
     public void setShakeListener(BiConsumer<Float, Float> listener) {
@@ -279,6 +283,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (zombieSync != null) {
             zombieSync.sync(session, tickFraction);
         }
+        if (sandstormSync != null) {
+            sandstormSync.sync(session);
+        }
         if (arcadeObstacleSync != null) {
             arcadeObstacleSync.sync(session);
         }
@@ -377,6 +384,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (lawnBurstSync != null) {
             lawnBurstSync.clear();
+        }
+        if (sandstormSync != null) {
+            sandstormSync.clear();
         }
         if (deadLineSync != null) {
             deadLineSync.clear();
