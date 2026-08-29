@@ -16,6 +16,7 @@ import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.render.sync.ArcadeObstacleSync;
 import io.github.finalwave.view.gui.render.sync.PianoObstacleSync;
 import io.github.finalwave.view.gui.render.sync.BeghouledPlantSync;
+import io.github.finalwave.view.gui.render.sync.BeachTideSync;
 import io.github.finalwave.view.gui.render.sync.BossFxSync;
 import io.github.finalwave.view.gui.render.sync.BowlingLineSync;
 import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
@@ -84,6 +85,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private BeghouledPlantSync beghouledPlantSync;
     private LawnBurstSync lawnBurstSync;
     private SandstormSync sandstormSync;
+    private BeachTideSync beachTideSync;
     private Predicate<Sun> sunCollector;
 
     public BattlefieldGroup() {
@@ -140,6 +142,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             pianoObstacleSync = null;
             lawnBurstSync = null;
             sandstormSync = null;
+            beachTideSync = null;
             return;
         }
         ProjectileClips projectileClips = new ProjectileClips();
@@ -167,6 +170,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         beghouledPlantSync = new BeghouledPlantSync(assets, layout, new PlantClips(catalog), plantLayer, this);
         lawnBurstSync = new LawnBurstSync(assets, layout, fxLayer);
         sandstormSync = new SandstormSync(assets, layout, environmentLayer, fxLayer);
+        beachTideSync = new BeachTideSync(layout, environmentLayer, highlightLayer);
     }
 
     public void setShakeListener(BiConsumer<Float, Float> listener) {
@@ -248,6 +252,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (slipperyTileSync != null) {
             slipperyTileSync.sync(session);
+        }
+        if (beachTideSync != null) {
+            beachTideSync.sync(session);
         }
         if (bossFxSync != null) {
             bossFxSync.sync(session);
@@ -407,6 +414,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (sandstormSync != null) {
             sandstormSync.clear();
+        }
+        if (beachTideSync != null) {
+            beachTideSync.clear();
         }
         if (deadLineSync != null) {
             deadLineSync.clear();
