@@ -7,13 +7,17 @@ import io.github.finalwave.model.user.SecurityQuestion;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.login.LoginGateway;
+import io.github.finalwave.leaderboard.LeaderboardGateway;
+import io.github.finalwave.score.ScoreSubmitGateway;
 import io.github.finalwave.network.auth.RegisterFailReason;
 import io.github.finalwave.network.auth.RegisterFailPayload;
 import io.github.finalwave.network.auth.RegisterOkPayload;
 import io.github.finalwave.network.auth.RegisterRequest;
 import io.github.finalwave.profile.LocalProfileCache;
 import io.github.finalwave.registration.RegistrationGateway;
+import io.github.finalwave.network.sync.ProgressSyncService;
 import io.github.finalwave.util.HashUtil;
+import io.github.finalwave.util.SessionResumeCredentials;
 import io.github.finalwave.util.RegisterFailMessages;
 import io.github.finalwave.util.RegistrationValidator;
 import io.github.finalwave.view.api.AuthView;
@@ -24,6 +28,8 @@ public class RegistrationController extends ViewController {
     private final RegistrationGateway registrationGateway;
     private final UserDatabase db;
     private final LoginGateway loginGateway;
+    private final LeaderboardGateway leaderboardGateway;
+    private final ScoreSubmitGateway scoreSubmitGateway;
     private final boolean usernameOnlyStayLoggedIn;
 
     private String pendingUsername;
@@ -38,20 +44,26 @@ public class RegistrationController extends ViewController {
     public RegistrationController(
             RegistrationGateway registrationGateway,
             UserDatabase db,
-            LoginGateway loginGateway
+            LoginGateway loginGateway,
+            LeaderboardGateway leaderboardGateway,
+            ScoreSubmitGateway scoreSubmitGateway
     ) {
-        this(registrationGateway, db, loginGateway, false);
+        this(registrationGateway, db, loginGateway, leaderboardGateway, scoreSubmitGateway, false);
     }
 
     public RegistrationController(
             RegistrationGateway registrationGateway,
             UserDatabase db,
             LoginGateway loginGateway,
+            LeaderboardGateway leaderboardGateway,
+            ScoreSubmitGateway scoreSubmitGateway,
             boolean usernameOnlyStayLoggedIn
     ) {
         this.registrationGateway = registrationGateway;
         this.db = db;
         this.loginGateway = loginGateway;
+        this.leaderboardGateway = leaderboardGateway;
+        this.scoreSubmitGateway = scoreSubmitGateway;
         this.usernameOnlyStayLoggedIn = usernameOnlyStayLoggedIn;
     }
 
@@ -127,7 +139,8 @@ public class RegistrationController extends ViewController {
     }
 
     public void goToLogin() {
-        navigator.push(new LoginController(loginGateway, db, registrationGateway, usernameOnlyStayLoggedIn));
+        navigator.push(new LoginController(
+                loginGateway, db, registrationGateway, leaderboardGateway, scoreSubmitGateway, usernameOnlyStayLoggedIn));
     }
 
     private void handleMenuEnter(String menuName) {
@@ -202,13 +215,20 @@ public class RegistrationController extends ViewController {
 
     private void handleRegisterSuccess(RegisterOkPayload payload) {
         User user = userFromPayload(payload);
-        if (pendingPassword != null) {
-            LocalProfileCache.sync(db, user, HashUtil.hashSHA256(pendingPassword));
+        String passwordHash = pendingPassword != null ? HashUtil.hashSHA256(pendingPassword) : null;
+        if (passwordHash != null) {
+            LocalProfileCache.sync(db, user, passwordHash);
+            SessionResumeCredentials.remember(payload.getUsername(), passwordHash);
         }
         App.getInstance().setCurrentUser(user);
+        ProgressSyncService sync = ProgressSyncService.getInstance();
+        if (sync != null) {
+            sync.arm();
+        }
         getAuthView().showUserCreated();
         clearPendingRegistration();
-        navigator.reset(new MainMenuController(user, db, registrationGateway, loginGateway));
+        navigator.reset(new MainMenuController(
+                user, db, registrationGateway, loginGateway, leaderboardGateway, scoreSubmitGateway));
     }
 
     private void handleRegisterFailure(RegisterFailPayload payload) {

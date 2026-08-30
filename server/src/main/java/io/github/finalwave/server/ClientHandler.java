@@ -8,6 +8,8 @@ import io.github.finalwave.server.auth.LoginHandler;
 import io.github.finalwave.server.auth.LoginService;
 import io.github.finalwave.server.auth.RegisterHandler;
 import io.github.finalwave.server.auth.ResumeHandler;
+import io.github.finalwave.server.leaderboard.LeaderboardHandler;
+import io.github.finalwave.server.score.SubmitScoreHandler;
 import io.github.finalwave.server.sync.ProgressSyncHandler;
 
 import java.io.IOException;
@@ -18,24 +20,28 @@ public final class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final ServerContext context;
-    private final RegisterHandler registerHandler;
     private final LoginService loginService;
+    private RegisterHandler registerHandler;
     private LoginHandler loginHandler;
     private ProgressSyncHandler progressSyncHandler;
     private ResumeHandler resumeHandler;
+    private LeaderboardHandler leaderboardHandler;
+    private SubmitScoreHandler submitScoreHandler;
 
     public ClientHandler(Socket socket, ServerContext context) {
         this.socket = socket;
         this.context = context;
-        this.registerHandler = new RegisterHandler(context.database());
         this.loginService = new LoginService(context);
     }
 
     @Override
     public void run() {
+        registerHandler = new RegisterHandler(context, this);
         loginHandler = new LoginHandler(loginService, this);
         progressSyncHandler = new ProgressSyncHandler(context, this);
         resumeHandler = new ResumeHandler(context, this);
+        leaderboardHandler = new LeaderboardHandler(context, this);
+        submitScoreHandler = new SubmitScoreHandler(context, this);
         String clientLabel = String.valueOf(socket.getRemoteSocketAddress());
         System.out.println("Client connected: " + clientLabel);
         try (socket) {
@@ -75,6 +81,12 @@ public final class ClientHandler implements Runnable {
         }
         if (MessageTypes.RESUME.equals(type)) {
             return resumeHandler.handle(incoming);
+        }
+        if (MessageTypes.GET_LEADERBOARD.equals(type)) {
+            return leaderboardHandler.handle(incoming);
+        }
+        if (MessageTypes.SUBMIT_SCORE.equals(type)) {
+            return submitScoreHandler.handle(incoming);
         }
         if (isSyncType(type)) {
             return progressSyncHandler.handle(incoming);

@@ -356,8 +356,12 @@ public final class LeaderboardScreen extends MenuScreen {
         addColumn(row, dataCell(skin, String.valueOf(entry.minigameCount()), COL_MINI, Align.center, activeColumn == LeaderboardSortColumn.MINIGAMES), COL_MINI, ROW_HEIGHT, true);
         addColumn(row, dataCell(skin, String.valueOf(entry.dailyQuestCount()), COL_DAILY, Align.center, activeColumn == LeaderboardSortColumn.DAILY_QUESTS), COL_DAILY, ROW_HEIGHT, true);
         addColumn(row, dataCell(skin, String.valueOf(entry.nonDailyQuestCount()), COL_NONDAILY, Align.center, activeColumn == LeaderboardSortColumn.NON_DAILY_QUESTS), COL_NONDAILY, ROW_HEIGHT, true);
-        addColumn(row, dataCell(skin, String.valueOf(entry.bestScore()), COL_SCORE, Align.center, activeColumn == LeaderboardSortColumn.BEST_SCORE), COL_SCORE, ROW_HEIGHT, false);
+        addColumn(row, dataCell(skin, formatScore(entry.bestScore()), COL_SCORE, Align.center, activeColumn == LeaderboardSortColumn.BEST_SCORE), COL_SCORE, ROW_HEIGHT, false);
         return row;
+    }
+
+    private static String formatScore(Integer score) {
+        return score == null ? "-" : String.valueOf(score);
     }
 
     private Table dataCell(Skin skin, String text, float width, int align, boolean highlight) {

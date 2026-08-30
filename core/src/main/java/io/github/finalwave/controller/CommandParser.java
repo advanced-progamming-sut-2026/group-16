@@ -2,6 +2,10 @@ package io.github.finalwave.controller;
 
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.login.LocalLoginGateway;
+import io.github.finalwave.leaderboard.FailingLeaderboardGateway;
+import io.github.finalwave.leaderboard.NetworkLeaderboardGateway;
+import io.github.finalwave.score.FailingScoreSubmitGateway;
+import io.github.finalwave.score.NetworkScoreSubmitGateway;
 import io.github.finalwave.registration.LocalRegistrationGateway;
 import io.github.finalwave.registration.RegistrationGateway;
 import io.github.finalwave.view.cli.*;
@@ -84,8 +88,14 @@ public class CommandParser implements NavigationBinder {
         UserDatabase userDatabase = UserDatabase.getInstance();
         RegistrationGateway registrationGateway = new LocalRegistrationGateway(userDatabase);
         io.github.finalwave.login.LoginGateway loginGateway = new LocalLoginGateway(userDatabase);
-        registrationController = new RegistrationController(registrationGateway, userDatabase, loginGateway);
-        bootstrap = new AppBootstrap(userDatabase, registrationGateway, loginGateway, this, true);
+        io.github.finalwave.leaderboard.LeaderboardGateway leaderboardGateway =
+                new FailingLeaderboardGateway(NetworkLeaderboardGateway.NOT_CONNECTED);
+        io.github.finalwave.score.ScoreSubmitGateway scoreSubmitGateway =
+                new FailingScoreSubmitGateway(NetworkScoreSubmitGateway.NOT_CONNECTED);
+        registrationController = new RegistrationController(
+                registrationGateway, userDatabase, loginGateway, leaderboardGateway, scoreSubmitGateway);
+        bootstrap = new AppBootstrap(
+                userDatabase, registrationGateway, loginGateway, leaderboardGateway, scoreSubmitGateway, this, true);
         bootstrap.start();
     }
 

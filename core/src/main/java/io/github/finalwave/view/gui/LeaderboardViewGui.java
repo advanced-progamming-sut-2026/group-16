@@ -47,4 +47,9 @@ public final class LeaderboardViewGui extends GuiViewBase implements Leaderboard
     public void errorInvalidSortOrder() {
         toastError("Invalid sort order. Use asc or desc.");
     }
+
+    @Override
+    public void errorLoadFailed(String reason) {
+        toastError("Could not load leaderboard: " + (reason == null ? "unknown error" : reason));
+    }
 }

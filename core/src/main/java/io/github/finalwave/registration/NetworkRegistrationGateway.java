@@ -9,6 +9,7 @@ import io.github.finalwave.network.auth.RegisterFailPayload;
 import io.github.finalwave.network.auth.RegisterFailReason;
 import io.github.finalwave.network.auth.RegisterOkPayload;
 import io.github.finalwave.network.auth.RegisterRequest;
+import io.github.finalwave.network.sync.ProgressSyncService;
 import io.github.finalwave.util.RegisterRequestValidator;
 
 import java.util.Map;
@@ -18,10 +19,16 @@ public final class NetworkRegistrationGateway implements RegistrationGateway {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final NetworkManager networkManager;
+    private final ProgressSyncService progressSyncService;
     private final Map<String, Callback> pending = new ConcurrentHashMap<>();
 
     public NetworkRegistrationGateway(NetworkManager networkManager) {
+        this(networkManager, null);
+    }
+
+    public NetworkRegistrationGateway(NetworkManager networkManager, ProgressSyncService progressSyncService) {
         this.networkManager = networkManager;
+        this.progressSyncService = progressSyncService;
         networkManager.registerListener(MessageTypes.REGISTER_OK, this::handleOk);
         networkManager.registerListener(MessageTypes.REGISTER_FAIL, this::handleFail);
     }
@@ -46,6 +53,9 @@ public final class NetworkRegistrationGateway implements RegistrationGateway {
     }
 
     private void handleOk(MessageEnvelope envelope) {
+        if (progressSyncService != null) {
+            Gdx.app.postRunnable(progressSyncService::arm);
+        }
         Callback callback = pending.remove(envelope.getRequestId());
         if (callback == null) {
             return;

@@ -4,6 +4,7 @@ import io.github.finalwave.model.command.ScoreGameMenuCommands;
 import io.github.finalwave.model.scoregame.MeowPointBreakdown;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.score.ScoreSubmitGateway;
 import io.github.finalwave.view.api.ScoreGameView;
 
 import java.util.regex.Matcher;
@@ -11,24 +12,31 @@ import java.util.regex.Matcher;
 public class ScoreGameController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
+    private final ScoreSubmitGateway scoreSubmitGateway;
     private MeowPointBreakdown pendingBreakdown;
+    private Integer pendingBestMeowPoint;
     private boolean pendingNewBest;
 
-    public ScoreGameController(User user, UserDatabase userDatabase) {
+    public ScoreGameController(User user, UserDatabase userDatabase, ScoreSubmitGateway scoreSubmitGateway) {
         this.user = user;
         this.userDatabase = userDatabase;
+        this.scoreSubmitGateway = scoreSubmitGateway;
     }
 
-    public ScoreGameController(User user) {
-        this(user, UserDatabase.getInstance());
+    public ScoreGameController(User user, ScoreSubmitGateway scoreSubmitGateway) {
+        this(user, UserDatabase.getInstance(), scoreSubmitGateway);
     }
 
     public User getUser() {
         return user;
     }
 
-    public int bestMeowPoint() {
-        return user.getBestMeowPoint();
+    public ScoreSubmitGateway scoreSubmitGateway() {
+        return scoreSubmitGateway;
+    }
+
+    public Integer bestMeowPoint() {
+        return user.hasPlayed() ? user.getBestMeowPoint() : null;
     }
 
     public void startMatch() {
@@ -41,11 +49,12 @@ public class ScoreGameController extends ViewController {
 
     @Override
     public void displayMenu() {
-        getScoreGameView().showScoreGameMenu(user.getBestMeowPoint());
+        getScoreGameView().showScoreGameMenu(bestMeowPoint());
         if (pendingBreakdown != null) {
             getScoreGameView().showMatchResult(
-                    pendingBreakdown, user.getBestMeowPoint(), pendingNewBest);
+                    pendingBreakdown, pendingBestMeowPoint, pendingNewBest);
             pendingBreakdown = null;
+            pendingBestMeowPoint = null;
             pendingNewBest = false;
         }
     }
@@ -68,8 +77,9 @@ public class ScoreGameController extends ViewController {
         getScoreGameView().errorInvalidCommand();
     }
 
-    public void onMatchCompleted(MeowPointBreakdown breakdown, boolean newBest) {
+    public void onMatchCompleted(MeowPointBreakdown breakdown, Integer bestMeowPoint, boolean newBest) {
         this.pendingBreakdown = breakdown;
+        this.pendingBestMeowPoint = bestMeowPoint;
         this.pendingNewBest = newBest;
     }
 
