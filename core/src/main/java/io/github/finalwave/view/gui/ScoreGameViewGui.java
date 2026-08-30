@@ -14,7 +14,7 @@ public final class ScoreGameViewGui extends GuiViewBase implements ScoreGameView
     }
 
     @Override
-    public void showScoreGameMenu(int bestMeowPoint) {
+    public void showScoreGameMenu(Integer bestMeowPoint) {
         router.refreshScoreGame();
     }
 
@@ -24,12 +24,17 @@ public final class ScoreGameViewGui extends GuiViewBase implements ScoreGameView
     }
 
     @Override
-    public void showMatchResult(MeowPointBreakdown breakdown, int bestMeowPoint, boolean newBest) {
+    public void showMatchResult(MeowPointBreakdown breakdown, Integer bestMeowPoint, boolean newBest) {
         router.showScoreGameResult(breakdown, bestMeowPoint, newBest);
     }
 
     @Override
     public void errorInvalidCommand() {
         toastError("Invalid score game command.");
+    }
+
+    @Override
+    public void errorSubmitFailed(String reason) {
+        toastError("Could not submit score: " + (reason == null ? "unknown error" : reason));
     }
 }

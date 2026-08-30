@@ -64,9 +64,9 @@ class CliLeaderboardSmokeTest {
 
         String output = captured.toString();
         assertTrue(output.contains("Leaderboard"), output);
-        assertTrue(output.contains(USERNAME), output);
         assertTrue(output.contains("BestScore"), output);
         assertTrue(output.contains("Sorted by score"), output);
+        assertTrue(output.contains("Could not load leaderboard"), output);
         assertInstanceOf(MainMenuController.class, parser.getCurrentController());
     }
 

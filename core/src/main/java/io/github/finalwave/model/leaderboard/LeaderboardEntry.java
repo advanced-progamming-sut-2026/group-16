@@ -7,5 +7,5 @@ public record LeaderboardEntry(
         int minigameCount,
         long dailyQuestCount,
         long nonDailyQuestCount,
-        int bestScore)
+        Integer bestScore)
 {}

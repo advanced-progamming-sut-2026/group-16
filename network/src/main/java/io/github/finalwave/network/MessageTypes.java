@@ -54,6 +54,12 @@ public final class MessageTypes {
     public static final String RESUME = "RESUME";
     public static final String RESUME_OK = "RESUME_OK";
     public static final String RESUME_FAIL = "RESUME_FAIL";
+    public static final String GET_LEADERBOARD = "GET_LEADERBOARD";
+    public static final String GET_LEADERBOARD_OK = "GET_LEADERBOARD_OK";
+    public static final String GET_LEADERBOARD_FAIL = "GET_LEADERBOARD_FAIL";
+    public static final String SUBMIT_SCORE = "SUBMIT_SCORE";
+    public static final String SUBMIT_SCORE_OK = "SUBMIT_SCORE_OK";
+    public static final String SUBMIT_SCORE_FAIL = "SUBMIT_SCORE_FAIL";
 
     private MessageTypes() {
     }

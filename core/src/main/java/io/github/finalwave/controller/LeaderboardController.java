@@ -1,10 +1,10 @@
 package io.github.finalwave.controller;
 
+import io.github.finalwave.leaderboard.LeaderboardGateway;
 import io.github.finalwave.model.command.LeaderboardMenuCommands;
 import io.github.finalwave.model.leaderboard.LeaderboardEntry;
 import io.github.finalwave.model.leaderboard.LeaderboardService;
 import io.github.finalwave.model.leaderboard.LeaderboardSortColumn;
-import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.LeaderboardView;
 
 import java.util.ArrayList;
@@ -13,20 +13,19 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 
 public class LeaderboardController extends ViewController {
-    private final UserDatabase userDatabase;
+    private final LeaderboardGateway leaderboardGateway;
     private LeaderboardSortColumn sortColumn = LeaderboardSortColumn.USERNAME;
     private boolean ascending = true;
     private List<LeaderboardEntry> entries = new ArrayList<>();
 
-    public LeaderboardController(UserDatabase userDatabase) {
-        this.userDatabase = userDatabase;
+    public LeaderboardController(LeaderboardGateway leaderboardGateway) {
+        this.leaderboardGateway = leaderboardGateway;
     }
 
     @Override
     public void displayMenu() {
         getLeaderboardView().showLeaderboardMenu();
         refreshEntries();
-        showTable();
     }
 
     @Override
@@ -91,11 +90,25 @@ public class LeaderboardController extends ViewController {
 
     private void handleRefresh() {
         refreshEntries();
-        showTable();
     }
 
     private void refreshEntries() {
-        entries = LeaderboardService.build(userDatabase.getAllUsers());
+        entries = new ArrayList<>();
+        showTable();
+        leaderboardGateway.fetch(new LeaderboardGateway.Callback() {
+            @Override
+            public void onSuccess(List<LeaderboardEntry> loaded) {
+                entries = loaded == null ? new ArrayList<>() : new ArrayList<>(loaded);
+                showTable();
+            }
+
+            @Override
+            public void onFailure(String reason) {
+                entries = new ArrayList<>();
+                showTable();
+                getLeaderboardView().errorLoadFailed(reason);
+            }
+        });
     }
 
     private void showTable() {
