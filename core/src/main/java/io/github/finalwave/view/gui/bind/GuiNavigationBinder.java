@@ -7,6 +7,8 @@ import io.github.finalwave.controller.GameController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.GreenhouseController;
 import io.github.finalwave.controller.IZombieController;
+import io.github.finalwave.controller.IZombieMatchmakingController;
+import io.github.finalwave.controller.NetworkedIZombieController;
 import io.github.finalwave.controller.LeaderboardController;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
@@ -32,6 +34,7 @@ import io.github.finalwave.view.gui.ComingSoonViewGui;
 import io.github.finalwave.view.gui.GamePlayViewGui;
 import io.github.finalwave.view.gui.GameViewGui;
 import io.github.finalwave.view.gui.GreenhouseViewGui;
+import io.github.finalwave.view.gui.IZombieMatchmakingViewGui;
 import io.github.finalwave.view.gui.IZombieViewGui;
 import io.github.finalwave.view.gui.LeaderboardViewGui;
 import io.github.finalwave.view.gui.MainMenuViewGui;
@@ -69,6 +72,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
     private final VaseBreakerViewGui vaseBreakerView;
     private final WalnutBowlingViewGui walnutBowlingView;
     private final IZombieViewGui iZombieView;
+    private final IZombieMatchmakingViewGui iZombieMatchmakingView;
     private final BeghouledViewGui beghouledView;
     private final ZombotanyViewGui zombotanyView;
     private final ComingSoonViewGui comingSoonView;
@@ -94,6 +98,7 @@ public final class GuiNavigationBinder implements NavigationBinder {
         this.vaseBreakerView = new VaseBreakerViewGui(router);
         this.walnutBowlingView = new WalnutBowlingViewGui(router);
         this.iZombieView = new IZombieViewGui(router);
+        this.iZombieMatchmakingView = new IZombieMatchmakingViewGui(router);
         this.beghouledView = new BeghouledViewGui(router);
         this.zombotanyView = new ZombotanyViewGui(router);
         this.comingSoonView = new ComingSoonViewGui(router);
@@ -155,6 +160,13 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof IZombieController iZombieController) {
             iZombieView.bindController(iZombieController);
             newController.setView(iZombieView);
+        } else if (newController instanceof NetworkedIZombieController networkedController) {
+            iZombieView.bindController(null);
+            networkedController.setDeferMatchExit(true);
+            newController.setView(iZombieView);
+        } else if (newController instanceof IZombieMatchmakingController matchmakingController) {
+            iZombieMatchmakingView.bindController(matchmakingController);
+            newController.setView(iZombieMatchmakingView);
         } else if (newController instanceof BeghouledController beghouledController) {
             beghouledView.bindController(beghouledController);
             newController.setView(beghouledView);

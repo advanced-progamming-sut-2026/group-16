@@ -45,7 +45,11 @@ public final class SunProducerSystem {
             int amount = Math.min(
                     MAX_SUN_PER_SECOND,
                     BASE_SUN_PER_SECOND + secondsAlive / GROWTH_INTERVAL_SECONDS);
-            session.addSunBalance(amount);
+            if (session.isIZombieActive()) {
+                session.addIZombieSunBalance(amount);
+            } else {
+                session.addSunBalance(amount);
+            }
         }
     }
 

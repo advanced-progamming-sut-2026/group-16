@@ -6,6 +6,8 @@ import io.github.finalwave.model.user.GreenhousePot;
 import io.github.finalwave.model.user.UnlockKind;
 import io.github.finalwave.model.user.User;
 
+import java.util.List;
+
 public final class ServerDatabase {
     private final Object lock = new Object();
     private io.github.finalwave.model.user.UserDatabase delegate;
@@ -25,6 +27,12 @@ public final class ServerDatabase {
     public User getUser(String username) {
         synchronized (lock) {
             return requireDelegate().getUser(username);
+        }
+    }
+
+    public List<User> getAllUsers() {
+        synchronized (lock) {
+            return requireDelegate().getAllUsers();
         }
     }
 

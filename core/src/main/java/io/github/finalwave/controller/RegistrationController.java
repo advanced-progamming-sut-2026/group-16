@@ -13,13 +13,13 @@ import io.github.finalwave.network.auth.RegisterFailReason;
 import io.github.finalwave.network.auth.RegisterFailPayload;
 import io.github.finalwave.network.auth.RegisterOkPayload;
 import io.github.finalwave.network.auth.RegisterRequest;
+import io.github.finalwave.network.sync.ProgressSyncService;
 import io.github.finalwave.profile.LocalProfileCache;
 import io.github.finalwave.registration.RegistrationGateway;
-import io.github.finalwave.network.sync.ProgressSyncService;
 import io.github.finalwave.util.HashUtil;
-import io.github.finalwave.util.SessionResumeCredentials;
 import io.github.finalwave.util.RegisterFailMessages;
 import io.github.finalwave.util.RegistrationValidator;
+import io.github.finalwave.util.SessionResumeCredentials;
 import io.github.finalwave.view.api.AuthView;
 
 import java.util.regex.Matcher;

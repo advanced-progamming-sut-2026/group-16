@@ -35,4 +35,15 @@ public final class SessionRegistry {
     public Optional<String> usernameFor(ClientHandler handler) {
         return Optional.ofNullable(handlerToUsername.get(handler));
     }
+
+    public Optional<ClientHandler> handlerFor(String username) {
+        if (username == null || username.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(usernameToHandler.get(username));
+    }
+
+    public boolean isOnline(String username) {
+        return handlerFor(username).isPresent();
+    }
 }

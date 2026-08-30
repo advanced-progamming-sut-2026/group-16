@@ -47,7 +47,7 @@ public final class ZombieRosterBar extends Table {
         String selected = mode instanceof ToolMode.Zombie zombie ? zombie.alias() : null;
         PlantArmor.PlantCooldownTracker cooldowns = session.getCooldownTracker();
         Map<String, Integer> costs = session.getIZombieZombieCosts();
-        int sun = session.getSunBalance();
+        int sun = session.isIZombieActive() ? session.getIZombieSunBalance() : session.getSunBalance();
         for (PlantCardActor card : cards) {
             String alias = card.plantName();
             int cost = costs.getOrDefault(alias, 0);

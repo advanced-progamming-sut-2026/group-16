@@ -48,7 +48,7 @@ public final class IZombieHandler implements MiniGameHandler {
             return;
         }
         if (!hasLivingZombies(session)
-                && session.getSunBalance() < session.getIZombieCheapestRosterCost()) {
+                && session.getIZombieSunBalance() < session.getIZombieCheapestRosterCost()) {
             session.loseMatch();
         }
     }
