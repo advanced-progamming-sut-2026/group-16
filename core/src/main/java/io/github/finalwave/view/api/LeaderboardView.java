@@ -20,4 +20,6 @@ public interface LeaderboardView extends View {
     void errorInvalidSortColumn();
 
     void errorInvalidSortOrder();
+
+    void errorLoadFailed(String reason);
 }

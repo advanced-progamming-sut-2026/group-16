@@ -251,7 +251,7 @@ public final class ScreenRouter {
         }
     }
 
-    public void showScoreGameResult(MeowPointBreakdown breakdown, int bestMeowPoint, boolean newBest) {
+    public void showScoreGameResult(MeowPointBreakdown breakdown, Integer bestMeowPoint, boolean newBest) {
         if (scoreGameScreen != null) {
             scoreGameScreen.showResult(breakdown, bestMeowPoint, newBest);
         }

@@ -30,11 +30,8 @@ public final class LeaderboardService {
             boolean ascending) {
         List<LeaderboardEntry> sorted = new ArrayList<>(
                 entries == null ? List.of() : entries);
-        Comparator<LeaderboardEntry> comparator = comparatorFor(column);
-        if (!ascending) {
-            comparator = comparator.reversed();
-        }
-        sorted.sort(comparator.thenComparing(LeaderboardEntry::username));
+        Comparator<LeaderboardEntry> comparator = comparatorFor(column, ascending);
+        sorted.sort(comparator.thenComparing(LeaderboardEntry::username, String.CASE_INSENSITIVE_ORDER));
         return sorted;
     }
 
@@ -54,20 +51,40 @@ public final class LeaderboardService {
                 user.getMiniGameProgress().completedStageCount(),
                 user.ensureQuestTracker().completedDailyCount(),
                 user.ensureQuestTracker().completedNonDailyCount(),
-                user.getBestMeowPoint());
+                user.hasPlayed() ? user.getBestMeowPoint() : null);
     }
 
-    private static Comparator<LeaderboardEntry> comparatorFor(LeaderboardSortColumn column) {
+    private static Comparator<LeaderboardEntry> comparatorFor(LeaderboardSortColumn column, boolean ascending) {
         LeaderboardSortColumn sortColumn =
                 column == null ? LeaderboardSortColumn.USERNAME : column;
         return switch (sortColumn) {
-            case USERNAME -> Comparator.comparing(
-                    LeaderboardEntry::username, String.CASE_INSENSITIVE_ORDER);
-            case PROGRESS -> Comparator.comparingInt(LeaderboardEntry::progressSortKey);
-            case MINIGAMES -> Comparator.comparingInt(LeaderboardEntry::minigameCount);
-            case DAILY_QUESTS -> Comparator.comparingLong(LeaderboardEntry::dailyQuestCount);
-            case NON_DAILY_QUESTS -> Comparator.comparingLong(LeaderboardEntry::nonDailyQuestCount);
-            case BEST_SCORE -> Comparator.comparingInt(LeaderboardEntry::bestScore);
+            case USERNAME -> {
+                Comparator<LeaderboardEntry> base = Comparator.comparing(
+                        LeaderboardEntry::username, String.CASE_INSENSITIVE_ORDER);
+                yield ascending ? base : base.reversed();
+            }
+            case PROGRESS -> {
+                Comparator<LeaderboardEntry> base = Comparator.comparingInt(LeaderboardEntry::progressSortKey);
+                yield ascending ? base : base.reversed();
+            }
+            case MINIGAMES -> {
+                Comparator<LeaderboardEntry> base = Comparator.comparingInt(LeaderboardEntry::minigameCount);
+                yield ascending ? base : base.reversed();
+            }
+            case DAILY_QUESTS -> {
+                Comparator<LeaderboardEntry> base = Comparator.comparingLong(LeaderboardEntry::dailyQuestCount);
+                yield ascending ? base : base.reversed();
+            }
+            case NON_DAILY_QUESTS -> {
+                Comparator<LeaderboardEntry> base = Comparator.comparingLong(LeaderboardEntry::nonDailyQuestCount);
+                yield ascending ? base : base.reversed();
+            }
+            case BEST_SCORE -> {
+                Comparator<Integer> scores = ascending
+                        ? Comparator.nullsLast(Comparator.naturalOrder())
+                        : Comparator.nullsLast(Comparator.reverseOrder());
+                yield Comparator.comparing(LeaderboardEntry::bestScore, scores);
+            }
         };
     }
 }

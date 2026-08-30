@@ -11,6 +11,9 @@ import io.github.finalwave.model.scoregame.MeowPointTracker;
 import io.github.finalwave.model.scoregame.ScoreGameSessionFactory;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.network.score.SubmitScoreOkPayload;
+import io.github.finalwave.score.ScoreSubmitGateway;
+import io.github.finalwave.view.api.ScoreGameView;
 
 import java.time.Clock;
 import java.util.Set;
@@ -64,12 +67,42 @@ public class ScoreGamePlayController extends GamePlayController {
     protected void onMatchFinished(MatchResult result) {
         recordFinishedGame();
         MeowPointBreakdown breakdown = meowPointTracker.getBreakdown();
-        boolean newBest = getUser().updateBestMeowPoint(breakdown.total());
-        if (newBest) {
-            getUserDatabase().saveBestMeowPoint(getUser());
-        }
         meowPointTracker.unregister();
-        scoreGameController.onMatchCompleted(breakdown, newBest);
-        navigator.pop();
+        ScoreSubmitGateway gateway = scoreGameController.scoreSubmitGateway();
+        gateway.submit(breakdown.total(), new ScoreSubmitGateway.Callback() {
+            @Override
+            public void onSuccess(SubmitScoreOkPayload payload) {
+                applyServerScore(payload);
+                scoreGameController.onMatchCompleted(
+                        breakdown,
+                        payload.isHasPlayed() ? payload.getBestMeowPoint() : null,
+                        payload.isNewBest());
+                navigator.pop();
+            }
+
+            @Override
+            public void onFailure(String reason) {
+                getScoreGameView().errorSubmitFailed(reason);
+                scoreGameController.onMatchCompleted(breakdown, scoreGameController.bestMeowPoint(), false);
+                navigator.pop();
+            }
+        });
+    }
+
+    private void applyServerScore(SubmitScoreOkPayload payload) {
+        User user = getUser();
+        user.setHasPlayed(payload.isHasPlayed());
+        user.setBestMeowPoint(payload.getBestMeowPoint());
+        UserDatabase database = getUserDatabase();
+        database.setWriteEventsSuppressed(true);
+        try {
+            database.saveBestMeowPoint(user);
+        } finally {
+            database.setWriteEventsSuppressed(false);
+        }
+    }
+
+    private ScoreGameView getScoreGameView() {
+        return (ScoreGameView) scoreGameController.getView();
     }
 }

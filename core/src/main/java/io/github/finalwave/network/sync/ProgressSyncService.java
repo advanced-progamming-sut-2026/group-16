@@ -85,6 +85,13 @@ public final class ProgressSyncService implements UserWriteListener, NetworkMana
         flushQueue();
     }
 
+    public void refreshSession() {
+        if (!armed) {
+            return;
+        }
+        attemptResume();
+    }
+
     public void disarm() {
         armed = false;
         queue.clear();
