@@ -92,6 +92,7 @@ public final class LockedPlantsSelectionController extends PlantSelectionControl
                 user.getDifficultyLevel(), new Random());
         GameSession session = mode.createSession();
         session.setSelectedLoadout(Set.copyOf(selected));
+        session.setSelectedLoadoutOrder(List.copyOf(selected));
         session.activateLockedPlants(rules);
         QuestTracker tracker = user.ensureQuestTracker();
         tracker.registerOn(session.getEventBus());

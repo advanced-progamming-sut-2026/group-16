@@ -7,15 +7,14 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Align;
 import io.github.finalwave.model.definition.plant.PlantDefinition;
 import io.github.finalwave.model.game.GameSession;
+import io.github.finalwave.model.game.LoadoutOrder;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.input.ToolMode;
 import io.github.finalwave.view.gui.widget.PlantCardActor;
 import io.github.finalwave.view.gui.widget.StoreChrome;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 
 
@@ -66,7 +65,7 @@ public final class PlantSandboxPanel extends Table {
             return;
         }
         setVisible(true);
-        List<String> next = namesOf(session);
+        List<String> next = LoadoutOrder.effective(session);
         if (!next.equals(loadout)) {
             rebuild(next);
         }
@@ -98,22 +97,5 @@ public final class PlantSandboxPanel extends Table {
             cards.add(card);
             list.add(card).size(CARD_WIDTH, CARD_HEIGHT).row();
         }
-    }
-
-    private static List<String> namesOf(GameSession session) {
-        Set<String> selected = session.getSelectedLoadout();
-        List<PlantDefinition> definitions = new ArrayList<>();
-        for (PlantDefinition definition : session.getPlantRegistry().getAllDefinitions()) {
-            String name = definition.getName();
-            if (selected == null || selected.isEmpty() || selected.contains(name)) {
-                definitions.add(definition);
-            }
-        }
-        definitions.sort(Comparator.comparingInt(PlantDefinition::getId));
-        List<String> names = new ArrayList<>(definitions.size());
-        for (PlantDefinition definition : definitions) {
-            names.add(definition.getName());
-        }
-        return names;
     }
 }

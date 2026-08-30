@@ -29,6 +29,7 @@ public final class Projectile {
     private float visualAnchorY = -1f;
     private int bowlingBouncesRemaining;
     private String hostileSourceId;
+    private boolean torchwoodBoosted;
     private String visualClip;
     private final Set<String> hitEntityIds = new HashSet<>();
 
@@ -100,7 +101,7 @@ public final class Projectile {
     }
 
     public int getDamage() {
-        return damage;
+        return torchwoodBoosted ? damage * 2 : damage;
     }
 
     public ProjectileProfile getProfile() {
@@ -108,7 +109,22 @@ public final class Projectile {
     }
 
     public ProjectileEffect getEffect() {
-        return effect;
+        return torchwoodBoosted ? ProjectileEffect.FIRE : effect;
+    }
+
+    public boolean isTorchwoodBoosted() {
+        return torchwoodBoosted;
+    }
+
+    public void applyTorchwoodBoost() {
+        if (torchwoodBoosted || fromZombie || directed) {
+            return;
+        }
+        if (effect == ProjectileEffect.PEA
+                || effect == ProjectileEffect.GENERIC
+                || effect == ProjectileEffect.MEGA_GATLING_PEA) {
+            torchwoodBoosted = true;
+        }
     }
 
     public Plant getSource() {

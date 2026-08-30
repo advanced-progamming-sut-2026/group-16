@@ -13,7 +13,8 @@ import io.github.finalwave.model.game.mode.AdventureMode;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
@@ -33,16 +34,18 @@ public final class SandboxMatch {
         session.enableSandboxPractice();
         session.setSunBalance(9990);
         session.setPlantFoodCount(GameSession.MAX_PLANT_FOOD);
-        session.setSelectedLoadout(loadout(plants));
+        List<String> ordered = loadout(plants);
+        session.setSelectedLoadout(Set.copyOf(ordered));
+        session.setSelectedLoadoutOrder(ordered);
         return new GamePlayController(
                 user, userDatabase, mode, session, chapter, level, Set.of(), false);
     }
 
-    private static Set<String> loadout(PlantRegistry plants) {
-        LinkedHashSet<String> selected = new LinkedHashSet<>();
+    private static List<String> loadout(PlantRegistry plants) {
+        List<String> selected = new ArrayList<>();
         for (PlantDefinition definition : plants.getAllDefinitions()) {
             selected.add(definition.getName());
         }
-        return Set.copyOf(selected);
+        return List.copyOf(selected);
     }
 }

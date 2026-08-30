@@ -7,6 +7,7 @@ import io.github.finalwave.model.game.board.PlantPlacementResult;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieState;
+import io.github.finalwave.model.game.entity.zombie.behavior.MovementBehavior;
 import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.model.item.SunType;
 import io.github.finalwave.view.gui.render.sync.PlantVisualState;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -703,6 +705,205 @@ class PlantAbilityTest {
         assertTrue(session.getSunItems().stream().allMatch(sun -> sun.getValue() == 75));
     }
 
+    @Test
+    void garlicDivertOnBite() {
+        session.tryPlant("Garlic", 3, 2, 1);
+        Zombie zombie = chewingZombie(3.05, 2);
+        session.addZombie(zombie);
+        for (int i = 0; i < 5; i++) {
+            session.tick();
+        }
+        assertEquals(2, zombie.getRow());
+        for (int i = 0; i < 25; i++) {
+            session.tick();
+        }
+        assertNotEquals(2, zombie.getRow());
+    }
+
+    @Test
+    void garlicPlantFoodHeals() {
+        session.tryPlant("Garlic", 3, 2, 1);
+        Plant garlic = session.getBoard().getPlantAt(3, 2);
+        garlic.takeDamage(120);
+        session.setPlantFoodCount(5);
+        assertTrue(session.usePlantFood(3, 2));
+        assertEquals(garlic.getMaxHealth(), garlic.getHealth());
+    }
+
+    @Test
+    void sweetPotatoPullsAdjacentZombie() {
+        session.tryPlant("Sweet Potato", 3, 2, 1);
+        Zombie zombie = approachingZombie(3.5, 1);
+        session.addZombie(zombie);
+        for (int i = 0; i < 20; i++) {
+            session.tick();
+        }
+        assertEquals(2, zombie.getRow());
+    }
+
+    @Test
+    void sunBeanInfectsZombieAndDropsSunOnDamage() {
+        session.tryPlant("Sun Bean", 3, 2, 1);
+        Zombie zombie = chewingZombie(3.05, 2);
+        session.addZombie(zombie);
+        for (int i = 0; i < 200; i++) {
+            session.tick();
+        }
+        assertTrue(zombie.getSunBeanInfections() > 0);
+        int before = session.getSunItems().size();
+        zombie.takeDamage(50);
+        assertTrue(session.getSunItems().size() > before);
+    }
+
+    @Test
+    void magnetShroomStripsBucketArmor() {
+        session.tryPlant("Magnet-shroom", 2, 2, 1);
+        io.github.finalwave.model.game.entity.zombie.Armor bucket = new io.github.finalwave.model.game.entity.zombie.Armor(
+                "BucketDefault", "Bucket", 1100, true, false);
+        Zombie zombie = new Zombie.Builder("bucket")
+                .maxHealth(200)
+                .speed(0)
+                .armor(bucket)
+                .position(2.5, 2)
+                .build();
+        session.addZombie(zombie);
+        assertTrue(zombie.hasArmor());
+        for (int i = 0; i < 120; i++) {
+            session.tick();
+        }
+        assertFalse(zombie.hasArmor());
+    }
+
+    @Test
+    void explodeONutDamagesNearbyZombiesOnDeath() {
+        session.tryPlant("Explode-o-nut", 3, 2, 1);
+        Zombie zombie = eatingZombie(3.3, 2);
+        session.addZombie(zombie);
+        Plant nut = session.getBoard().getPlantAt(3, 2);
+        int hpBefore = zombie.getHealth();
+        nut.takeDamage(nut.getMaxHealth());
+        assertTrue(zombie.getHealth() < hpBefore);
+    }
+
+    @Test
+    void torchwoodPlantFoodSetsPermanentBoost() {
+        session.tryPlant("Torchwood", 2, 2, 1);
+        session.setPlantFoodCount(5);
+        assertTrue(session.usePlantFood(2, 2));
+        for (int i = 0; i < 10; i++) {
+            session.tick();
+        }
+        assertTrue(session.getBoard().getPlantAt(2, 2).isTorchwoodBoosted());
+    }
+
+    @Test
+    void hypnoShroomHypnotizesBiter() {
+        session.tryPlant("Hypno-shroom", 3, 2, 1);
+        Zombie zombie = chewingZombie(3.05, 2);
+        session.addZombie(zombie);
+        session.tick();
+        assertTrue(zombie.isHypnotized());
+    }
+
+    @Test
+    void hypnoShroomPlantFoodUpgradesTarget() {
+        placeMovingZombie(5, 2);
+        session.tryPlant("Hypno-shroom", 2, 2, 1);
+        session.setPlantFoodCount(5);
+        assertTrue(session.usePlantFood(2, 2));
+        for (int i = 0; i < 8; i++) {
+            session.tick();
+        }
+        assertTrue(session.getZombies().stream().anyMatch(Zombie::isHypnotized));
+    }
+
+    @Test
+    void imitaterMorphsToLastSelectedSeed() {
+        session.setSelectedLoadout(Set.of("Magnet-shroom", "Hypno-shroom", "Imitater", "Wall-nut"));
+        session.setSelectedLoadoutOrder(List.of("Wall-nut", "Hypno-shroom", "Imitater", "Magnet-shroom"));
+        session.noteImitaterTargetSeed("Magnet-shroom");
+        session.tryPlant("Imitater", 2, 2, 1);
+        for (int i = 0; i < 15; i++) {
+            session.tick();
+        }
+        Plant plant = session.getBoard().getPlantAt(2, 2);
+        assertEquals("Magnet-shroom", plant.getName());
+    }
+
+    @Test
+    void imitaterMorphsToLastPlantedSeed() {
+        session.setSelectedLoadout(Set.of("Magnet-shroom", "Hypno-shroom", "Imitater"));
+        session.setSelectedLoadoutOrder(List.of("Hypno-shroom", "Cat-tail", "Imitater"));
+        session.tryPlant("Magnet-shroom", 1, 2, 1);
+        session.tryPlant("Imitater", 2, 2, 1);
+        for (int i = 0; i < 15; i++) {
+            session.tick();
+        }
+        Plant plant = session.getBoard().getPlantAt(2, 2);
+        assertEquals("Magnet-shroom", plant.getName());
+    }
+
+    @Test
+    void imitaterSkipsCatTailAndMorphsToPreviousPlant() {
+        session.setSelectedLoadout(Set.of("Hypno-shroom", "Cat-tail", "Imitater"));
+        session.setSelectedLoadoutOrder(List.of("Hypno-shroom", "Cat-tail", "Imitater"));
+        session.tryPlant("Imitater", 2, 2, 1);
+        for (int i = 0; i < 15; i++) {
+            session.tick();
+        }
+        Plant plant = session.getBoard().getPlantAt(2, 2);
+        assertEquals("Hypno-shroom", plant.getName());
+    }
+
+    @Test
+    void imitaterMorphsToLoadoutTarget() {
+        session.setSelectedLoadout(Set.of("Imitater", "Wall-nut"));
+        session.setSelectedLoadoutOrder(List.of("Wall-nut", "Imitater"));
+        session.tryPlant("Imitater", 2, 2, 1);
+        for (int i = 0; i < 15; i++) {
+            session.tick();
+        }
+        Plant plant = session.getBoard().getPlantAt(2, 2);
+        assertEquals("Wall-nut", plant.getName());
+        assertTrue(plant.isImitaterCopy());
+        for (int i = 0; i < 30; i++) {
+            session.tick();
+        }
+        assertTrue(plant.isImitaterCopy());
+    }
+
+    @Test
+    void iceShroomSurvivesAndChillsNearbyZombies() {
+        Zombie near = approachingZombie(3.2, 2);
+        session.addZombie(near);
+        session.tryPlant("Ice-shroom", 3, 2, 1);
+        Plant ice = session.getBoard().getPlantAt(3, 2);
+        assertNotNull(ice);
+        assertTrue(ice.isAlive());
+        for (int i = 0; i < 5; i++) {
+            session.tick();
+        }
+        assertTrue(near.getCurrentSpeed() < near.getBaseSpeed());
+        assertTrue(near.getCurrentSpeed() > 0.0);
+    }
+
+    @Test
+    void lilyPadPlantFoodSpawnsNeighborsOnWater() {
+        session.getBoard().setTile(4, 2, new io.github.finalwave.model.game.board.tile.LowBeachTile());
+        session.getBoard().setTile(5, 2, new io.github.finalwave.model.game.board.tile.LowBeachTile());
+        session.getBoard().setTile(4, 1, new io.github.finalwave.model.game.board.tile.LowBeachTile());
+        session.tryPlant("Lily Pad", 4, 2, 1);
+        session.setPlantFoodCount(5);
+        assertTrue(session.usePlantFood(4, 2));
+        for (int i = 0; i < 6; i++) {
+            session.tick();
+        }
+        long lilyPads = session.getBoard().getAllPlants().stream()
+                .filter(plant -> "Lily Pad".equals(plant.getName()))
+                .count();
+        assertTrue(lilyPads >= 2);
+    }
+
     private void tickUntilSunBurst(int ticks) {
         for (int i = 0; i < ticks; i++) {
             session.tick();
@@ -721,5 +922,33 @@ class PlantAbilityTest {
                 .build();
         zombie.setState(ZombieState.MOVING);
         session.addZombie(zombie);
+    }
+
+    private Zombie chewingZombie(double x, int row) {
+        Zombie zombie = new Zombie.Builder("dummy")
+                .maxHealth(5000)
+                .speed(0)
+                .damage(100)
+                .position(x, row)
+                .addBehavior(new MovementBehavior())
+                .build();
+        zombie.setState(ZombieState.MOVING);
+        return zombie;
+    }
+
+    private Zombie approachingZombie(double x, int row) {
+        Zombie zombie = new Zombie.Builder("dummy")
+                .maxHealth(5000)
+                .speed(0.3)
+                .damage(100)
+                .position(x, row)
+                .addBehavior(new MovementBehavior())
+                .build();
+        zombie.setState(ZombieState.MOVING);
+        return zombie;
+    }
+
+    private Zombie eatingZombie(double x, int row) {
+        return chewingZombie(x, row);
     }
 }

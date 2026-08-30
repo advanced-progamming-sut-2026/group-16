@@ -162,4 +162,40 @@ class PlantVisualStateTest {
         String[] clips = PlantVisualState.preferredClips(plant, true, false, "idle");
         assertTrue(clips[0].equals("special") || clips[0].equals("attack"));
     }
+
+    @Test
+    void garlicUsesDamageIdleTiers() {
+        session.tryPlant("Garlic", 2, 2, 1);
+        Plant plant = session.getBoard().getPlantAt(2, 2);
+        plant.takeDamage(plant.getMaxHealth() / 2);
+        assertArrayEquals(new String[]{"idle_damage", "idle", "idle2"},
+                PlantVisualState.idleNames(plant));
+    }
+
+    @Test
+    void explodeONutPlantFoodUsesOnChain() {
+        session.tryPlant("Explode-o-nut", 2, 2, 1);
+        Plant plant = session.getBoard().getPlantAt(2, 2);
+        plant.beginPlantFood(30, 8, 6);
+        assertArrayEquals(new String[]{"plantfood_on", "plantfood", "idle"},
+                PlantVisualState.preferredClips(plant, false, false, "idle"));
+    }
+
+    @Test
+    void magnetShroomStealUsesCatchClip() {
+        session.tryPlant("Magnet-shroom", 2, 2, 1);
+        Plant plant = session.getBoard().getPlantAt(2, 2);
+        plant.setMagnetStealAnimTicks(10);
+        assertArrayEquals(new String[]{"catch", "idle"},
+                PlantVisualState.preferredClips(plant, false, false, "idle"));
+    }
+
+    @Test
+    void imitaterMorphUsesAttackIntro() {
+        session.tryPlant("Imitater", 2, 2, 1);
+        Plant plant = session.getBoard().getPlantAt(2, 2);
+        plant.setImitaterMorphTicks(8);
+        assertArrayEquals(new String[]{"attack", "idle"},
+                PlantVisualState.preferredClips(plant, false, false, "idle"));
+    }
 }

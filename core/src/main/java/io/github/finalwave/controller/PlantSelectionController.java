@@ -274,6 +274,7 @@ public class PlantSelectionController extends ViewController {
                 user.getDifficultyLevel(), new Random());
         GameSession session = mode.createSession();
         session.setSelectedLoadout(Set.copyOf(selected));
+        session.setSelectedLoadoutOrder(List.copyOf(selected));
         QuestTracker tracker = user.ensureQuestTracker();
         tracker.registerOn(session.getEventBus());
         tracker.beginSession(session);

@@ -18,10 +18,10 @@ public final class PlantAbilityFactory {
             case SHOOT_PROJECTILE -> createProjectileAbility(definition, category, name);
             case MELEE_ATTACK -> new MeleeAttackAbility(definition.hasTag("AOE"));
             case DELAYED_EXPLOSIVE -> new ExplosiveAbility(resolveExplosionRadius(definition), false);
-            case INSTANT_EXPLOSIVE -> new ExplosiveAbility(resolveExplosionRadius(definition), true);
+            case INSTANT_EXPLOSIVE -> createInstantExplosive(definition, name);
             case GRAVE_BUSTER -> new GraveBusterAbility();
-            case PASSIVE_SHIELD -> new PassiveShieldAbility((int) definition.getAbilityValue());
-            case MODIFIER_UTILITY -> new ModifierUtilityAbility(definition.getAbilityValue());
+            case PASSIVE_SHIELD -> createPassiveShield(definition);
+            case MODIFIER_UTILITY -> createModifierUtility(definition, name);
             case MINT_FAMILY_BOOST -> new MintFamilyBoostAbility(category, definition.getAbilityValue());
         };
     }
@@ -60,5 +60,33 @@ public final class PlantAbilityFactory {
         double affectedTiles = Math.max(1.0, definition.getAbilityValue());
         double radius = Math.max(1.0, Math.floor(Math.sqrt(affectedTiles) / 2.0));
         return definition.hasTag("AOE") ? Math.max(1.5, radius) : radius;
+    }
+
+    private static PlantAbility createPassiveShield(PlantDefinition definition) {
+        String name = definition.getName();
+        if ("Sweet Potato".equals(name)) {
+            return new SweetPotatoAbility();
+        }
+        if ("Explode-o-nut".equals(name)) {
+            return new PassiveShieldAbility(0);
+        }
+        return new PassiveShieldAbility((int) definition.getAbilityValue());
+    }
+
+    private static PlantAbility createModifierUtility(PlantDefinition definition, String name) {
+        if ("Magnet-shroom".equals(name)) {
+            return new MagnetShroomAbility();
+        }
+        if ("Imitater".equals(name)) {
+            return new ImitaterAbility();
+        }
+        return new ModifierUtilityAbility(definition.getAbilityValue());
+    }
+
+    private static PlantAbility createInstantExplosive(PlantDefinition definition, String name) {
+        if ("Ice-shroom".equals(name)) {
+            return new IceShroomAbility();
+        }
+        return new ExplosiveAbility(resolveExplosionRadius(definition), true);
     }
 }

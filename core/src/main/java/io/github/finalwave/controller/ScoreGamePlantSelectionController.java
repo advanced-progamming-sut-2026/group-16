@@ -10,6 +10,7 @@ import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.Set;
 
 public class ScoreGamePlantSelectionController extends PlantSelectionController {
@@ -42,6 +43,7 @@ public class ScoreGamePlantSelectionController extends PlantSelectionController 
         var match = ScoreGameSessionFactory.create(plantRegistry, zombieRegistry, clock);
         GameSession session = match.session();
         session.setSelectedLoadout(Set.copyOf(selected));
+        session.setSelectedLoadoutOrder(List.copyOf(selected));
         MeowPointTracker tracker = match.tracker();
         getViewApi().showGameStarted();
         ScoreGamePlayController gameplay = new ScoreGamePlayController(

@@ -5,6 +5,8 @@ import io.github.finalwave.model.game.entity.*;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCategory;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
+import io.github.finalwave.model.game.entity.plant.support.PlantLaneSupport;
+import io.github.finalwave.model.game.entity.plant.support.SunBeanSupport;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieBehavior;
 import io.github.finalwave.model.game.entity.zombie.ZombieState;
@@ -57,9 +59,15 @@ public final class MovementBehavior implements ZombieBehavior {
             int intDamage = (int) eatDamageAccumulator;
             zombie.attackPlant(target, intDamage);
             eatDamageAccumulator -= intDamage;
+            if ("Garlic".equals(target.getName())) {
+                PlantLaneSupport.scheduleGarlicDivert(zombie, target);
+            }
         }
 
         if (target.isDead()) {
+            if ("Sun Bean".equals(target.getName())) {
+                SunBeanSupport.onSunBeanConsumed(zombie, target, context);
+            }
             context.onPlantDestroyed(target);
         }
     }

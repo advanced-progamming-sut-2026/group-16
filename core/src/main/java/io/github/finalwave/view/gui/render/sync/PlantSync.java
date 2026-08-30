@@ -28,8 +28,12 @@ import java.util.Map;
 public final class PlantSync {
     private static final Color ICE_TINT = new Color(0.55f, 0.9f, 1f, 1f);
     private static final Color DISABLED = new Color(0.62f, 0.62f, 0.62f, 1f);
+    private static final Color IMITATER_REVEAL_TINT = new Color(0.55f, 0.55f, 0.55f, 1f);
+    private static final Map<String, Boolean> MAGNET_ITEM_HIDDEN = Map.of("Magnet_Item", false);
     private static final Map<String, Boolean> GRAVE_BUSTER_BODY_ONLY = Map.of(PlantClips.GRAVE_BUSTER_DIRT_PART, false);
     private final Map<Plant, Integer> graveBusterStartTick = new HashMap<>();
+    private final Map<Plant, Integer> iceShroomLastAttackTicks = new HashMap<>();
+    private final Map<Plant, String> magnetLastPhase = new HashMap<>();
 
     private final GameAssets assets;
     private final LawnLayout layout;
@@ -85,6 +89,8 @@ public final class PlantSync {
         octopusHits.retain(octopusCoverings);
         shots.retain(live, projectiles);
         graveBusterStartTick.keySet().retainAll(live);
+        iceShroomLastAttackTicks.keySet().retainAll(live);
+        magnetLastPhase.keySet().retainAll(live);
     }
 
     public void clear() {
@@ -97,6 +103,8 @@ public final class PlantSync {
         octopusHits.clear();
         shots.clear();
         graveBusterStartTick.clear();
+        iceShroomLastAttackTicks.clear();
+        magnetLastPhase.clear();
     }
 
     private PamActor spawnPlant(Plant plant) {
@@ -104,6 +112,10 @@ public final class PlantSync {
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
         layer.addActor(actor);
+        applyMagnetVisibility(plant, actor);
+        String renderName = PlantVisualState.pamNameForRender(plant);
+        EntityAnimationCatalog.ClipSpec idle = PlantVisualState.idle(plant, clips);
+        actor.setClip(idle.path(), idle.clip(), clips.scale(renderName), true);
         return actor;
     }
 
@@ -126,8 +138,10 @@ public final class PlantSync {
         EntityAnimationCatalog.ClipSpec spec = PlantVisualState.clip(
                 plant, clips, justFired, zombies, actor.clipName());
         EntityAnimationCatalog.ClipSpec idle = PlantVisualState.idle(plant, clips);
-        float scale = clips.scale(plant.getName());
-        if (!applyGraveBusterClip(plant, actor, scale, session)) {
+        float scale = clips.scale(pamName(plant));
+        if (!applyGraveBusterClip(plant, actor, scale, session)
+                && !applyIceShroomClip(plant, actor, scale, spec, idle)
+                && !applyMagnetClip(plant, actor, scale, idle)) {
             boolean playingOneShot = PlantVisualState.isOneShotClip(actor.clipName());
             if (PlantVisualState.isOneShot(plant, spec) && !playingOneShot) {
                 String followUp = followUpClip(plant, spec, idle, zombies);
@@ -140,10 +154,13 @@ public final class PlantSync {
         int freeze = freezeLevel(plant, session);
         boolean covered = isOctopusCovered(plant, session);
         actor.setVisible(!plant.isCatTransformed() && !covered);
+        applyMagnetVisibility(plant, actor);
         if (plant.isDisabled() || plant.isCatTransformed()) {
             actor.setTint(DISABLED);
         } else if (freeze == 1) {
             actor.setTint(ICE_TINT);
+        } else if (plant.isImitaterCopy()) {
+            actor.setTint(IMITATER_REVEAL_TINT);
         } else {
             actor.setTint(Color.WHITE);
         }
@@ -347,6 +364,18 @@ public final class PlantSync {
             if ("Sea-shroom".equals(plant.getName()) && "pf".equals(clip)) {
                 return idle.clip();
             }
+            if ("Explode-o-nut".equals(plant.getName()) && "plantfood".equals(clip)) {
+                return plant.isPlantFoodFinale() ? "plantfood_off" : idle.clip();
+            }
+            if ("Magnet-shroom".equals(plant.getName()) && "plantfood_on".equals(clip)) {
+                return "plantfood_collection";
+            }
+            if ("Magnet-shroom".equals(plant.getName()) && "plantfood_collection".equals(clip)) {
+                return "plantfood";
+            }
+            if ("Torchwood".equals(plant.getName()) && "plantfood_on".equals(clip)) {
+                return plant.isTorchwoodBoosted() ? "plantfood_t2" : "plantfood";
+            }
         }
         if ("Grave Buster".equals(plant.getName()) && "attack".equals(clip)) {
             return "attack1";
@@ -403,10 +432,91 @@ public final class PlantSync {
 
     private static int sortKey(Plant plant, GameBoard board, int extraDepth) {
         int depth = extraDepth;
-        if (extraDepth == 0 && board != null && board.getOverlayPlantAt(plant.getCol(), plant.getRow()) == plant) {
-            depth = 1;
+        if (extraDepth == 0 && board != null) {
+            if (board.getOverlayPlantAt(plant.getCol(), plant.getRow()) == plant) {
+                depth = 1;
+            } else if ("Lily Pad".equals(plant.getName()) && board.getGroundPlantAt(plant.getCol(), plant.getRow()) == plant) {
+                depth = -1;
+            }
         }
         return plant.getRow() * 8 + depth;
+    }
+
+    private boolean applyIceShroomClip(
+            Plant plant,
+            PamActor actor,
+            float scale,
+            EntityAnimationCatalog.ClipSpec spec,
+            EntityAnimationCatalog.ClipSpec idle) {
+        if (!"Ice-shroom".equals(plant.getName())) {
+            return false;
+        }
+        int attackTicks = plant.getIceShroomAttackTicks();
+        if (attackTicks <= 0) {
+            iceShroomLastAttackTicks.remove(plant);
+            return false;
+        }
+        Integer last = iceShroomLastAttackTicks.get(plant);
+        if (last == null || attackTicks > last) {
+            actor.playThen(spec.path(), spec.clip(), scale, idle.clip(), true, null);
+        }
+        iceShroomLastAttackTicks.put(plant, attackTicks);
+        return true;
+    }
+
+    public static void applyMagnetGhostVisibility(PamActor actor, String plantName) {
+        if ("Magnet-shroom".equals(plantName)) {
+            actor.setVisibility(MAGNET_ITEM_HIDDEN);
+            return;
+        }
+        actor.setVisibility(null);
+    }
+
+    private static void applyMagnetVisibility(Plant plant, PamActor actor) {
+        if (!"Magnet-shroom".equals(plant.getName())) {
+            actor.setVisibility(null);
+            return;
+        }
+        actor.setVisibility(MAGNET_ITEM_HIDDEN);
+    }
+
+    private static String pamName(Plant plant) {
+        return PlantVisualState.pamNameForRender(plant);
+    }
+
+    private boolean applyMagnetClip(Plant plant, PamActor actor, float scale, EntityAnimationCatalog.ClipSpec idle) {
+        if (!"Magnet-shroom".equals(plant.getName())) {
+            magnetLastPhase.remove(plant);
+            return false;
+        }
+        String phase = magnetPhase(plant);
+        String last = magnetLastPhase.get(plant);
+        String path = idle.path();
+        if (!phase.equals(last)) {
+            switch (phase) {
+                case "catch" -> actor.playThen(path, "catch", scale, "idle", true, null);
+                case "special" -> actor.playThen(path, "special", scale, "idle", true, null);
+                case "busy" -> actor.playThen(path, "busy", scale, "idle2", true, null);
+                default -> actor.setClip(path, idle.clip(), scale, true);
+            }
+            magnetLastPhase.put(plant, phase);
+        } else if ("idle".equals(phase) && !idle.clip().equals(actor.clipName())) {
+            actor.setClip(path, idle.clip(), scale, true);
+        }
+        return !"idle".equals(phase);
+    }
+
+    private static String magnetPhase(Plant plant) {
+        if (plant.getMagnetStealAnimTicks() > 0) {
+            return "catch";
+        }
+        if (plant.getMagnetHeldMetalTicks() > 0) {
+            return "special";
+        }
+        if (plant.getMagnetBusyTicks() > 0) {
+            return "busy";
+        }
+        return "idle";
     }
 
     private static boolean isMint(String name) {

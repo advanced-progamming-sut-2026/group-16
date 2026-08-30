@@ -4,6 +4,8 @@ import io.github.finalwave.model.game.entity.Entity;
 import io.github.finalwave.model.game.entity.GameContext;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
+import io.github.finalwave.model.game.entity.plant.support.PlantLaneSupport;
+import io.github.finalwave.model.game.entity.plant.support.SunBeanSupport;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 
 import java.util.ArrayList;
@@ -27,6 +29,11 @@ public final class Zombie extends Entity {
     private ZombieState state;
     private int tickAge;
     private boolean hypnotized;
+    private int sunBeanInfections;
+    private double sunBeanBank;
+    private int garlicDivertTicks;
+    private int garlicDivertCol = -1;
+    private int garlicDivertRow = -1;
     private int freezeTicksRemaining;
     private int chillTicksRemaining;
     private int poisonTicksRemaining;
@@ -119,6 +126,7 @@ public final class Zombie extends Entity {
                 behavior.execute(this, context);
             }
         }
+        tickGarlicDivert(context);
     }
 
     @Override
@@ -165,6 +173,7 @@ public final class Zombie extends Entity {
         if (remaining > 0) {
             super.takeDamage(remaining);
         }
+        notifySunBeanDamage(amount);
     }
 
     public void takeDirectDamage(int amount) {
@@ -174,7 +183,58 @@ public final class Zombie extends Entity {
         }
         if (amount > 0) {
             super.takeDamage(amount);
+            notifySunBeanDamage(amount);
         }
+    }
+
+    private void notifySunBeanDamage(int amount) {
+        if (lastContext != null && amount > 0 && sunBeanInfections > 0) {
+            SunBeanSupport.onZombieDamaged(this, amount, lastContext);
+        }
+    }
+
+    public int getSunBeanInfections() {
+        return sunBeanInfections;
+    }
+
+    public void addSunBeanInfection() {
+        sunBeanInfections++;
+        glowing = true;
+    }
+
+    public double getSunBeanBank() {
+        return sunBeanBank;
+    }
+
+    public void addSunBeanBank(double amount) {
+        sunBeanBank += amount;
+    }
+
+    public void scheduleGarlicDivert(int col, int row, int delayTicks) {
+        if (delayTicks <= 0 || garlicDivertTicks > 0) {
+            return;
+        }
+        garlicDivertTicks = delayTicks + 1;
+        garlicDivertCol = col;
+        garlicDivertRow = row;
+    }
+
+    private void tickGarlicDivert(GameContext context) {
+        if (garlicDivertTicks <= 0) {
+            return;
+        }
+        garlicDivertTicks--;
+        if (garlicDivertTicks != 0 || context == null) {
+            return;
+        }
+        Plant plant = context.getPlantAt(garlicDivertCol, garlicDivertRow);
+        if (plant != null && plant.isAlive() && "Garlic".equals(plant.getName())) {
+            PlantLaneSupport.divertBiter(this, plant, context);
+        } else if (garlicDivertRow >= 0) {
+            PlantLaneSupport.divertBiter(this, garlicDivertRow, context);
+        }
+        garlicDivertCol = -1;
+        garlicDivertRow = -1;
     }
 
     private void applyBossDamage(int amount) {
@@ -574,6 +634,13 @@ public final class Zombie extends Entity {
 
     public void applyChill(int ticks) {
         chillTicksRemaining = Math.max(chillTicksRemaining, ticks);
+    }
+
+    public void applyStun(int ticks) {
+        stunTicksRemaining = Math.max(stunTicksRemaining, ticks);
+        if (stunTicksRemaining > 0) {
+            presentationClip = "stun";
+        }
     }
 
     public void applyPoison(int ticks, int damagePerTick) {

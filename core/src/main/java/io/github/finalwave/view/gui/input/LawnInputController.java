@@ -23,6 +23,7 @@ import io.github.finalwave.view.gui.render.BattlefieldGroup;
 import io.github.finalwave.view.gui.render.LawnHighlights;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
+import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.widget.PamActor;
 
@@ -277,6 +278,7 @@ public final class LawnInputController implements Disposable {
             plantGhost.setSize(layout.tileWidth(), layout.tileHeight());
             plantGhost.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
             plantGhost.setClip(spec.path(), spec.clip(), plantClips.scale(seed.plantName()), true);
+            PlantSync.applyMagnetGhostVisibility(plantGhost, seed.plantName());
             plantGhost.setVisible(true);
             return;
         }

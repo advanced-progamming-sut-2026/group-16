@@ -3,6 +3,7 @@ package io.github.finalwave.view.gui.hud;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import io.github.finalwave.model.definition.plant.PlantDefinition;
 import io.github.finalwave.model.game.GameSession;
+import io.github.finalwave.model.game.LoadoutOrder;
 import io.github.finalwave.model.game.entity.plant.PlantArmor;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.view.gui.assets.GameAssets;
@@ -41,7 +42,7 @@ public final class SeedBankBar extends Table {
             return;
         }
         setVisible(true);
-        List<String> next = namesOf(session.getSelectedLoadout());
+        List<String> next = LoadoutOrder.effective(session);
         if (!next.equals(loadout)) {
             rebuild(next);
         }
@@ -86,12 +87,5 @@ public final class SeedBankBar extends Table {
             cards.add(card);
             add(card).size(CARD_WIDTH, CARD_HEIGHT).row();
         }
-    }
-
-    private static List<String> namesOf(Set<String> loadout) {
-        if (loadout == null || loadout.isEmpty()) {
-            return List.of();
-        }
-        return List.copyOf(loadout);
     }
 }
