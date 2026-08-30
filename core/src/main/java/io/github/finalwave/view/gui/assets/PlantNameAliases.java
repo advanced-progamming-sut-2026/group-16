@@ -9,7 +9,8 @@ public final class PlantNameAliases {
             normalize("Rotobaga"), "ROTORUTABAGA",
             normalize("Mega Gatling Pea"), "MEGAGATLING",
             normalize("Phat Beet"), "PHATBEETS",
-            normalize("Giant Wall-nut"), "TALLNUT"
+            normalize("Giant Wall-nut"), "TALLNUT",
+            normalize("Kernel-pult"), "KERNALPULT"
     );
 
     private PlantNameAliases() {

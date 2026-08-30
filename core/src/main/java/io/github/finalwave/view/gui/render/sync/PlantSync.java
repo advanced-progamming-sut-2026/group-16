@@ -379,8 +379,12 @@ public final class PlantSync {
         } else if (!applyGraveBusterClip(plant, actor, scale, session)
                 && !applyIceShroomClip(plant, actor, scale, spec, idle)
                 && !applyMagnetClip(plant, actor, scale, idle)) {
-            boolean playingOneShot = PlantVisualState.isOneShotClip(actor.clipName())
-                    || PlantVisualState.isActionClip(actor.clipName());
+            boolean leftoverPlantFood = !plant.isPlantFooding()
+                    && actor.clipName() != null
+                    && actor.clipName().startsWith("plantfood");
+            boolean playingOneShot = !leftoverPlantFood
+                    && (PlantVisualState.isOneShotClip(actor.clipName())
+                    || PlantVisualState.isActionClip(actor.clipName()));
             if ((PlantVisualState.isOneShot(plant, spec) || PlantVisualState.isAction(spec)) && !playingOneShot) {
                 String followUp = followUpClip(plant, spec, idle, zombies);
                 actor.playThen(spec.path(), spec.clip(), scale, followUp, true, null);

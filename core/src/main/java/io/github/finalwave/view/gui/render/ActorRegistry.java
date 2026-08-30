@@ -46,10 +46,6 @@ public final class ActorRegistry<M, A extends Actor> {
         return Collections.unmodifiableCollection(actors.values());
     }
 
-    public A get(M model) {
-        return actors.get(model);
-    }
-
     public void clear(Consumer<A> despawn) {
         for (A actor : actors.values()) {
             despawn.accept(actor);
