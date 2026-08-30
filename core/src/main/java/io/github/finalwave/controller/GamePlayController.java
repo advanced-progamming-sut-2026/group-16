@@ -137,6 +137,7 @@ public class GamePlayController extends ViewController implements MatchListener 
                 chapter, level, plants, zombies, user.getDifficultyLevel(), new Random());
         GameSession fresh = mode.createSession();
         fresh.setSelectedLoadout(session.getSelectedLoadout());
+        fresh.setSelectedLoadoutOrder(session.getSelectedLoadoutOrder());
         QuestTracker tracker = user.ensureQuestTracker();
         tracker.registerOn(fresh.getEventBus());
         tracker.beginSession(fresh);

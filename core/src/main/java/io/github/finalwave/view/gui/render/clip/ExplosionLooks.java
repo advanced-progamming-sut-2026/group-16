@@ -21,6 +21,9 @@ public final class ExplosionLooks {
     public static final String LASER_PATH =
             "768/FULL/EFFECTS/CRYSTALSKULL_BEAM/CRYSTALSKULL_BEAM.PAM";
     public static final String LASER_CLIP = "laser_beam";
+    public static final String ICE_PATH =
+            "768/FULL/EFFECTS/ICESHROOM_FX/ICESHROOM_FX.PAM";
+    public static final String ICE_CLIP = "animation";
     public static final String SCORCH_IMAGE =
             "IMAGE_EFFECTS_ESCAPEROOT_EXPLOSION_CHERRYBOMB_REAR_MC_CHERRYBOMB_EXPLOSION_SCORCH";
     private static final float CHERRY_CANVAS_HEIGHT = 500f;
@@ -37,6 +40,7 @@ public final class ExplosionLooks {
             case BURN -> BURN_PATH;
             case BONE_HIT -> BONE_HIT_PATH;
             case LASER -> LASER_PATH;
+            case ICE -> ICE_PATH;
             case CHERRY, GENERIC -> CHERRY_PATH;
         };
     }
@@ -54,6 +58,7 @@ public final class ExplosionLooks {
             case BURN -> BURN_CLIP;
             case BONE_HIT -> BONE_HIT_CLIP;
             case LASER -> LASER_CLIP;
+            case ICE -> ICE_CLIP;
             case CHERRY, GENERIC -> CHERRY_CLIP;
         };
     }
@@ -71,7 +76,7 @@ public final class ExplosionLooks {
 
     public static float liftY(LawnBurst.Kind kind, float scale) {
         if (kind == LawnBurst.Kind.BURN || kind == LawnBurst.Kind.BONE_HIT
-                || kind == LawnBurst.Kind.LASER) {
+                || kind == LawnBurst.Kind.LASER || kind == LawnBurst.Kind.ICE) {
             return 0f;
         }
         float canvas = kind == LawnBurst.Kind.MINE ? MINE_CANVAS_HEIGHT : CHERRY_CANVAS_HEIGHT;

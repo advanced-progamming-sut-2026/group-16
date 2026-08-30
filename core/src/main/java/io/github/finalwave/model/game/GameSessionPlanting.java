@@ -6,6 +6,7 @@ import io.github.finalwave.model.game.entity.Vase;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantStatsCalculator;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
+import io.github.finalwave.model.game.entity.plant.support.ImitaterMorphSupport;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.model.item.SunType;
@@ -154,6 +155,7 @@ final class GameSessionPlanting {
         Plant plant = session.getPlantFactory().create(definition, 1, col, row);
         session.getBoard().placePlant(plant);
         plant.onPlanted(session.getContext());
+        ImitaterMorphSupport.onPlanted(plant, session);
         groundSeedPackets.remove(packet);
         MatchListener matchListener = session.getMatchListener();
         if (matchListener != null) {
@@ -228,6 +230,7 @@ final class GameSessionPlanting {
         }
         session.getBoard().placePlant(plant);
         plant.onPlanted(session.getContext());
+        ImitaterMorphSupport.onPlanted(plant, session);
         if (!sandbox && !conveyor && !special.isPrepPhaseActive()) {
             session.getCooldownTracker().startCooldown(
                     plantName, plant.getStats().recharge(), GameSession.TICKS_PER_SECOND);
@@ -244,6 +247,9 @@ final class GameSessionPlanting {
         if (conveyor) {
             special.removeConveyorBeltPlant(plantName);
         }
+        if (!"Imitater".equals(plantName)) {
+            session.noteImitaterTargetSeed(plantName);
+        }
         return PlantPlacementResult.SUCCESS;
     }
 
@@ -255,6 +261,7 @@ final class GameSessionPlanting {
         Plant plant = session.getPlantFactory().create(definition, 1, col, row);
         session.getBoard().placePlant(plant);
         plant.onPlanted(session.getContext());
+        ImitaterMorphSupport.onPlanted(plant, session);
         return plant;
     }
 
@@ -266,6 +273,7 @@ final class GameSessionPlanting {
         Plant plant = session.getPlantFactory().create(definition, 1, col, row);
         session.getBoard().placePlant(plant);
         plant.onPlanted(session.getContext());
+        ImitaterMorphSupport.onPlanted(plant, session);
         session.getSpecialLevelState().registerProtectedSeed(plant.getId(), plantName, col, row);
         return plant;
     }
@@ -465,5 +473,26 @@ final class GameSessionPlanting {
         session.getBoard().placePlant(clone);
         clone.onPlanted(session.getContext());
         return clone;
+    }
+
+    void morphImitater(Plant imitater) {
+        if (imitater == null || !"Imitater".equals(imitater.getName())) {
+            return;
+        }
+        String targetName = imitater.getImitatedPlantName();
+        if (targetName == null || targetName.isBlank()) {
+            return;
+        }
+        var definition = session.getContext().findPlantDefinition(targetName);
+        if (definition == null) {
+            return;
+        }
+        int col = imitater.getCol();
+        int row = imitater.getRow();
+        int level = imitater.getLevel();
+        session.getBoard().removePlant(imitater);
+        Plant replacement = session.getPlantFactory().create(definition, level, col, row);
+        session.getBoard().placePlant(replacement);
+        replacement.initializeAfterImitaterMorph(session.getContext());
     }
 }

@@ -47,6 +47,7 @@ public class ScoreGamePlayController extends GamePlayController {
                 Clock.systemUTC());
         GameSession fresh = match.session();
         fresh.setSelectedLoadout(session().getSelectedLoadout());
+        fresh.setSelectedLoadoutOrder(session().getSelectedLoadoutOrder());
         ScoreGamePlayController next = new ScoreGamePlayController(
                 getUser(), getUserDatabase(), scoreGameController, match.mode(), fresh,
                 match.chapter(), match.level(), boostedPlants(), match.tracker());

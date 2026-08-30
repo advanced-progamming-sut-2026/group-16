@@ -9,15 +9,49 @@ public final class PlantFoodEffectFactory {
     }
 
     public static PlantFoodEffect create(PlantDefinition definition) {
+        return create(definition, definition.getName());
+    }
+
+    public static PlantFoodEffect create(PlantDefinition definition, String plantName) {
         PlantFoodType type = PlantFoodType.fromDefinition(definition.getPlantFoodType());
-        String name = definition.getName();
+        String name = plantName == null ? definition.getName() : plantName;
         double value = definition.getPlantFoodValue();
         return switch (type) {
             case SPAWN_SUN_ITEMS -> new SunBurstPlantFoodEffect(value);
             case PROJECTILE_BURST -> rapidFireOrBurst(name, value);
             case RANDOM_HYPNOTIZE -> randomTarget(name, (int) value);
+            case KNOCKBACK_BLAST -> knockbackOrBurst(name);
+            case GRANT_PERMANENT_ARMOR -> armorGrant(name, value);
+            case SPAWN_CLONES -> cloneSpawn(name, value);
             default -> new GenericPlantFoodEffect(type, value);
         };
+    }
+
+    private static PlantFoodEffect armorGrant(String name, double value) {
+        return switch (name) {
+            case "Sweet Potato" -> new SweetPotatoPlantFoodEffect();
+            case "Explode-o-nut" -> new ExplodeONutPlantFoodEffect(value);
+            case "Pumpkin" -> new PumpkinPlantFoodEffect(value);
+            case "Sun Bean" -> new SunBeanPlantFoodEffect(value);
+            default -> new GenericPlantFoodEffect(PlantFoodType.GRANT_PERMANENT_ARMOR, value);
+        };
+    }
+
+    private static PlantFoodEffect knockbackOrBurst(String name) {
+        if ("Garlic".equals(name)) {
+            return new GarlicPlantFoodEffect();
+        }
+        if ("Magnet-shroom".equals(name)) {
+            return new MagnetShroomPlantFoodEffect();
+        }
+        return new GenericPlantFoodEffect(PlantFoodType.KNOCKBACK_BLAST, 0);
+    }
+
+    private static PlantFoodEffect cloneSpawn(String name, double value) {
+        if ("Lily Pad".equals(name)) {
+            return new LilyPadPlantFoodEffect(value);
+        }
+        return new GenericPlantFoodEffect(PlantFoodType.SPAWN_CLONES, value);
     }
 
     private static PlantFoodEffect rapidFireOrBurst(String name, double value) {
@@ -63,6 +97,9 @@ public final class PlantFoodEffectFactory {
         if ("Sea-shroom".equals(name)) {
             return new SeaShroomPlantFoodEffect();
         }
+        if ("Torchwood".equals(name)) {
+            return new TorchwoodPlantFoodEffect();
+        }
         return new GenericPlantFoodEffect(PlantFoodType.PROJECTILE_BURST, value);
     }
 
@@ -72,6 +109,9 @@ public final class PlantFoodEffectFactory {
         }
         if ("Electric Blueberry".equals(name)) {
             return new ElectricBlueberryPlantFoodEffect(value);
+        }
+        if ("Hypno-shroom".equals(name)) {
+            return new HypnoShroomPlantFoodEffect();
         }
         return new GenericPlantFoodEffect(PlantFoodType.RANDOM_HYPNOTIZE, value);
     }

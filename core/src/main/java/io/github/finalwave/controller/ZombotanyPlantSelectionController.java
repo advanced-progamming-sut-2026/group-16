@@ -42,6 +42,7 @@ public final class ZombotanyPlantSelectionController extends PlantSelectionContr
         ZombotanyMode mode = new ZombotanyMode(stage, plantRegistry, zombotanyRegistry, new Random());
         GameSession session = mode.createSession();
         session.setSelectedLoadout(Set.copyOf(selected));
+        session.setSelectedLoadoutOrder(List.copyOf(selected));
         getViewApi().showGameStarted();
         ZombotanyController gameplay = new ZombotanyController(
                 user, userDatabase, mode, session, stage, boosted);

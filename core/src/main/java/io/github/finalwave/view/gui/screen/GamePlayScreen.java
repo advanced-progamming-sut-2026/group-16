@@ -893,6 +893,10 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void onSeed(String plantName) {
+        GameSession session = matchSession();
+        if (session != null) {
+            session.noteImitaterTargetSeed(plantName);
+        }
         if (input != null) {
             input.toggleSeed(plantName);
         }

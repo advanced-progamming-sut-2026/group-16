@@ -1,5 +1,6 @@
 package io.github.finalwave.model.game.board;
 
+import io.github.finalwave.model.definition.plant.PlantDefinition;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.GooPuddle;
 import io.github.finalwave.model.game.LawnBurst;
@@ -18,6 +19,7 @@ import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.plant.ability.ExplosiveAbility;
 import io.github.finalwave.model.game.entity.plant.ability.PlantShotPatterns;
 import io.github.finalwave.model.game.entity.plant.ability.ProjectileAttackAbility;
+import io.github.finalwave.model.game.entity.plant.support.PlantLaneSupport;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
@@ -83,6 +85,11 @@ public final class BoardGameContext implements GameContext {
     @Override
     public Plant getPlantAt(int col, int row) {
         return session.getBoard().getPlantAt(col, row);
+    }
+
+    @Override
+    public PlantDefinition findPlantDefinition(String plantName) {
+        return session.getPlantRegistry().getDefinition(plantName);
     }
 
     @Override
@@ -399,15 +406,6 @@ public final class BoardGameContext implements GameContext {
 
     @Override
     public void applyFieldModifier(Plant plant, double magnitude) {
-        if ("Magnet-shroom".equals(plant.getName())) {
-            int range = 1 + (int) plant.getStats()
-                    .specialModifier(PlantSpecialModifiers.TILE_RANGE_EXT);
-            Zombie target = findFrontZombie(plant.getRow(), plant.getCol());
-            if (target != null && target.getX() - plant.getCol() <= range) {
-                target.stripArmorViaMagnet();
-            }
-            return;
-        }
         int radius = (int) plant.getStats().specialModifier(PlantSpecialModifiers.TILE_RANGE_EXT);
         double duration = 5.0
                 + plant.getStats().specialModifier(PlantSpecialModifiers.DURATION_EXT);
@@ -549,6 +547,11 @@ public final class BoardGameContext implements GameContext {
                 zombie.applyFreeze(baseTicks);
             }
         }
+    }
+
+    @Override
+    public void completeImitaterMorph(Plant imitater) {
+        session.morphImitater(imitater);
     }
 
     @Override
@@ -909,6 +912,9 @@ public final class BoardGameContext implements GameContext {
     }
 
     private void handleDeathTags(Plant plant) {
+        if (plant.hasTag(PlantTag.EXPLOSIVE) && plant.getStats().damage() > 0) {
+            explode(plant, plant.getStats().damage(), 1.0);
+        }
         if (plant.getStats().hasSpecialModifier(PlantSpecialModifiers.DEATH_EXPLOSION_AOE)) {
             double radius = plant.getStats().specialModifier(PlantSpecialModifiers.DEATH_EXPLOSION_AOE);
             explode(plant, plant.getStats().damage(), radius);
@@ -923,20 +929,12 @@ public final class BoardGameContext implements GameContext {
     }
 
     private void handleMoveZombieOnEat(Plant plant) {
-        if (!plant.hasTag(PlantTag.MOVE_ZOMBIE) || session.isIZombieActive()) {
+        if (!"Garlic".equals(plant.getName()) || session.isIZombieActive()) {
             return;
         }
         for (Zombie zombie : getZombiesInRow(plant.getRow())) {
             if (Math.abs(zombie.getX() - plant.getCol()) <= 0.5) {
-                int upperRow = plant.getRow() - 1;
-                int lowerRow = plant.getRow() + 1;
-                if (upperRow < 0 && lowerRow >= getRowCount()) {
-                    continue;
-                }
-                int newRow = upperRow >= 0 && lowerRow < getRowCount()
-                        ? (random.nextBoolean() ? upperRow : lowerRow)
-                        : (upperRow >= 0 ? upperRow : lowerRow);
-                zombie.setRow(newRow);
+                PlantLaneSupport.divertBiter(zombie, plant, this);
             }
         }
     }

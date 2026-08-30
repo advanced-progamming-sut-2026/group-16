@@ -54,6 +54,8 @@ public final class GameSession {
     private final int zombieDifficulty;
     private final Random random;
     private Set<String> selectedLoadout = Set.of();
+    private List<String> selectedLoadoutOrder = List.of();
+    private String imitaterTargetSeed;
     private final GameSessionSpecialLevelState specialLevelState = new GameSessionSpecialLevelState();
     private final GameSessionMiniGameState miniGameState;
     private final GameSessionTileEffects tileEffects;
@@ -307,8 +309,35 @@ public final class GameSession {
         selectedLoadout = plantNames == null ? Set.of() : Set.copyOf(plantNames);
     }
 
+    public void setSelectedLoadoutOrder(List<String> plantNames) {
+        selectedLoadoutOrder = plantNames == null ? List.of() : List.copyOf(plantNames);
+    }
+
+    public List<String> getSelectedLoadoutOrder() {
+        return selectedLoadoutOrder;
+    }
+
+    public void setSelectedLoadout(Set<String> plantNames, List<String> order) {
+        setSelectedLoadout(plantNames);
+        setSelectedLoadoutOrder(order);
+    }
+
     public Set<String> getSelectedLoadout() {
         return selectedLoadout;
+    }
+
+    public void noteImitaterTargetSeed(String plantName) {
+        if (plantName == null || plantName.isBlank() || "Imitater".equals(plantName)) {
+            return;
+        }
+        if (plantRegistry.getDefinition(plantName) == null) {
+            return;
+        }
+        imitaterTargetSeed = plantName;
+    }
+
+    public String getImitaterTargetSeed() {
+        return imitaterTargetSeed;
     }
 
     public void setActiveSpecialLevelHandler(SpecialLevelHandler handler) {
@@ -823,6 +852,10 @@ public final class GameSession {
 
     public Plant createClone(Plant source, int col, int row) {
         return planting.createClone(source, col, row);
+    }
+
+    public void morphImitater(Plant imitater) {
+        planting.morphImitater(imitater);
     }
 
     public void addSunBalance(int amount) {

@@ -53,6 +53,19 @@ public final class Plant extends Entity {
     private int bowlingAmmo = 1;
     private boolean bowlingReloading;
     private boolean megaGatlingBoosted;
+    private boolean torchwoodBoosted;
+    private boolean sunBeanPowered;
+    private int pumpkinShellTier;
+    private boolean explodeONutPfArmor;
+    private int magnetBusyTicks;
+    private int magnetStealAnimTicks;
+    private int magnetHeldMetalTicks;
+    private String magnetHeldMetalAlias;
+    private String imitatedPlantName;
+    private int imitaterMorphTicks;
+    private boolean imitaterCopy;
+    private int iceShroomAttackTicks;
+    private PlantFoodEffect imitaterFoodEffect;
     private int visualIdleVariant = 1;
     private SplitFireVisual splitFireVisual = SplitFireVisual.NONE;
 
@@ -85,6 +98,17 @@ public final class Plant extends Entity {
 
     public void initializeCooldown(int ticksPerSecond) {
         actionCooldownTicks = PlantBehaviorSupport.actionIntervalTicks(this, ticksPerSecond);
+    }
+
+    public void primeActionCooldown() {
+        actionCooldownTicks = 1;
+    }
+
+    public void initializeAfterImitaterMorph(GameContext context) {
+        lastContext = context;
+        initializeCooldown(context.getTicksPerSecond());
+        imitaterCopy = true;
+        ability.onPlanted(this, context);
     }
 
     public void onPlanted(GameContext context) {
@@ -120,10 +144,32 @@ public final class Plant extends Entity {
             }
         }
         if (plantFoodTicksRemaining > 0) {
-            foodEffect.tick(this, context);
+            activeFoodEffect().tick(this, context);
             plantFoodTicksRemaining--;
             if (plantFoodTicksRemaining == 0) {
-                foodEffect.end(this, context);
+                activeFoodEffect().end(this, context);
+                imitaterFoodEffect = null;
+            }
+        }
+        if (magnetBusyTicks > 0) {
+            magnetBusyTicks--;
+        }
+        if (magnetStealAnimTicks > 0) {
+            magnetStealAnimTicks--;
+        }
+        if (iceShroomAttackTicks > 0) {
+            iceShroomAttackTicks--;
+            if (iceShroomAttackTicks == 0) {
+                setAttacking(false);
+            }
+        }
+        if (imitaterMorphTicks > 0) {
+            imitaterMorphTicks--;
+            if (imitaterMorphTicks == 0) {
+                setAttacking(false);
+                if ("Imitater".equals(getName()) && imitatedPlantName != null && !imitatedPlantName.isBlank()) {
+                    context.completeImitaterMorph(this);
+                }
             }
         }
         ability.onTick(this, context);
@@ -164,6 +210,7 @@ public final class Plant extends Entity {
 
     @Override
     public void takeDamage(int amount) {
+        boolean hadPfArmor = hasExplodeONutPfArmor() && hasIntactArmor();
         int remaining = amount;
         for (PlantArmor armor : armorLayers) {
             if (remaining <= 0) {
@@ -176,11 +223,36 @@ public final class Plant extends Entity {
         if (remaining > 0) {
             super.takeDamage(remaining);
         }
+        if (hadPfArmor && hasExplodeONutPfArmor() && !hasIntactArmor() && lastContext != null) {
+            lastContext.explode(this, getStats().damage(), 1.0);
+            setExplodeONutPfArmor(false);
+        }
+    }
+
+    private boolean hasIntactArmor() {
+        for (PlantArmor armor : armorLayers) {
+            if (!armor.isDestroyed()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void activatePlantFoodEffect(GameContext context) {
         lastContext = context;
+        if ("Imitater".equals(getName()) && imitatedPlantName != null && !imitatedPlantName.isBlank()) {
+            PlantDefinition imitated = context.findPlantDefinition(imitatedPlantName);
+            if (imitated != null) {
+                imitaterFoodEffect = PlantFoodEffectFactory.create(imitated, imitatedPlantName);
+                imitaterFoodEffect.apply(this, context);
+                return;
+            }
+        }
         foodEffect.apply(this, context);
+    }
+
+    private PlantFoodEffect activeFoodEffect() {
+        return imitaterFoodEffect != null ? imitaterFoodEffect : foodEffect;
     }
 
     private boolean shouldAutoActivatePlantFood() {
@@ -459,6 +531,129 @@ public final class Plant extends Entity {
         this.megaGatlingBoosted = megaGatlingBoosted;
     }
 
+    public boolean isTorchwoodBoosted() {
+        return torchwoodBoosted;
+    }
+
+    public void setTorchwoodBoosted(boolean torchwoodBoosted) {
+        this.torchwoodBoosted = torchwoodBoosted;
+    }
+
+    public boolean isSunBeanPowered() {
+        return sunBeanPowered;
+    }
+
+    public void setSunBeanPowered(boolean sunBeanPowered) {
+        this.sunBeanPowered = sunBeanPowered;
+    }
+
+    public int getPumpkinShellTier() {
+        return pumpkinShellTier;
+    }
+
+    public void setPumpkinShellTier(int pumpkinShellTier) {
+        this.pumpkinShellTier = Math.max(0, pumpkinShellTier);
+    }
+
+    public boolean hasExplodeONutPfArmor() {
+        return explodeONutPfArmor;
+    }
+
+    public void setExplodeONutPfArmor(boolean explodeONutPfArmor) {
+        this.explodeONutPfArmor = explodeONutPfArmor;
+    }
+
+    public int getMagnetBusyTicks() {
+        return magnetBusyTicks;
+    }
+
+    public void setMagnetBusyTicks(int magnetBusyTicks) {
+        this.magnetBusyTicks = Math.max(0, magnetBusyTicks);
+    }
+
+    public int getMagnetStealAnimTicks() {
+        return magnetStealAnimTicks;
+    }
+
+    public void setMagnetStealAnimTicks(int magnetStealAnimTicks) {
+        this.magnetStealAnimTicks = Math.max(0, magnetStealAnimTicks);
+    }
+
+    public int getMagnetHeldMetalTicks() {
+        return magnetHeldMetalTicks;
+    }
+
+    public void setMagnetHeldMetalTicks(int magnetHeldMetalTicks) {
+        this.magnetHeldMetalTicks = Math.max(0, magnetHeldMetalTicks);
+    }
+
+    public void decrementMagnetHeldMetalTicks() {
+        if (magnetHeldMetalTicks > 0) {
+            magnetHeldMetalTicks--;
+        }
+    }
+
+    public String getMagnetHeldMetalAlias() {
+        return magnetHeldMetalAlias;
+    }
+
+    public void setMagnetHeldMetalAlias(String magnetHeldMetalAlias) {
+        this.magnetHeldMetalAlias = magnetHeldMetalAlias;
+    }
+
+    public void tuneCombatStats(int minHealth, int damage, double actionIntervalSeconds, GameContext context) {
+        int health = Math.max(minHealth, Math.max(getMaxHealth(), stats.maxHealth()));
+        setMaxHealth(health);
+        if (getHealth() <= 0) {
+            restoreHealth(health);
+        }
+        stats = new PlantStats(
+                stats.cost(),
+                health,
+                damage,
+                actionIntervalSeconds,
+                stats.recharge(),
+                stats.specialModifiers());
+        if (context != null) {
+            initializeCooldown(context.getTicksPerSecond());
+        }
+    }
+
+    public String getImitatedPlantName() {
+        return imitatedPlantName;
+    }
+
+    public void setImitatedPlantName(String imitatedPlantName) {
+        this.imitatedPlantName = imitatedPlantName;
+    }
+
+    public int getImitaterMorphTicks() {
+        return imitaterMorphTicks;
+    }
+
+    public void setImitaterMorphTicks(int imitaterMorphTicks) {
+        this.imitaterMorphTicks = Math.max(0, imitaterMorphTicks);
+    }
+
+    public boolean isImitaterCopy() {
+        return imitaterCopy;
+    }
+
+    public int getIceShroomAttackTicks() {
+        return iceShroomAttackTicks;
+    }
+
+    public void setIceShroomAttackTicks(int iceShroomAttackTicks) {
+        this.iceShroomAttackTicks = Math.max(0, iceShroomAttackTicks);
+    }
+
+    public String displayPlantName() {
+        if ("Imitater".equals(getName()) && imitatedPlantName != null && !imitatedPlantName.isBlank()) {
+            return imitatedPlantName;
+        }
+        return getName();
+    }
+
     public void resetLifespanTicks(int ticks) {
         if (lifespanTicksRemaining >= 0) {
             lifespanTicksRemaining = Math.max(1, ticks);
@@ -542,7 +737,8 @@ public final class Plant extends Entity {
     }
 
     public boolean canBeTargetedByZombie() {
-        return isAlive() && !isCatTransformed();
+        return isAlive() && !isCatTransformed()
+                && !("Imitater".equals(getName()) && imitaterMorphTicks > 0);
     }
 
     public int addHostileIceStack(String sourceId) {

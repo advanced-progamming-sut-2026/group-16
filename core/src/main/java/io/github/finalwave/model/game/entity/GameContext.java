@@ -1,5 +1,6 @@
 package io.github.finalwave.model.game.entity;
 
+import io.github.finalwave.model.definition.plant.PlantDefinition;
 import io.github.finalwave.model.game.board.tile.Tile;
 import io.github.finalwave.model.game.GooPuddle;
 import io.github.finalwave.model.game.entity.plant.Plant;
@@ -39,6 +40,10 @@ public interface GameContext {
     }
 
     Plant getPlantAt(int col, int row);
+
+    default PlantDefinition findPlantDefinition(String plantName) {
+        return null;
+    }
 
     Plant getPlantInFront(double zombieX, int row);
 
@@ -138,6 +143,8 @@ public interface GameContext {
     void hypnotizeRandomZombies(Plant plant, int value);
 
     void freezeAllZombies(Plant plant, double value);
+
+    void completeImitaterMorph(Plant imitater);
 
     void knockbackBlast(Plant plant);
 

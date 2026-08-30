@@ -20,12 +20,16 @@ public record LawnBurst(Kind kind, int col, int row, int span, float originX, fl
         GENERIC,
         BURN,
         BONE_HIT,
-        LASER
+        LASER,
+        ICE
     }
 
     public static Kind kindForPlant(String plantName) {
         if (plantName == null) {
             return Kind.GENERIC;
+        }
+        if ("Ice-shroom".equals(plantName)) {
+            return Kind.ICE;
         }
         String lower = plantName.toLowerCase();
         if (lower.contains("potato") || lower.contains("mine")) {

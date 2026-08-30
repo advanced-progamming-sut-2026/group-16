@@ -361,6 +361,20 @@ public final class ProjectileSystem {
             applyTileDamage(board, context, col, row, projectile, false);
             projectile.setX(-1);
         }
+        if (context != null) {
+            applyTorchwoodPassThrough(projectile, context);
+        }
+    }
+
+    private void applyTorchwoodPassThrough(Projectile projectile, GameContext context) {
+        if (projectile.isTorchwoodBoosted() || projectile.isFromZombie() || projectile.isDirected()) {
+            return;
+        }
+        int col = (int) Math.floor(projectile.getX());
+        Plant plant = context.getPlantAt(col, projectile.getRow());
+        if (plant != null && plant.isAlive() && "Torchwood".equals(plant.getName())) {
+            projectile.applyTorchwoodBoost();
+        }
     }
 
     private void applyTileDamage(GameBoard board, GameContext context, int col, int row,

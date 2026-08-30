@@ -17,11 +17,25 @@ public final class PlantVisualState {
     public static EntityAnimationCatalog.ClipSpec clip(
             Plant plant, PlantClips clips, boolean justFired, List<Zombie> zombies, String currentClip) {
         String[] names = preferredClips(plant, justFired, cactusDown(plant, zombies), currentClip, zombies);
-        return clips.clip(plant.getName(), names);
+        return clips.clip(pamName(plant), names);
     }
 
     public static EntityAnimationCatalog.ClipSpec idle(Plant plant, PlantClips clips) {
-        return clips.clip(plant.getName(), idleNames(plant));
+        return clips.clip(pamName(plant), idleNames(plant));
+    }
+
+    private static String pamName(Plant plant) {
+        return pamNameForRender(plant);
+    }
+
+    public static String pamNameForRender(Plant plant) {
+        if (plant == null) {
+            return "";
+        }
+        if ("Imitater".equals(plant.getName()) && plant.getImitaterMorphTicks() > 0) {
+            return "Imitater";
+        }
+        return plant.getName();
     }
 
     public static boolean isOneShot(EntityAnimationCatalog.ClipSpec spec) {
@@ -88,6 +102,23 @@ public final class PlantVisualState {
             return new String[]{"attack", "idle"};
         }
         if ("Hot Potato".equals(plant.getName()) && plant.isAttacking()) {
+            return new String[]{"attack", "idle"};
+        }
+        if ("Imitater".equals(plant.getName()) && plant.getImitaterMorphTicks() > 0) {
+            return new String[]{"attack", "idle"};
+        }
+        if ("Magnet-shroom".equals(plant.getName())) {
+            if (plant.getMagnetStealAnimTicks() > 0) {
+                return new String[]{"catch", "idle"};
+            }
+            if (plant.getMagnetHeldMetalTicks() > 0) {
+                return new String[]{"special", "idle"};
+            }
+            if (plant.getMagnetBusyTicks() > 0) {
+                return new String[]{"busy", "idle2", "idle"};
+            }
+        }
+        if ("Ice-shroom".equals(plant.getName()) && plant.getIceShroomAttackTicks() > 0) {
             return new String[]{"attack", "idle"};
         }
         if ("Grave Buster".equals(plant.getName())) {
@@ -272,6 +303,39 @@ public final class PlantVisualState {
         if ("Sea-shroom".equals(name)) {
             return new String[]{"pf", "idle", "idle2"};
         }
+        if ("Explode-o-nut".equals(name)) {
+            if (plant.isPlantFoodOutro()) {
+                return new String[]{"plantfood_off", "plantfood", "idle"};
+            }
+            if (plant.isPlantFoodIntro()) {
+                return new String[]{"plantfood_on", "plantfood", "idle"};
+            }
+            return new String[]{"plantfood", "plantfood_on", "idle"};
+        }
+        if ("Magnet-shroom".equals(name)) {
+            if (plant.isPlantFoodOutro()) {
+                return new String[]{"plantfood_off", "plantfood", "idle"};
+            }
+            if (plant.isPlantFoodIntro()) {
+                return new String[]{"plantfood_on", "plantfood_collection", "idle"};
+            }
+            return new String[]{"plantfood_collection", "plantfood", "idle"};
+        }
+        if ("Torchwood".equals(name)) {
+            if (plant.isTorchwoodBoosted()) {
+                if (plant.isPlantFoodIntro()) {
+                    return new String[]{"plantfood_on_t2", "plantfood_t2", "idle"};
+                }
+                return new String[]{"plantfood_t2", "plantfood_on_t2", "idle"};
+            }
+            if (plant.isPlantFoodIntro()) {
+                return new String[]{"plantfood_on", "plantfood", "idle"};
+            }
+            return new String[]{"plantfood", "plantfood_on", "idle"};
+        }
+        if ("Lily Pad".equals(name)) {
+            return new String[]{"plantfood", "idle"};
+        }
         if ("Puff-shroom".equals(name)) {
             if (plant.isPlantFoodOutro()) {
                 return new String[]{"plantfood_off", "plantfood", "idle_stage" + plant.pamStage()};
@@ -313,6 +377,42 @@ public final class PlantVisualState {
         }
         if ("Sea-shroom".equals(name)) {
             return new String[]{"idle", "idle2"};
+        }
+        if ("Garlic".equals(name) || "Sweet Potato".equals(name)) {
+            return new String[]{WallDamageSupport.idleDamageClip(plant), "idle", "idle2"};
+        }
+        if ("Explode-o-nut".equals(name)) {
+            return new String[]{WallDamageSupport.damageClip(plant), "idle"};
+        }
+        if ("Pumpkin".equals(name)) {
+            if (plant.getPumpkinShellTier() > 0) {
+                int tier = Math.min(4, plant.getPumpkinShellTier());
+                return new String[]{"idle_plantfood" + tier, "idle_plantfood", "idle"};
+            }
+            int variant = Math.min(3, 1 + WallDamageSupport.damageTier(plant));
+            return new String[]{"idle" + variant, "idle"};
+        }
+        if ("Magnet-shroom".equals(name)) {
+            if (plant.getMagnetStealAnimTicks() > 0) {
+                return new String[]{"catch", "idle"};
+            }
+            if (plant.getMagnetHeldMetalTicks() > 0) {
+                return new String[]{"special", "idle"};
+            }
+            if (plant.getMagnetBusyTicks() > 0) {
+                return new String[]{"busy", "idle2", "idle"};
+            }
+            return new String[]{"idle", "idle2"};
+        }
+        if ("Ice-shroom".equals(plant.getName()) && plant.getIceShroomAttackTicks() > 0) {
+            return new String[]{"attack", "idle"};
+        }
+        if ("Imitater".equals(name) && plant.getImitaterMorphTicks() > 0) {
+            return new String[]{"attack", "idle"};
+        }
+        if ("Lily Pad".equals(name)) {
+            int variant = Math.max(1, Math.min(5, plant.getVisualIdleVariant()));
+            return new String[]{"idle" + variant, "idle"};
         }
         if ("Grave Buster".equals(name)) {
             return new String[]{"attack1"};

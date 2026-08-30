@@ -27,6 +27,7 @@ import io.github.finalwave.view.gui.render.sync.GraveSync;
 import io.github.finalwave.view.gui.render.sync.GraveBusterDirtSync;
 import io.github.finalwave.view.gui.render.sync.GooPuddleSync;
 import io.github.finalwave.view.gui.render.sync.GroundSeedPacketSync;
+import io.github.finalwave.view.gui.render.sync.IceShroomFxSync;
 import io.github.finalwave.view.gui.render.sync.IceTileSync;
 import io.github.finalwave.view.gui.render.sync.IceWindSync;
 import io.github.finalwave.view.gui.render.sync.LawnBurstSync;
@@ -75,6 +76,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private FireTileSync fireTileSync;
     private GooPuddleSync gooPuddleSync;
     private IceTileSync iceTileSync;
+    private IceShroomFxSync iceShroomFxSync;
     private SlipperyTileSync slipperyTileSync;
     private IceWindSync iceWindSync;
     private BossFxSync bossFxSync;
@@ -134,6 +136,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             fireTileSync = null;
             gooPuddleSync = null;
             iceTileSync = null;
+            iceShroomFxSync = null;
             slipperyTileSync = null;
             iceWindSync = null;
             bossFxSync = null;
@@ -164,6 +167,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         fireTileSync = new FireTileSync(assets, layout, environmentLayer);
         gooPuddleSync = new GooPuddleSync(assets, layout, projectileClips, environmentLayer);
         iceTileSync = new IceTileSync(assets, layout, environmentLayer);
+        iceShroomFxSync = new IceShroomFxSync(assets, layout, environmentLayer);
         slipperyTileSync = new SlipperyTileSync(assets, layout, environmentLayer);
         iceWindSync = new IceWindSync(assets, layout, fxLayer);
         bossFxSync = new BossFxSync(assets, layout, fxLayer);
@@ -260,6 +264,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (iceTileSync != null) {
             iceTileSync.sync(session);
+        }
+        if (iceShroomFxSync != null) {
+            iceShroomFxSync.sync(session);
         }
         if (slipperyTileSync != null) {
             slipperyTileSync.sync(session);
@@ -422,6 +429,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (iceTileSync != null) {
             iceTileSync.clear();
+        }
+        if (iceShroomFxSync != null) {
+            iceShroomFxSync.clear();
         }
         if (slipperyTileSync != null) {
             slipperyTileSync.clear();
