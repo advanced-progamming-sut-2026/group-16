@@ -44,14 +44,19 @@ class AuthIntentSmokeTest {
         RegistrationController registration = (RegistrationController) parser.getCurrentController();
         registration.register("intent-user", "Passw0rd!", "Passw0rd!", "IntentNick", "intent@example.com", "male");
         registration.pickSecurityQuestion("1", "fluffy", "fluffy");
-        assertInstanceOf(LoginController.class, parser.getCurrentController());
+        assertInstanceOf(MainMenuController.class, parser.getCurrentController());
 
+        MainMenuController main = (MainMenuController) parser.getCurrentController();
+        main.logout();
+        assertInstanceOf(RegistrationController.class, parser.getCurrentController());
+
+        registration.goToLogin();
         LoginController login = (LoginController) parser.getCurrentController();
         login.login("intent-user", "Passw0rd!", true);
         assertInstanceOf(MainMenuController.class, parser.getCurrentController());
         assertTrue(Files.exists(sessionFile) || StayLoggedInStorage.loadSession() != null);
 
-        MainMenuController main = (MainMenuController) parser.getCurrentController();
+        main = (MainMenuController) parser.getCurrentController();
         main.logout();
         assertInstanceOf(RegistrationController.class, parser.getCurrentController());
     }

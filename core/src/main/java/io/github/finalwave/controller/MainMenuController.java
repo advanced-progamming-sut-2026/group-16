@@ -3,6 +3,9 @@ package io.github.finalwave.controller;
 import io.github.finalwave.model.command.MainMenuCommands;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.login.LoginGateway;
+import io.github.finalwave.model.App;
+import io.github.finalwave.registration.RegistrationGateway;
 import io.github.finalwave.util.StayLoggedInStorage;
 import io.github.finalwave.view.api.MainMenuView;
 
@@ -22,10 +25,19 @@ public class MainMenuController extends ViewController {
 
     private final User activeUser;
     private final UserDatabase userDatabase;
+    private final RegistrationGateway registrationGateway;
+    private final LoginGateway loginGateway;
 
-    public MainMenuController(User activeUser, UserDatabase userDatabase) {
+    public MainMenuController(
+            User activeUser,
+            UserDatabase userDatabase,
+            RegistrationGateway registrationGateway,
+            LoginGateway loginGateway
+    ) {
         this.activeUser = activeUser;
         this.userDatabase = userDatabase;
+        this.registrationGateway = registrationGateway;
+        this.loginGateway = loginGateway;
     }
 
     public User getActiveUser() {
@@ -67,9 +79,11 @@ public class MainMenuController extends ViewController {
     }
 
     public void logout() {
+        loginGateway.logout();
         StayLoggedInStorage.clear();
+        App.getInstance().setCurrentUser(null);
         getMainMenuView().showLoggedOut();
-        navigator.reset(new RegistrationController(userDatabase));
+        navigator.reset(new RegistrationController(registrationGateway, userDatabase, loginGateway));
     }
 
     private void handleMenuEnter(String menuName) {

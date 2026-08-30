@@ -21,6 +21,35 @@ public final class StayLoggedInStorage {
         }
     }
 
+    public static void saveUsername(String username) {
+        try {
+            Files.writeString(SESSION_FILE, username + "\n");
+        } catch (IOException e) {
+            throw new RuntimeException("Could not save stay logged in username.", e);
+        }
+    }
+
+    public static String loadUsername() {
+        Session session = loadSession();
+        if (session != null) {
+            return session.username();
+        }
+        try {
+            if (!Files.exists(SESSION_FILE)) {
+                return null;
+            }
+            String[] lines = Files.readString(SESSION_FILE).split("\\R", -1);
+            if (lines.length >= 1) {
+                String username = lines[0].trim();
+                if (!username.isEmpty()) {
+                    return username;
+                }
+            }
+        } catch (IOException ignored) {
+        }
+        return null;
+    }
+
     public static Session loadSession() {
         try {
             if (!Files.exists(SESSION_FILE)) {

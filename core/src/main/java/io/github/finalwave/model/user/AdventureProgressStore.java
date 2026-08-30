@@ -73,7 +73,7 @@ public final class AdventureProgressStore {
         }
     }
 
-    private static String serializeCompleted(ChapterProgress progress) {
+    public static String serializeCompleted(ChapterProgress progress) {
         StringJoiner joiner = new StringJoiner(";");
         for (Map.Entry<ChapterId, Set<Integer>> entry : progress.getAllCompletedLevels().entrySet()) {
             StringJoiner levels = new StringJoiner(",");
@@ -83,6 +83,11 @@ public final class AdventureProgressStore {
             joiner.add(entry.getKey().getKey() + ":" + levels);
         }
         return joiner.toString();
+    }
+
+    public static void applyCompletedLevels(ChapterProgress progress, String blob) {
+        progress.clearCompletedLevels();
+        parseCompleted(blob, progress);
     }
 
     private static void parseCompleted(String blob, ChapterProgress progress) {

@@ -75,4 +75,38 @@ public final class MiniGameProgressStore {
             insert.executeBatch();
         }
     }
+
+    public static void saveStageRows(
+            Connection conn,
+            long userId,
+            java.util.List<io.github.finalwave.network.sync.UpdateMinigameStagesPayload.MinigameStageRow> rows
+    ) throws SQLException {
+        try (PreparedStatement delete = conn.prepareStatement(
+                "DELETE FROM user_minigame_stage_progress WHERE userId = ?")) {
+            delete.setLong(1, userId);
+            delete.executeUpdate();
+        }
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        String insertSql = """
+                INSERT INTO user_minigame_stage_progress (userId, minigameId, stageIndex)
+                VALUES (?, ?, ?)
+                """;
+        try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+            for (io.github.finalwave.network.sync.UpdateMinigameStagesPayload.MinigameStageRow row : rows) {
+                if (row == null || row.getMinigameId() == null || row.getMinigameId().isBlank()) {
+                    continue;
+                }
+                if (row.getStageIndex() < 0) {
+                    continue;
+                }
+                insert.setLong(1, userId);
+                insert.setString(2, row.getMinigameId());
+                insert.setInt(3, row.getStageIndex());
+                insert.addBatch();
+            }
+            insert.executeBatch();
+        }
+    }
 }

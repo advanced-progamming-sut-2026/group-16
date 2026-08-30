@@ -30,6 +30,7 @@ public final class SignupScreen extends MenuScreen {
     private FormField email;
     private CheckBox maleCheck;
     private CheckBox femaleCheck;
+    private Label formError;
     private ModalPanel securityModal;
 
     public SignupScreen(PvzGame game) {
@@ -73,6 +74,10 @@ public final class SignupScreen extends MenuScreen {
         panel.pad(70);
         panel.defaults().width(420).padBottom(8);
         panel.add(PanelLabels.title(skin, "Sign Up")).padBottom(20).row();
+        formError = new Label("", skin, "secondary");
+        formError.setColor(1f, 0.35f, 0.35f, 1f);
+        formError.setWrap(true);
+        panel.add(formError).width(420).left().padBottom(8).row();
         addField(panel, username);
         addField(panel, password);
         addField(panel, passwordConfirm);
@@ -88,6 +93,24 @@ public final class SignupScreen extends MenuScreen {
         panel.add(loginBtn).height(50).padTop(8);
 
         contentLayer.add(panel);
+    }
+
+    public void showInlineError(String message) {
+        if (formError == null) {
+            return;
+        }
+        formError.setText(message == null ? "" : message);
+    }
+
+    public void clearInlineError() {
+        showInlineError("");
+    }
+
+    public void closeSecurityQuestionModal() {
+        if (securityModal != null) {
+            securityModal.dismiss();
+            securityModal = null;
+        }
     }
 
     private Gender selectedGender() {
@@ -158,6 +181,7 @@ public final class SignupScreen extends MenuScreen {
         if (controller == null) {
             return;
         }
+        clearInlineError();
         controller.register(
                 username.text(),
                 password.field().getText(),

@@ -2,6 +2,7 @@ package io.github.finalwave.model.user;
 
 import io.github.finalwave.model.quest.Quest;
 import io.github.finalwave.model.quest.QuestTracker;
+import io.github.finalwave.network.auth.LoginOkPayload;
 import io.github.finalwave.util.database.DatabaseUtil;
 
 import java.sql.Connection;
@@ -10,6 +11,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class QuestProgressStore {
     private QuestProgressStore() {
@@ -88,6 +91,66 @@ public final class QuestProgressStore {
                 insertStmt.setInt(3, quest.isCompleted() ? 1 : 0);
                 insertStmt.setInt(4, quest.isRewardClaimed() ? 1 : 0);
                 insertStmt.setString(5, quest.exportProgressBlob());
+                insertStmt.setString(6, now);
+                insertStmt.addBatch();
+            }
+            insertStmt.executeBatch();
+        }
+    }
+
+    public static List<LoginOkPayload.QuestProgressEntry> exportRows(Connection conn, long userId)
+            throws SQLException {
+        List<LoginOkPayload.QuestProgressEntry> rows = new ArrayList<>();
+        String sql = """
+                SELECT questId, completed, claimed, progressBlob
+                FROM quest_progress
+                WHERE userId = ?
+                """;
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setLong(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    LoginOkPayload.QuestProgressEntry entry = new LoginOkPayload.QuestProgressEntry();
+                    entry.setQuestId(rs.getString("questId"));
+                    entry.setCompleted(rs.getInt("completed") == 1);
+                    entry.setClaimed(rs.getInt("claimed") == 1);
+                    entry.setProgressBlob(rs.getString("progressBlob"));
+                    rows.add(entry);
+                }
+            }
+        }
+        return rows;
+    }
+
+    public static void saveExportedRows(
+            Connection conn,
+            long userId,
+            java.util.List<io.github.finalwave.network.sync.UpdateQuestProgressPayload.QuestProgressRow> rows
+    ) throws SQLException {
+        try (PreparedStatement delete = conn.prepareStatement(
+                "DELETE FROM quest_progress WHERE userId = ?")) {
+            delete.setLong(1, userId);
+            delete.executeUpdate();
+        }
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        String insert = """
+                INSERT INTO quest_progress
+                (userId, questId, completed, claimed, progressBlob, updatedAt)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """;
+        String now = Instant.now().toString();
+        try (PreparedStatement insertStmt = conn.prepareStatement(insert)) {
+            for (io.github.finalwave.network.sync.UpdateQuestProgressPayload.QuestProgressRow row : rows) {
+                if (row == null || row.getQuestId() == null || row.getQuestId().isBlank()) {
+                    continue;
+                }
+                insertStmt.setLong(1, userId);
+                insertStmt.setString(2, row.getQuestId());
+                insertStmt.setInt(3, row.isCompleted() ? 1 : 0);
+                insertStmt.setInt(4, row.isClaimed() ? 1 : 0);
+                insertStmt.setString(5, row.getProgressBlob());
                 insertStmt.setString(6, now);
                 insertStmt.addBatch();
             }

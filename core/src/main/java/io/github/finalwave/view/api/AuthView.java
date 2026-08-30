@@ -59,4 +59,8 @@ public interface AuthView extends View {
 
     public void promptSecurityAnswerConfirm();
 
+    void showRegisterInlineError(String message);
+
+    void showLoginInlineError(String message);
+
 }

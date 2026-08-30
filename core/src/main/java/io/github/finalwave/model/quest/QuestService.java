@@ -86,6 +86,7 @@ public final class QuestService {
         PlantCollection collection = new PlantCollection(registry, user.getPlantProgress(), user.getCoins());
 
         String seedPlant = reward.getSeedPacketPlantId();
+        String seedPlantSaved = null;
         if (seedPlant != null && reward.getSeedPacketCount() > 0) {
             if ("ANY".equalsIgnoreCase(seedPlant)) {
                 seedPlant = pickRandomUnlockedPlant(user, registry);
@@ -93,6 +94,7 @@ public final class QuestService {
             if (seedPlant != null) {
                 try {
                     collection.addSeedPackets(seedPlant, reward.getSeedPacketCount());
+                    seedPlantSaved = seedPlant;
                 } catch (IllegalArgumentException ignored) {
                 }
             }
@@ -114,7 +116,12 @@ public final class QuestService {
 
         user.setCoins(Math.max(user.getCoins(), collection.getCoins()));
         UserDatabase.getInstance().saveUserWallet(user);
-        UserDatabase.getInstance().savePlantProgress(user);
+        if (unlock != null) {
+            UserDatabase.getInstance().savePlant(user, unlock);
+        }
+        if (seedPlantSaved != null && !seedPlantSaved.equals(unlock)) {
+            UserDatabase.getInstance().savePlant(user, seedPlantSaved);
+        }
         UserDatabase.getInstance().saveUserNews(user);
     }
 
