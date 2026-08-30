@@ -336,6 +336,7 @@ public final class ProjectileSync {
             return Math.min(x, projectile.getLandX());
         }
         return x;
+    }
 
     private static boolean isArcing(Projectile projectile) {
         return projectile.getProfile() != null
