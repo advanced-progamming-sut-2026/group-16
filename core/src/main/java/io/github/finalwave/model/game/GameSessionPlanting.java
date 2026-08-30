@@ -148,6 +148,17 @@ final class GameSessionPlanting {
         if (getVaseAt(col, row) != null) {
             return PlantPlacementResult.TILE_BLOCKED;
         }
+        PlantPlacementResult stacked = stackPeaPodIfPresent(definition, col, row);
+        if (stacked != null) {
+            if (stacked == PlantPlacementResult.SUCCESS) {
+                groundSeedPackets.remove(packet);
+                MatchListener matchListener = session.getMatchListener();
+                if (matchListener != null) {
+                    matchListener.onSeedPacketPlanted(packet.plantName(), col, row);
+                }
+            }
+            return stacked;
+        }
         PlantPlacementResult placement = session.getBoard().canPlace(definition, col, row);
         if (placement != PlantPlacementResult.SUCCESS) {
             return placement;
@@ -200,6 +211,25 @@ final class GameSessionPlanting {
         if (!sandbox && !conveyor && session.getSunBalance() < cost) {
             return PlantPlacementResult.INSUFFICIENT_SUN;
         }
+        PlantPlacementResult stacked = stackPeaPodIfPresent(definition, col, row);
+        if (stacked != null) {
+            if (stacked == PlantPlacementResult.SUCCESS) {
+                if (!sandbox && !conveyor) {
+                    session.withdrawSun(cost);
+                    session.getEventBus().publish(new GameEvent.SunSpent(cost));
+                }
+                if (!sandbox && !conveyor && !special.isPrepPhaseActive()) {
+                    session.getCooldownTracker().startCooldown(
+                            plantName,
+                            PlantStatsCalculator.compute(definition, level).recharge(),
+                            GameSession.TICKS_PER_SECOND);
+                }
+                if (conveyor) {
+                    special.removeConveyorBeltPlant(plantName);
+                }
+            }
+            return stacked;
+        }
         PlantPlacementResult placement = session.getBoard().canPlace(definition, col, row);
         if (placement != PlantPlacementResult.SUCCESS) {
             return placement;
@@ -250,6 +280,26 @@ final class GameSessionPlanting {
         if (!"Imitater".equals(plantName)) {
             session.noteImitaterTargetSeed(plantName);
         }
+        return PlantPlacementResult.SUCCESS;
+    }
+
+    private PlantPlacementResult stackPeaPodIfPresent(PlantDefinition definition, int col, int row) {
+        if (definition == null || !Plant.PEA_POD.equals(definition.getName())) {
+            return null;
+        }
+        Plant existing = session.getBoard().findPeaPod(col, row);
+        if (existing == null) {
+            return null;
+        }
+        if (!existing.tryAddStack()) {
+            return PlantPlacementResult.GROUND_OCCUPIED;
+        }
+        session.getEventBus().publish(new GameEvent.PlantPlanted(
+                existing.getName(),
+                existing.getCategory().name(),
+                col,
+                row,
+                existing.hasTag(PlantTag.NIGHT) || existing.hasTag(PlantTag.SHROOM)));
         return PlantPlacementResult.SUCCESS;
     }
 
@@ -494,5 +544,24 @@ final class GameSessionPlanting {
         Plant replacement = session.getPlantFactory().create(definition, level, col, row);
         session.getBoard().placePlant(replacement);
         replacement.initializeAfterImitaterMorph(session.getContext());
+    }
+
+    Plant createDoomShroomSeedling(Plant source, int col, int row) {
+        Plant seedling = session.getPlantFactory().create(
+                source.getDefinition(), source.getLevel(), col, row);
+        session.getBoard().placePlant(seedling);
+        seedling.onPlanted(session.getContext());
+        return seedling;
+    }
+
+    Plant createPlantFoodClone(Plant source, int col, int row) {
+        Plant clone = session.getPlantFactory().create(
+                source.getDefinition(), source.getLevel(), col, row);
+        session.getBoard().placePlant(clone);
+        clone.onPlanted(session.getContext());
+        clone.setPlantFoodSpawned(true);
+        clone.setArmedTrap(true);
+        clone.setChargeTicksRemaining(0);
+        return clone;
     }
 }

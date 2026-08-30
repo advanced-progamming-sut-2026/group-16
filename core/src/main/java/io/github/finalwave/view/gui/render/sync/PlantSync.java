@@ -9,6 +9,9 @@ import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCovering;
 import io.github.finalwave.model.game.entity.plant.ability.GraveBusterAbility;
+import io.github.finalwave.model.game.entity.plant.ability.SquashAbility;
+import io.github.finalwave.model.game.entity.plant.food.PeaPodPlantFood;
+import io.github.finalwave.model.game.entity.projectile.PepperMuzzles;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
@@ -47,6 +50,24 @@ public final class PlantSync {
     private final HitFlashTracker<Plant> iceHits = new HitFlashTracker<>();
     private final HitFlashTracker<PlantCovering> octopusHits = new HitFlashTracker<>();
     private final PlantShotTracker shots = new PlantShotTracker();
+    private final PotatoMineIntroTracker potatoIntroTracker = new PotatoMineIntroTracker();
+    private final PotatoMineRecoverTracker potatoRecoverTracker = new PotatoMineRecoverTracker();
+    private final PotatoMinePlantFoodTracker potatoPfTracker = new PotatoMinePlantFoodTracker();
+    private final CherryBombSequenceTracker cherryBombTracker = new CherryBombSequenceTracker();
+    private final GrapeshotSequenceTracker grapeshotTracker = new GrapeshotSequenceTracker();
+    private final JalapenoSequenceTracker jalapenoTracker = new JalapenoSequenceTracker();
+    private final DoomShroomSequenceTracker doomShroomTracker = new DoomShroomSequenceTracker();
+    private final TangleKelpSequenceTracker tangleKelpTracker = new TangleKelpSequenceTracker();
+    private final IcebergLettuceSequenceTracker icebergTracker = new IcebergLettuceSequenceTracker();
+    private final BonkChoySequenceTracker bonkChoyTracker = new BonkChoySequenceTracker();
+    private final WasabiWhipSequenceTracker wasabiWhipTracker = new WasabiWhipSequenceTracker();
+    private final PhatBeetSequenceTracker phatBeetTracker = new PhatBeetSequenceTracker();
+    private final KiwibeastSequenceTracker kiwibeastTracker = new KiwibeastSequenceTracker();
+    private final WallNutSequenceTracker wallNutTracker = new WallNutSequenceTracker();
+    private final TallNutSequenceTracker tallNutTracker = new TallNutSequenceTracker();
+    private final EndurianSequenceTracker endurianTracker = new EndurianSequenceTracker();
+    private final ChomperSequenceTracker chomperTracker = new ChomperSequenceTracker();
+    private final SquashJumpTracker squashJumpTracker = new SquashJumpTracker();
 
     public PlantSync(GameAssets assets, LawnLayout layout, PlantClips clips, Group layer) {
         this.assets = assets;
@@ -56,9 +77,14 @@ public final class PlantSync {
     }
 
     public void sync(GameSession session) {
+        sync(session, 0f);
+    }
+
+    public void sync(GameSession session, float tickFraction) {
         if (session == null || session.getBoard() == null) {
             return;
         }
+        float fraction = Math.max(0f, Math.min(1f, tickFraction));
         GameBoard board = session.getBoard();
         List<Plant> live = new ArrayList<>();
         List<Plant> frozen = new ArrayList<>();
@@ -80,7 +106,9 @@ public final class PlantSync {
         shots.observe(projectiles);
         List<PlantCovering> octopusCoverings = liveOctopi(session);
         List<Plant> sheeped = liveSheep(live);
-        plants.sync(live, this::spawnPlant, (plant, actor) -> updatePlant(plant, actor, board, session), PamActor::remove);
+        plants.sync(live, this::spawnPlant,
+                (plant, actor) -> updatePlant(plant, actor, board, session, fraction),
+                PamActor::remove);
         iceBlocks.sync(frozen, this::spawnIce, (plant, actor) -> updateIce(plant, actor, session), PamActor::remove);
         octopi.sync(octopusCoverings, this::spawnOctopus, this::updateOctopus, PamActor::remove);
         sheep.sync(sheeped, this::spawnSheep, this::updateSheep, PamActor::remove);
@@ -91,6 +119,28 @@ public final class PlantSync {
         graveBusterStartTick.keySet().retainAll(live);
         iceShroomLastAttackTicks.keySet().retainAll(live);
         magnetLastPhase.keySet().retainAll(live);
+        potatoIntroTracker.retain(live);
+        potatoRecoverTracker.retain(live);
+        potatoPfTracker.retain(live);
+        cherryBombTracker.retain(live);
+        grapeshotTracker.retain(live);
+        jalapenoTracker.retain(live);
+        doomShroomTracker.retain(live);
+        tangleKelpTracker.retain(live);
+        icebergTracker.retain(live);
+        bonkChoyTracker.retain(live);
+        wasabiWhipTracker.retain(live);
+        phatBeetTracker.retain(live);
+        kiwibeastTracker.retain(live);
+        wallNutTracker.retain(live);
+        tallNutTracker.retain(live);
+        endurianTracker.retain(live);
+        chomperTracker.retain(live);
+        squashJumpTracker.retain(live);
+    }
+
+    public PamActor actorFor(Plant plant) {
+        return plants.get(plant);
     }
 
     public void clear() {
@@ -105,6 +155,24 @@ public final class PlantSync {
         graveBusterStartTick.clear();
         iceShroomLastAttackTicks.clear();
         magnetLastPhase.clear();
+        potatoIntroTracker.clear();
+        potatoRecoverTracker.clear();
+        potatoPfTracker.clear();
+        cherryBombTracker.clear();
+        grapeshotTracker.clear();
+        jalapenoTracker.clear();
+        doomShroomTracker.clear();
+        tangleKelpTracker.clear();
+        icebergTracker.clear();
+        bonkChoyTracker.clear();
+        wasabiWhipTracker.clear();
+        phatBeetTracker.clear();
+        kiwibeastTracker.clear();
+        wallNutTracker.clear();
+        tallNutTracker.clear();
+        endurianTracker.clear();
+        chomperTracker.clear();
+        squashJumpTracker.clear();
     }
 
     private PamActor spawnPlant(Plant plant) {
@@ -116,6 +184,11 @@ public final class PlantSync {
         String renderName = PlantVisualState.pamNameForRender(plant);
         EntityAnimationCatalog.ClipSpec idle = PlantVisualState.idle(plant, clips);
         actor.setClip(idle.path(), idle.clip(), clips.scale(renderName), true);
+        potatoIntroTracker.onSpawn(plant);
+        cherryBombTracker.onSpawn(plant);
+        grapeshotTracker.onSpawn(plant);
+        jalapenoTracker.onSpawn(plant);
+        doomShroomTracker.onSpawn(plant);
         return actor;
     }
 
@@ -129,27 +202,196 @@ public final class PlantSync {
         return actor;
     }
 
-    private void updatePlant(Plant plant, PamActor actor, GameBoard board, GameSession session) {
+    private void updatePlant(Plant plant, PamActor actor, GameBoard board, GameSession session, float tickFraction) {
         Vector2 center = layout.cellCenter(plant.getCol(), plant.getRow());
+        applyDrawOffset(plant, center);
         actor.setSize(layout.tileWidth(), layout.tileHeight());
-        actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
+        actor.setVisible(true);
+        float scale = clips.scale(pamName(plant));
+        boolean squashSmashing = plant.isSquash()
+                && plant.getAbility() instanceof SquashAbility squashAbility
+                && squashAbility.isSmashing();
+        if (!squashSmashing) {
+            actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
+        }
+        if (plant.isPotatoMine()) {
+            potatoIntroTracker.startIntroIfNeeded(plant, actor, clips, scale);
+            if (potatoIntroTracker.isIntroPlaying(plant)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+            if (potatoIntroTracker.consumeIntroRecoverPending(plant)) {
+                potatoRecoverTracker.tryRecoverAfterIntro(plant, actor, clips, scale, session);
+                if (potatoRecoverTracker.blocksClipUpdate(plant)) {
+                    finishPlantActor(plant, actor, board, session);
+                    return;
+                }
+            }
+            if (potatoPfTracker.update(plant, actor, clips, scale)
+                    && potatoPfTracker.blocksClipUpdate(plant)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+            potatoRecoverTracker.updateRecover(plant, actor, clips, scale, session);
+            if (potatoRecoverTracker.blocksClipUpdate(plant)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+            if (potatoPfTracker.tryPfExitSafety(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+            if (potatoRecoverTracker.isAlertInRadius(plant)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+            if (!plant.isAttacking() && !plant.isPlantFooding()
+                    && !potatoRecoverTracker.isRecoverPlaying(plant)
+                    && !potatoRecoverTracker.isAlertInRadius(plant)
+                    && !PotatoMineProximity.inRecoverRadius(session, plant)) {
+                var rest = clips.potatoMineUnarmedIdle(plant);
+                actor.setClip(rest.path(), rest.clip(), scale, true);
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+            if (!plant.isAttacking() && !plant.isPlantFooding()
+                    && !potatoRecoverTracker.isRecoverPlaying(plant)
+                    && !potatoRecoverTracker.isAlertInRadius(plant)
+                    && PotatoMineProximity.inRecoverRadius(session, plant)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+            if (!plant.isAttacking() && !plant.isPlantFooding()) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isCherryBomb()) {
+            cherryBombTracker.startSequenceIfNeeded(plant, actor, clips, scale);
+            if (cherryBombTracker.blocksClipUpdate(plant)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isGrapeshot()) {
+            grapeshotTracker.startSequenceIfNeeded(plant, actor, clips, scale);
+            if (grapeshotTracker.blocksClipUpdate(plant)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isJalapeno()) {
+            jalapenoTracker.startSequenceIfNeeded(plant, actor, clips, scale);
+            if (jalapenoTracker.blocksClipUpdate(plant)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isDoomShroom()) {
+            if (doomShroomTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isTangleKelp()) {
+            if (tangleKelpTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isIcebergLettuce()) {
+            if (icebergTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isBonkChoy()) {
+            if (bonkChoyTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isWasabiWhip()) {
+            if (wasabiWhipTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isPhatBeet()) {
+            if (phatBeetTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isKiwibeast()) {
+            if (kiwibeastTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isWallNut()) {
+            if (wallNutTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isTallNut()) {
+            if (tallNutTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isEndurian()) {
+            if (endurianTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isChomper()) {
+            if (chomperTracker.update(plant, actor, clips, scale)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
+        if (plant.isSquash()) {
+            if (squashJumpTracker.update(plant, actor, clips, scale, layout, tickFraction)) {
+                finishPlantActor(plant, actor, board, session);
+                return;
+            }
+        }
         boolean justFired = shots.consume(plant);
         List<Zombie> zombies = session.getZombies();
         EntityAnimationCatalog.ClipSpec spec = PlantVisualState.clip(
-                plant, clips, justFired, zombies, actor.clipName());
+                plant, clips, justFired, zombies, actor.clipName(), session);
         EntityAnimationCatalog.ClipSpec idle = PlantVisualState.idle(plant, clips);
-        float scale = clips.scale(pamName(plant));
-        if (!applyGraveBusterClip(plant, actor, scale, session)
+        if (plant.isPlantFooding() && usesBranchPlantFoodLoop(plant)) {
+            boolean loop = plant.plantFoodPhase() == PeaPodPlantFood.Phase.LOOP
+                    && !plant.isCabbagePult()
+                    && !plant.isKernelPult()
+                    && !plant.isMelonPult()
+                    && !plant.isWinterMelon()
+                    && !plant.isPepperPult()
+                    && !plant.isPotatoMine()
+                    && !plant.isPhatBeet()
+                    && !plant.isKiwibeast()
+                    && !plant.isWallNut();
+            actor.setClip(spec.path(), spec.clip(), scale, loop);
+        } else if (!applyGraveBusterClip(plant, actor, scale, session)
                 && !applyIceShroomClip(plant, actor, scale, spec, idle)
                 && !applyMagnetClip(plant, actor, scale, idle)) {
-            boolean playingOneShot = PlantVisualState.isOneShotClip(actor.clipName());
-            if (PlantVisualState.isOneShot(plant, spec) && !playingOneShot) {
+            boolean playingOneShot = PlantVisualState.isOneShotClip(actor.clipName())
+                    || PlantVisualState.isActionClip(actor.clipName());
+            if ((PlantVisualState.isOneShot(plant, spec) || PlantVisualState.isAction(spec)) && !playingOneShot) {
                 String followUp = followUpClip(plant, spec, idle, zombies);
                 actor.playThen(spec.path(), spec.clip(), scale, followUp, true, null);
             } else if (!playingOneShot) {
                 actor.setClip(spec.path(), spec.clip(), scale, true);
             }
         }
+        finishPlantActor(plant, actor, board, session);
+    }
+
+    private void finishPlantActor(Plant plant, PamActor actor, GameBoard board, GameSession session) {
         actor.setUserObject(sortKey(plant, board, 0));
         int freeze = freezeLevel(plant, session);
         boolean covered = isOctopusCovered(plant, session);
@@ -430,6 +672,14 @@ public final class PlantSync {
         return false;
     }
 
+    private void applyDrawOffset(Plant plant, Vector2 center) {
+        if (plant == null || !plant.isPepperPult()) {
+            return;
+        }
+        center.x += (float) PepperMuzzles.drawX() * layout.tileWidth();
+        center.y += (float) PepperMuzzles.drawY() * layout.tileHeight();
+    }
+
     private static int sortKey(Plant plant, GameBoard board, int extraDepth) {
         int depth = extraDepth;
         if (extraDepth == 0 && board != null) {
@@ -517,6 +767,18 @@ public final class PlantSync {
             return "busy";
         }
         return "idle";
+    }
+
+    private static boolean usesBranchPlantFoodLoop(Plant plant) {
+        return plant.isFumeShroom()
+                || plant.isPhatBeet()
+                || plant.isChomper()
+                || plant.isCabbagePult()
+                || plant.isKernelPult()
+                || plant.isMelonPult()
+                || plant.isWinterMelon()
+                || plant.isPepperPult()
+                || plant.isPeaPod();
     }
 
     private static boolean isMint(String name) {

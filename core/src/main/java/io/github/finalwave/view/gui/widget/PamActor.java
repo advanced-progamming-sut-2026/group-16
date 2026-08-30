@@ -82,11 +82,18 @@ public final class PamActor extends Actor {
 
     public void setClip(String pamPath, String clipName, float scale, boolean loop) {
         this.drawScale = scale;
-        this.loop = loop;
         boolean same = Objects.equals(this.pamPath, pamPath) && Objects.equals(this.clipName, clipName);
         if (same) {
+            if (this.loop && !loop) {
+                this.loop = false;
+                this.stateTime = 0f;
+                this.clipFinished = false;
+            } else {
+                this.loop = loop;
+            }
             return;
         }
+        this.loop = loop;
         this.pamPath = pamPath;
         this.clipName = clipName;
         this.stateTime = 0f;
@@ -107,6 +114,12 @@ public final class PamActor extends Actor {
 
     public void setDrawScale(float scale) {
         this.drawScale = Math.abs(scale);
+    }
+
+    public void loadPamSync(String pamPath) {
+        if (pamPath != null) {
+            player.loadSync(pamPath);
+        }
     }
 
     public void playThen(String pamPath, String clipName, float scale, String nextClip, boolean nextLoop, Runnable onFinished) {
@@ -137,6 +150,10 @@ public final class PamActor extends Actor {
         return clipName;
     }
 
+    public boolean isClipFinished() {
+        return clipFinished;
+    }
+
     public void setAnchor(float anchorX, float anchorY) {
         this.anchorX = anchorX;
         this.anchorY = anchorY;
@@ -144,6 +161,28 @@ public final class PamActor extends Actor {
 
     public float stateTime() {
         return stateTime;
+    }
+
+    public float clipDurationSeconds() {
+        if (pamPath == null || clipName == null) {
+            return 0f;
+        }
+        return player.clipDurationSeconds(pamPath, clipName);
+    }
+
+    public void forceClip(String pamPath, String clipName, float scale, boolean loop) {
+        this.drawScale = scale;
+        this.loop = loop;
+        this.pamPath = pamPath;
+        this.clipName = clipName;
+        this.stateTime = 0f;
+        this.followUpClip = null;
+        this.followUpLoop = true;
+        this.onIntroFinished = null;
+        this.clipFinished = false;
+        if (pamPath != null) {
+            player.loadSync(pamPath);
+        }
     }
 
     public void setDrawOffset(float offsetX, float offsetY) {
@@ -238,6 +277,9 @@ public final class PamActor extends Actor {
             duration = player.clipDurationSeconds(pamPath, clipName);
         } catch (RuntimeException e) {
             logDrawFailure(e);
+            return;
+        }
+        if (duration <= 0f) {
             return;
         }
         if (stateTime < duration) {

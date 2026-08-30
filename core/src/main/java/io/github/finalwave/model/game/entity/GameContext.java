@@ -7,6 +7,8 @@ import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCategory;
 import io.github.finalwave.model.game.entity.plant.PlantCovering;
 import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
+import io.github.finalwave.model.game.entity.plant.ability.BonkChoyAbility;
+import io.github.finalwave.model.game.entity.plant.ability.WasabiWhipAbility;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
@@ -112,6 +114,64 @@ public interface GameContext {
         return List.of();
     }
 
+    default void spawnProjectile(Plant plant, int damage, ProjectileProfile profile, int muzzleIndex) {
+        spawnProjectile(plant, damage, 1, profile);
+    }
+
+    default void spawnPeaPodGiant(Plant plant, int damage) {
+    }
+
+    default void spawnCabbagePlantFood(Plant plant, int damage) {
+    }
+
+    default void spawnKernelPlantFood(Plant plant, int damage) {
+    }
+
+    default void spawnMelonPlantFood(Plant plant, int damage) {
+    }
+
+    default void spawnWinterMelonPlantFood(Plant plant, int damage) {
+    }
+
+    default void spawnPepperPlantFood(Plant plant, int damage, int muzzleIndex) {
+    }
+
+    default void spawnGrapeshotGrapes(Plant plant, int count, int damage) {
+    }
+
+    default void startJalapenoRowFire(Plant plant, int damage) {
+    }
+
+    default void explodeSquare(int centerCol, int centerRow, int damage, int tileRadius, Plant source) {
+    }
+
+    default void spawnDoomShroomSeedlings(int centerCol, int centerRow, int tileRadius, Plant source) {
+    }
+
+    default void spawnDoomShroomSeedling(int centerCol, int centerRow, int tileRadius, Plant source) {
+        spawnDoomShroomSeedlings(centerCol, centerRow, tileRadius, source);
+    }
+
+    default void triggerDoomShroomPlantFood(Plant plant) {
+    }
+
+    default void enqueueTangleKelpGrabMark(int col, int row) {
+    }
+
+    default void enqueueIcebergFlash() {
+    }
+
+    default void freezeGroundedZombiesForIceberg(Plant plant, double baseSeconds, double extensionSeconds) {
+        freezeAllZombies(plant, baseSeconds + extensionSeconds);
+    }
+
+    default <T> void shuffle(java.util.List<T> list) {
+        java.util.Collections.shuffle(list);
+    }
+
+    default void placeTimedCrater(int col, int row, float durationSeconds) {
+    }
+
     void boostFamily(Plant plant, PlantCategory boostedFamily, double extendedDuration);
 
     void resetFamilyCooldowns(PlantCategory boostedFamily);
@@ -138,6 +198,33 @@ public interface GameContext {
 
     void dealMeleeDamage(Plant plant, int damage, boolean areaOfEffect);
 
+    default void dealBonkChoyPunch(Plant plant, BonkChoyAbility.PunchStyle style, int damage) {
+    }
+
+    default void dealBonkChoyAreaPunch(Plant plant, int radius, int damage) {
+    }
+
+    default void dealWasabiWhipPunch(Plant plant, WasabiWhipAbility.WhipStyle style, int damage) {
+    }
+
+    default void dealPhatBeetShockwave(Plant plant, int damage) {
+    }
+
+    default void dealPhatBeetPlantFood(Plant plant) {
+    }
+
+    default void dealKiwibeastShockwave(Plant plant, int damage, int radius, boolean plantFood) {
+    }
+
+    default void dealEndurianSpikes(Plant plant, int damage) {
+    }
+
+    default void knockbackEatingZombies(Plant plant) {
+    }
+
+    default void knockbackNearbyZombies(Plant plant, int radius) {
+    }
+
     void projectileBurst(Plant plant, double value);
 
     void hypnotizeRandomZombies(Plant plant, int value);
@@ -149,6 +236,9 @@ public interface GameContext {
     void knockbackBlast(Plant plant);
 
     void spawnClones(Plant plant, int value);
+
+    default void spawnForwardClones(Plant plant, int count) {
+    }
 
     void pullUnderwater(Plant plant, double value);
 

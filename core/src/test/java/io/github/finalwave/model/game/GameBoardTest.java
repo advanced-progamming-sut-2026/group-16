@@ -7,6 +7,7 @@ import io.github.finalwave.model.game.board.tile.GraveTile;
 import io.github.finalwave.model.game.board.tile.IceTile;
 import io.github.finalwave.model.game.board.tile.LowBeachTile;
 import io.github.finalwave.model.game.entity.plant.Plant;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -73,6 +74,27 @@ class GameBoardTest {
         assertEquals(5, first.getStackCount());
         session.getCooldownTracker().resetAll();
         assertEquals(PlantPlacementResult.GROUND_OCCUPIED, session.tryPlant("Pea Pod", 2, 2, 1));
+    }
+
+    @Test
+    void plantsPeaPodOnEmptyTileAndStacksHeads() {
+        session.addSunBalance(2000);
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Pea Pod", 2, 1, 1));
+        Plant pod = board.getPlantAt(2, 1);
+        assertNotNull(pod);
+        assertEquals("Pea Pod", pod.getName());
+        assertEquals(1, pod.getStackCount());
+        assertNull(board.getOverlayPlantAt(2, 1));
+
+        for (int heads = 2; heads <= Plant.MAX_PEA_POD_STACK; heads++) {
+            session.getCooldownTracker().resetAll();
+            assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Pea Pod", 2, 1, 1));
+            assertSame(pod, board.getPlantAt(2, 1));
+            assertEquals(heads, pod.getStackCount());
+        }
+        session.getCooldownTracker().resetAll();
+        assertEquals(PlantPlacementResult.GROUND_OCCUPIED, session.tryPlant("Pea Pod", 2, 1, 1));
+        assertEquals(Plant.MAX_PEA_POD_STACK, board.getPlantAt(2, 1).getStackCount());
     }
 
     @Test

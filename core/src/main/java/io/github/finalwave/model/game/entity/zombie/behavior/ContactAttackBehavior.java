@@ -2,6 +2,7 @@ package io.github.finalwave.model.game.entity.zombie.behavior;
 
 import io.github.finalwave.model.game.entity.GameContext;
 import io.github.finalwave.model.game.entity.plant.Plant;
+import io.github.finalwave.model.game.entity.plant.PlantSmash;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieBehavior;
 
@@ -41,8 +42,7 @@ public final class ContactAttackBehavior implements ZombieBehavior {
             return;
         }
         if (canHitPlant) {
-            target.takeDamage(target.getHealth());
-            context.onPlantDestroyed(target);
+            PlantSmash.apply(zombie, target, context);
         } else {
             hypnotizedTarget.takeDirectDamage(hypnotizedTarget.getHealth());
             context.onZombieKilled(hypnotizedTarget);

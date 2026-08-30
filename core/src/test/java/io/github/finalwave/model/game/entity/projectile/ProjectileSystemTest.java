@@ -7,6 +7,7 @@ import io.github.finalwave.model.game.entity.plant.PlantFactory;
 import io.github.finalwave.model.game.entity.zombie.Armor;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.definition.PlantRegistry;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -290,5 +291,190 @@ class ProjectileSystemTest {
 
         assertTrue(boss.getHealth() < health);
         assertTrue(system.getProjectiles().isEmpty());
+    }
+
+    @Test
+    void lobExplodesOnEmptyTileWhenNoZombieAhead() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Cabbage-pult"), 1, 2);
+        system.spawnFromPlant(plant, 40, 1, ProjectileProfile.arcing());
+        system.tick(board, List.of(), z -> {});
+        Projectile lob = system.getProjectiles().getFirst();
+        assertTrue(lob.hasLandX());
+        assertEquals(lob.getX() - 0.25 + 4.0, lob.getLandX(), 0.0001);
+        for (int i = 0; i < 20; i++) {
+            system.tick(board, List.of(), z -> {});
+        }
+        assertTrue(system.getProjectiles().isEmpty());
+    }
+
+    @Test
+    void threepeaterSpawnsOnePeaPerAdjacentLane() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Threepeater"), 1, 2);
+        system.spawnFromPlant(plant, plant.getStats().damage(), 3, ProjectileProfile.straight(),
+                plant.projectileEffect(), GameBoard.DEFAULT_ROWS);
+
+        List<Projectile> shots = system.getProjectiles();
+        assertEquals(3, shots.size());
+        assertEquals(List.of(1, 2, 3), shots.stream().map(Projectile::getRow).toList());
+        for (Projectile shot : shots) {
+            assertEquals(20, shot.getDamage());
+            assertEquals(ProjectileEffect.PEA, shot.getEffect());
+        }
+    }
+
+    @Test
+    void threepeaterSkipsOffBoardLaneOnTopRow() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Threepeater"), 1, 0);
+        system.spawnFromPlant(plant, plant.getStats().damage(), 3, ProjectileProfile.straight(),
+                plant.projectileEffect(), GameBoard.DEFAULT_ROWS);
+
+        List<Projectile> shots = system.getProjectiles();
+        assertEquals(2, shots.size());
+        assertEquals(List.of(0, 1), shots.stream().map(Projectile::getRow).toList());
+        for (Projectile shot : shots) {
+            assertEquals(20, shot.getDamage());
+        }
+    }
+
+    @Test
+    void threepeaterPlantFoodFiresThreeLaneVolleys() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Threepeater"), 1, 2);
+        system.spawnFromPlant(plant, plant.getStats().damage(), 9, ProjectileProfile.straight(),
+                plant.projectileEffect(), GameBoard.DEFAULT_ROWS);
+
+        List<Projectile> shots = system.getProjectiles();
+        assertEquals(9, shots.size());
+        assertEquals(List.of(1, 2, 3, 1, 2, 3, 1, 2, 3),
+                shots.stream().map(Projectile::getRow).toList());
+        for (Projectile shot : shots) {
+            assertEquals(20, shot.getDamage());
+        }
+    }
+
+    @Test
+    void peaPodFiresParallelPeasOnSameLane() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Pea Pod"), 1, 2);
+        plant.tryAddStack();
+        plant.tryAddStack();
+        system.spawnFromPlant(plant, plant.getStats().damage(), plant.getStackCount(),
+                ProjectileProfile.straight(), plant.projectileEffect(), GameBoard.DEFAULT_ROWS);
+
+        List<Projectile> shots = system.getProjectiles();
+        assertEquals(3, shots.size());
+        assertEquals(List.of(2, 2, 2), shots.stream().map(Projectile::getRow).toList());
+        List<Double> offsets = shots.stream().map(Projectile::getLaneYOffset).toList();
+        assertEquals(3, offsets.stream().distinct().count());
+        assertEquals(PeaPodMuzzles.y(3, 0), shots.get(0).getLaneYOffset(), 0.0001);
+        assertEquals(PeaPodMuzzles.y(3, 1), shots.get(1).getLaneYOffset(), 0.0001);
+        assertEquals(PeaPodMuzzles.y(3, 2), shots.get(2).getLaneYOffset(), 0.0001);
+        for (int i = 0; i < shots.size(); i++) {
+            Projectile shot = shots.get(i);
+            assertEquals(20, shot.getDamage());
+            assertEquals(ProjectileEffect.PEA, shot.getEffect());
+            assertEquals(plant.getCol() + 0.5 + PeaPodMuzzles.x(3, i), shot.getX(), 0.0001);
+        }
+    }
+
+    @Test
+    void fumeShroomSpawnsOneStationaryCloudEvenWhenAskedForThree() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Fume-shroom"), 1, 2);
+        system.spawnFromPlant(plant, plant.getStats().damage(), 3, ProjectileProfile.piercingProfile(),
+                plant.projectileEffect(), GameBoard.DEFAULT_ROWS);
+
+        List<Projectile> shots = system.getProjectiles();
+        assertEquals(1, shots.size());
+        Projectile cloud = shots.getFirst();
+        assertEquals(ProjectileEffect.FUME, cloud.getEffect());
+        assertEquals(FumeMuzzles.ATTACK_CLOUD_TICKS, cloud.getLifetimeTicks());
+        assertFalse(cloud.isFumePlantFood());
+        assertEquals(plant.getCol() + 0.5 + FumeMuzzles.x(), cloud.getX(), 0.0001);
+        assertEquals(FumeMuzzles.y(), cloud.getLaneYOffset(), 0.0001);
+        double origin = cloud.getX();
+        Zombie near = new Zombie.Builder("near").maxHealth(200).position(3, 2).build();
+        Zombie edge = new Zombie.Builder("edge").maxHealth(200).position(5.5, 2).build();
+        Zombie far = new Zombie.Builder("far").maxHealth(200).position(6, 2).build();
+        for (int i = 0; i < FumeMuzzles.HIT_DELAY_TICKS - 1; i++) {
+            system.tick(board, List.of(near, edge, far), z -> {});
+            assertEquals(200, near.getHealth());
+            assertEquals(200, edge.getHealth());
+            assertEquals(200, far.getHealth());
+            assertEquals(1, system.getProjectiles().size());
+            assertEquals(origin, system.getProjectiles().getFirst().getX(), 0.0001);
+        }
+        system.tick(board, List.of(near, edge, far), z -> {});
+        assertEquals(180, near.getHealth());
+        assertEquals(180, edge.getHealth());
+        assertEquals(200, far.getHealth());
+        assertEquals(2, system.getFumeHits().size());
+        assertEquals(3.0, system.getFumeHits().getFirst().x(), 0.0001);
+        assertEquals(5.5, system.getFumeHits().get(1).x(), 0.0001);
+        for (int i = 0; i < FumeMuzzles.ATTACK_CLOUD_TICKS; i++) {
+            system.tick(board, List.of(near, edge, far), z -> {});
+        }
+        assertTrue(system.getProjectiles().isEmpty());
+        assertEquals(140, near.getHealth());
+        assertEquals(140, edge.getHealth());
+        assertEquals(200, far.getHealth());
+    }
+
+    @Test
+    void fumePlantFoodReachesEightTilesAndUsesPlantFoodMuzzle() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Fume-shroom"), 1, 2);
+        Projectile cloud = new Projectile(
+                plant.getRow(),
+                plant.getCol() + 0.5 + FumeMuzzles.plantFoodX(),
+                plant.getStats().damage(),
+                ProjectileProfile.piercingProfile(),
+                ProjectileEffect.FUME,
+                plant,
+                1,
+                FumeMuzzles.plantFoodY(),
+                false,
+                true);
+        cloud.setLifetimeTicks(FumeMuzzles.PLANTFOOD_CLOUD_TICKS);
+        system.spawn(cloud);
+        Zombie mid = new Zombie.Builder("mid").maxHealth(400).position(6, 2).build();
+        Zombie edge = new Zombie.Builder("edge").maxHealth(400).position(9.5, 2).build();
+        Zombie far = new Zombie.Builder("far").maxHealth(400).position(10, 2).build();
+        for (int i = 0; i < FumeMuzzles.HIT_DELAY_TICKS - 1; i++) {
+            system.tick(board, List.of(mid, edge, far), z -> {});
+            assertEquals(400, mid.getHealth());
+            assertEquals(400, edge.getHealth());
+            assertEquals(400, far.getHealth());
+        }
+        system.tick(board, List.of(mid, edge, far), z -> {});
+        assertEquals(380, mid.getHealth());
+        assertEquals(380, edge.getHealth());
+        assertEquals(400, far.getHealth());
+        for (int i = 0; i < FumeMuzzles.PLANTFOOD_CLOUD_TICKS; i++) {
+            system.tick(board, List.of(mid, edge, far), z -> {});
+        }
+        assertTrue(system.getProjectiles().isEmpty());
+        assertTrue(mid.getHealth() < 380);
+        assertTrue(edge.getHealth() < 380);
+        assertEquals(400, far.getHealth());
+        assertEquals(mid.getHealth(), edge.getHealth());
+    }
+
+    @Test
+    void peaPodSingleHeadUsesTableMuzzle() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Pea Pod"), 1, 2);
+        system.spawnFromPlant(plant, plant.getStats().damage(), 1, ProjectileProfile.straight(),
+                plant.projectileEffect(), GameBoard.DEFAULT_ROWS);
+
+        List<Projectile> shots = system.getProjectiles();
+        assertEquals(1, shots.size());
+        Projectile shot = shots.getFirst();
+        assertEquals(PeaPodMuzzles.x(1, 0), shot.getX() - (plant.getCol() + 0.5), 0.0001);
+        assertEquals(PeaPodMuzzles.y(1, 0), shot.getLaneYOffset(), 0.0001);
+        assertEquals(20, shot.getDamage());
     }
 }

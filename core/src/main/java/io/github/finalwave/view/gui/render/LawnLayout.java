@@ -13,6 +13,7 @@ public record LawnLayout(
         int cols
 ) {
     public static final float PLANT_SCALE = 1.0f;
+    public static final float SQUASH_SCALE = 0.84f;
     public static final float GIANT_WALLNUT_SCALE = 1.2f;
     public static final float VASE_SCALE = 0.72f;
     public static final float VASE_ANCHOR_Y = 0.42f;
@@ -27,11 +28,15 @@ public record LawnLayout(
     public static final float MOWER_ANCHOR_Y = 0.42f;
     public static final float MOWER_MODEL_X = -0.5f;
     public static final float PROJECTILE_SCALE = 1.0f;
+    public static final float PROJECTILE_DRAW_SCALE = 1.0f;
     public static final float PROJECTILE_ANCHOR_Y = 0.55f;
     public static final float CACTUS_SPIKE_ANCHOR_Y = 0.88f;
     public static final float GRAVE_SCALE = 1.0f;
     public static final float GRAVE_ANCHOR_Y = 0.42f;
     public static final float MINT_Y_OFFSET = 0.10f;
+    public static final float SCORCHED_EARTH_SCALE = 0.90f;
+    public static final float SCORCHED_EARTH_Y_OFFSET = 8f;
+    public static final float ICE_TRAP_Y_OFFSET_TILES = 0.45f;
 
     public float mowerCenterX() {
         return worldX(MOWER_MODEL_X);

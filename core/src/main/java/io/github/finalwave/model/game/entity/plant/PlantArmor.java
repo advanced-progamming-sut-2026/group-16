@@ -9,10 +9,16 @@ public final class PlantArmor {
 
     private int health;
     private final int maxHealth;
+    private final boolean smashAbsorb;
 
     public PlantArmor(int maxHealth) {
+        this(maxHealth, false);
+    }
+
+    public PlantArmor(int maxHealth, boolean smashAbsorb) {
         this.maxHealth = maxHealth;
         this.health = maxHealth;
+        this.smashAbsorb = smashAbsorb;
     }
 
     public int absorb(int damage) {
@@ -34,6 +40,18 @@ public final class PlantArmor {
 
     public int getMaxHealth() {
         return maxHealth;
+    }
+
+    public boolean absorbsSmash() {
+        return smashAbsorb;
+    }
+
+    public boolean absorbSmash() {
+        if (!smashAbsorb || health <= 0) {
+            return false;
+        }
+        health = 0;
+        return true;
     }
 
     public static final class PlantCooldownTracker {

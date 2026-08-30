@@ -6,6 +6,7 @@ import io.github.finalwave.model.game.GooPuddle;
 import io.github.finalwave.model.game.LawnBurst;
 import io.github.finalwave.model.game.MatchListener;
 import io.github.finalwave.model.game.PendingGraveLanding;
+import io.github.finalwave.model.game.board.tile.CraterTile;
 import io.github.finalwave.model.game.board.tile.NormalTile;
 import io.github.finalwave.model.game.board.tile.GraveTile;
 import io.github.finalwave.model.game.board.tile.IceTile;
@@ -16,14 +17,26 @@ import io.github.finalwave.model.game.entity.plant.PlantCategory;
 import io.github.finalwave.model.game.entity.plant.PlantCovering;
 import io.github.finalwave.model.game.entity.plant.PlantSpecialModifiers;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
+import io.github.finalwave.model.game.entity.plant.ability.BonkChoyAbility;
+import io.github.finalwave.model.game.entity.plant.ability.WasabiWhipAbility;
+import io.github.finalwave.model.game.entity.plant.ability.PhatBeetPulseMark;
+import io.github.finalwave.model.game.entity.plant.ability.KiwibeastPulseMark;
+import io.github.finalwave.model.game.entity.projectile.EndurianMuzzles;
+import io.github.finalwave.model.game.entity.projectile.PhatBeetMuzzles;
+import io.github.finalwave.model.game.entity.projectile.WasabiWhipMuzzles;
+import io.github.finalwave.model.game.entity.plant.ability.DoomShroomAbility;
+import io.github.finalwave.model.game.entity.plant.ability.IcebergLettuceAbility;
 import io.github.finalwave.model.game.entity.plant.ability.ExplosiveAbility;
 import io.github.finalwave.model.game.entity.plant.ability.PlantShotPatterns;
 import io.github.finalwave.model.game.entity.plant.ability.ProjectileAttackAbility;
 import io.github.finalwave.model.game.entity.plant.support.PlantLaneSupport;
+import io.github.finalwave.model.game.entity.projectile.IcebergLettuceMuzzles;
+import io.github.finalwave.model.game.entity.projectile.DoomShroomMuzzles;
 import io.github.finalwave.model.game.entity.projectile.Projectile;
 import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
+import io.github.finalwave.model.game.entity.zombie.ZombieState;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
 import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.model.item.Sun;
@@ -31,8 +44,10 @@ import io.github.finalwave.model.item.SunType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 public final class BoardGameContext implements GameContext {
 
@@ -193,7 +208,7 @@ public final class BoardGameContext implements GameContext {
                 ? ProjectileEffect.FIRE
                 : plant.projectileEffect();
         session.getProjectileSystem().spawnFromPlant(
-                plant, resolvedDamage, shots, profile, effect, false);
+                plant, resolvedDamage, shots, profile, effect, getRowCount());
     }
 
     @Override
@@ -204,6 +219,16 @@ public final class BoardGameContext implements GameContext {
                 : plant.projectileEffect();
         session.getProjectileSystem().spawnFromPlant(
                 plant, resolvedDamage, shots, profile, effect, true);
+    }
+
+    @Override
+    public void spawnProjectile(Plant plant, int damage, ProjectileProfile profile, int muzzleIndex) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        ProjectileEffect effect = hasFirePlantAhead(plant)
+                ? ProjectileEffect.FIRE
+                : plant.projectileEffect();
+        session.getProjectileSystem().spawnPeaPodHead(
+                plant, resolvedDamage, profile, effect, muzzleIndex);
     }
 
     @Override
@@ -274,6 +299,142 @@ public final class BoardGameContext implements GameContext {
     public void spawnPiercingProjectile(Plant plant, int damage, ProjectileEffect effect, int pierce) {
         int resolvedDamage = applyPlantDamageModifiers(plant, damage);
         session.getProjectileSystem().spawnPiercingFromPlant(plant, resolvedDamage, effect, pierce);
+    }
+
+    @Override
+    public void spawnPeaPodGiant(Plant plant, int damage) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        ProjectileEffect effect = hasFirePlantAhead(plant)
+                ? ProjectileEffect.FIRE
+                : plant.projectileEffect();
+        session.getProjectileSystem().spawnPeaPodGiant(plant, resolvedDamage, effect);
+    }
+
+    @Override
+    public void spawnCabbagePlantFood(Plant plant, int damage) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getProjectileSystem().spawnCabbagePlantFood(plant, resolvedDamage);
+    }
+
+    @Override
+    public void spawnKernelPlantFood(Plant plant, int damage) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getProjectileSystem().spawnKernelPlantFood(plant, resolvedDamage);
+    }
+
+    @Override
+    public void spawnMelonPlantFood(Plant plant, int damage) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getProjectileSystem().spawnMelonPlantFood(plant, resolvedDamage);
+    }
+
+    @Override
+    public void spawnWinterMelonPlantFood(Plant plant, int damage) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getProjectileSystem().spawnWinterMelonPlantFood(plant, resolvedDamage);
+    }
+
+    @Override
+    public void spawnPepperPlantFood(Plant plant, int damage, int muzzleIndex) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getProjectileSystem().spawnPepperPlantFood(plant, resolvedDamage, muzzleIndex);
+    }
+
+    @Override
+    public void spawnGrapeshotGrapes(Plant plant, int count, int damage) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        int bonus = (int) plant.getStats().specialModifier(PlantSpecialModifiers.EXPLODE_DAMAGE_BUFF);
+        session.getProjectileSystem().spawnGrapeshotGrapes(
+                plant, count, resolvedDamage + bonus, getRowCount(), getColCount());
+    }
+
+    @Override
+    public void startJalapenoRowFire(Plant plant, int damage) {
+        int resolvedDamage = applyPlantDamageModifiers(plant, damage);
+        session.getJalapenoFireSystem().scheduleRowFire(
+                plant, resolvedDamage, session.getCurrentTick(), getColCount());
+    }
+
+    @Override
+    public void explodeSquare(int centerCol, int centerRow, int damage, int tileRadius, Plant source) {
+        int totalDamage = source == null ? damage : applyPlantDamageModifiers(source, damage);
+        if (source != null) {
+            totalDamage += (int) source.getStats().specialModifier(PlantSpecialModifiers.EXPLODE_DAMAGE_BUFF);
+        }
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie.isDead() || zombie.isHypnotized()) {
+                continue;
+            }
+            int zombieCol = (int) Math.floor(zombie.getX());
+            if (Math.abs(zombieCol - centerCol) <= tileRadius
+                    && Math.abs(zombie.getRow() - centerRow) <= tileRadius) {
+                zombie.takeDamage(totalDamage);
+                if (zombie.isDead()) {
+                    onZombieKilled(zombie);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void spawnDoomShroomSeedling(int centerCol, int centerRow, int tileRadius, Plant source) {
+        if (source == null) {
+            return;
+        }
+        List<int[]> candidates = new ArrayList<>();
+        for (int row = centerRow - tileRadius; row <= centerRow + tileRadius; row++) {
+            for (int col = centerCol - tileRadius; col <= centerCol + tileRadius; col++) {
+                if (col == centerCol && row == centerRow) {
+                    continue;
+                }
+                if (session.getBoard().canPlace(source.getDefinition(), col, row)
+                        == PlantPlacementResult.SUCCESS) {
+                    candidates.add(new int[] {col, row});
+                }
+            }
+        }
+        if (candidates.isEmpty()) {
+            return;
+        }
+        int[] tile = candidates.get(random.nextInt(candidates.size()));
+        session.createDoomShroomSeedling(source, tile[0], tile[1]);
+    }
+
+    @Override
+    public void spawnDoomShroomSeedlings(int centerCol, int centerRow, int tileRadius, Plant source) {
+        spawnDoomShroomSeedling(centerCol, centerRow, tileRadius, source);
+    }
+
+    @Override
+    public void triggerDoomShroomPlantFood(Plant plant) {
+        for (Plant candidate : session.getBoard().getAllPlants()) {
+            if (candidate == null || !candidate.isAlive() || !candidate.isDoomShroom()) {
+                continue;
+            }
+            if (candidate.getAbility() instanceof DoomShroomAbility ability) {
+                ability.startPlantFoodAdvance(candidate, this);
+            }
+        }
+    }
+
+    @Override
+    public void enqueueTangleKelpGrabMark(int col, int row) {
+        session.getTangleKelpGrabSystem().enqueue(col, row);
+    }
+
+    @Override
+    public <T> void shuffle(List<T> list) {
+        Collections.shuffle(list, random);
+    }
+
+    @Override
+    public void placeTimedCrater(int col, int row, float durationSeconds) {
+        if (!session.getBoard().inBounds(col, row)) {
+            return;
+        }
+        session.getBoard().setTile(col, row, new CraterTile());
+        session.getCraterSystem().schedule(
+                col, row, session.getCurrentTick(), DoomShroomMuzzles.craterDurationTicks());
     }
 
     @Override
@@ -356,7 +517,7 @@ public final class BoardGameContext implements GameContext {
             if (zombie.isDead()) {
                 continue;
             }
-            if (zombieInBlast(zombie, centerCol, centerRow, radius)) {
+            if (zombieInExplosion(plant, zombie, centerCol, centerRow, radius)) {
                 zombie.takeDamage(totalDamage);
                 if (zombie.isDead()) {
                     onZombieKilled(zombie);
@@ -402,6 +563,25 @@ public final class BoardGameContext implements GameContext {
     @Override
     public void clearGraveAt(int col, int row) {
         session.clearGraveAt(col, row);
+    }
+
+    private static boolean inExplosionRange(Plant plant,
+                                            double radius,
+                                            int centerCol,
+                                            int centerRow,
+                                            double targetX,
+                                            int targetRow) {
+        double abilityValue = plant.getDefinition().getAbilityValue();
+        if (abilityValue > 1.0) {
+            int sideLength = Math.max(1, (int) Math.ceil(Math.sqrt(abilityValue)));
+            int tileRadius = Math.max(1, sideLength / 2);
+            int targetCol = (int) Math.floor(targetX);
+            return Math.abs(targetCol - centerCol) <= tileRadius
+                    && Math.abs(targetRow - centerRow) <= tileRadius;
+        }
+        double horizontalDistance = targetX - centerCol;
+        double verticalDistance = targetRow - centerRow;
+        return Math.hypot(horizontalDistance, verticalDistance) <= radius;
     }
 
     @Override
@@ -508,6 +688,345 @@ public final class BoardGameContext implements GameContext {
     }
 
     @Override
+    public void dealBonkChoyPunch(Plant plant, BonkChoyAbility.PunchStyle style, int damage) {
+        damage = applyPlantDamageModifiers(plant, damage);
+        int plantCol = plant.getCol();
+        int plantRow = plant.getRow();
+        switch (style) {
+            case RIGHT -> {
+                damageTile(plantCol + 1, plantRow, damage);
+                damageTile(plantCol, plantRow, damage);
+                damageZombiesOnTile(plantRow, plantCol, plantCol + 1, damage);
+            }
+            case LEFT -> {
+                damageTile(plantCol - 1, plantRow, damage);
+                damageZombiesOnTile(plantRow, plantCol - 1, plantCol, damage);
+            }
+            case BOTH -> {
+                damageTile(plantCol + 1, plantRow, damage);
+                damageTile(plantCol - 1, plantRow, damage);
+                damageTile(plantCol, plantRow, damage);
+                damageZombiesOnTile(plantRow, plantCol - 1, plantCol + 1, damage);
+            }
+            case UP_RIGHT -> {
+                damageTile(plantCol + 1, plantRow - 1, damage);
+                damageZombiesOnTile(plantRow - 1, plantCol + 1, plantCol + 1, damage);
+            }
+            case UP_LEFT -> {
+                damageTile(plantCol - 1, plantRow - 1, damage);
+                damageZombiesOnTile(plantRow - 1, plantCol - 1, plantCol - 1, damage);
+            }
+        }
+    }
+
+    @Override
+    public void dealWasabiWhipPunch(Plant plant, WasabiWhipAbility.WhipStyle style, int damage) {
+        damage = applyPlantDamageModifiers(plant, damage);
+        int splash = damage / 2;
+        int range = WasabiWhipMuzzles.rangeTiles(plant);
+        int plantCol = plant.getCol();
+        int plantRow = plant.getRow();
+        int minCol;
+        int maxCol;
+        int targetRow;
+        switch (style) {
+            case LEFT -> {
+                minCol = plantCol - range;
+                maxCol = plantCol - 1;
+                whipLane(plantRow, minCol, maxCol, damage, splash);
+            }
+            case RIGHT -> {
+                minCol = plantCol;
+                maxCol = plantCol + range;
+                whipLane(plantRow, minCol, maxCol, damage, splash);
+            }
+            case UP_LEFT -> {
+                minCol = plantCol - range;
+                maxCol = plantCol - 1;
+                targetRow = plantRow - 1;
+                whipDiagonal(targetRow, minCol, maxCol, damage);
+            }
+            case DOWN_LEFT -> {
+                minCol = plantCol - range;
+                maxCol = plantCol - 1;
+                targetRow = plantRow + 1;
+                whipDiagonal(targetRow, minCol, maxCol, damage);
+            }
+            case UP_RIGHT -> {
+                minCol = plantCol + 1;
+                maxCol = plantCol + range;
+                targetRow = plantRow - 1;
+                whipDiagonal(targetRow, minCol, maxCol, damage);
+            }
+            case DOWN_RIGHT -> {
+                minCol = plantCol + 1;
+                maxCol = plantCol + range;
+                targetRow = plantRow + 1;
+                whipDiagonal(targetRow, minCol, maxCol, damage);
+            }
+        }
+    }
+
+    private void whipLane(int plantRow, int minCol, int maxCol, int damage, int splash) {
+        for (int col = minCol; col <= maxCol; col++) {
+            damageTile(col, plantRow, damage);
+            damageTile(col, plantRow - 1, splash);
+            damageTile(col, plantRow + 1, splash);
+        }
+        damageZombiesOnTile(plantRow, minCol, maxCol, damage);
+        damageZombiesOnTile(plantRow - 1, minCol, maxCol, splash);
+        damageZombiesOnTile(plantRow + 1, minCol, maxCol, splash);
+    }
+
+    private void whipDiagonal(int row, int minCol, int maxCol, int damage) {
+        for (int col = minCol; col <= maxCol; col++) {
+            damageTile(col, row, damage);
+        }
+        damageZombiesOnTile(row, minCol, maxCol, damage);
+    }
+
+    @Override
+    public void dealBonkChoyAreaPunch(Plant plant, int radius, int damage) {
+        damage = applyPlantDamageModifiers(plant, damage);
+        int centerCol = plant.getCol();
+        int centerRow = plant.getRow();
+        for (int row = centerRow - radius; row <= centerRow + radius; row++) {
+            for (int col = centerCol - radius; col <= centerCol + radius; col++) {
+                damageTile(col, row, damage);
+            }
+        }
+        for (Zombie zombie : session.getZombies()) {
+            if (!zombie.isAlive()) {
+                continue;
+            }
+            int zCol = (int) Math.floor(zombie.getX());
+            if (Math.abs(zCol - centerCol) <= radius && Math.abs(zombie.getRow() - centerRow) <= radius) {
+                zombie.takeDamage(damage);
+                if (zombie.isDead()) {
+                    onZombieKilled(zombie);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void dealPhatBeetShockwave(Plant plant, int damage) {
+        if (plant == null) {
+            return;
+        }
+        damage = applyPlantDamageModifiers(plant, damage);
+        LinkedHashSet<PhatBeetPulseMark.HitTile> hits = new LinkedHashSet<>();
+        slamPhatBeetRing(plant, 0, PhatBeetMuzzles.INNER_RADIUS, damage, hits);
+        session.getPhatBeetPulseSystem().enqueue(new PhatBeetPulseMark(
+                plant.getCol(), plant.getRow(), false, List.copyOf(hits)));
+    }
+
+    @Override
+    public void dealPhatBeetPlantFood(Plant plant) {
+        if (plant == null) {
+            return;
+        }
+        int inner = applyPlantDamageModifiers(plant, PhatBeetMuzzles.INNER_PLANT_FOOD_DAMAGE);
+        int outer = applyPlantDamageModifiers(plant, PhatBeetMuzzles.OUTER_PLANT_FOOD_DAMAGE);
+        LinkedHashSet<PhatBeetPulseMark.HitTile> hits = new LinkedHashSet<>();
+        slamPhatBeetRing(plant, 0, PhatBeetMuzzles.INNER_RADIUS, inner, hits);
+        slamPhatBeetRing(plant, PhatBeetMuzzles.INNER_RADIUS + 1, PhatBeetMuzzles.OUTER_RADIUS, outer, hits);
+        session.getPhatBeetPulseSystem().enqueue(new PhatBeetPulseMark(
+                plant.getCol(), plant.getRow(), true, List.copyOf(hits)));
+    }
+
+    @Override
+    public void dealKiwibeastShockwave(Plant plant, int damage, int radius, boolean plantFood) {
+        if (plant == null) {
+            return;
+        }
+        damage = applyPlantDamageModifiers(plant, damage);
+        LinkedHashSet<KiwibeastPulseMark.HitTile> hits = new LinkedHashSet<>();
+        slamKiwibeastRing(plant, 0, Math.max(0, radius), damage, hits);
+        session.getKiwibeastPulseSystem().enqueue(new KiwibeastPulseMark(
+                plant.getCol(), plant.getRow(), plantFood, List.copyOf(hits)));
+    }
+
+    @Override
+    public void dealEndurianSpikes(Plant plant, int damage) {
+        if (plant == null) {
+            return;
+        }
+        damage = applyPlantDamageModifiers(plant, damage);
+        int centerCol = plant.getCol();
+        int centerRow = plant.getRow();
+        int radius = EndurianMuzzles.RADIUS;
+        for (PlantCovering covering : session.getPlantCoverings()) {
+            if (!covering.isAlive() || covering.getCoveredPlant() == plant) {
+                continue;
+            }
+            if (Math.max(Math.abs(covering.getCol() - centerCol),
+                    Math.abs(covering.getRow() - centerRow)) <= radius) {
+                covering.takeDamage(damage);
+            }
+        }
+        for (ArcadeObstacle obstacle : session.getArcadeObstacles()) {
+            if (!obstacle.isAlive()) {
+                continue;
+            }
+            int obstacleCol = (int) Math.floor(obstacle.getX());
+            if (Math.max(Math.abs(obstacleCol - centerCol),
+                    Math.abs(obstacle.getRow() - centerRow)) <= radius) {
+                obstacle.takeDamage(damage);
+            }
+        }
+        for (int row = centerRow - radius; row <= centerRow + radius; row++) {
+            for (int col = centerCol - radius; col <= centerCol + radius; col++) {
+                if (Math.max(Math.abs(col - centerCol), Math.abs(row - centerRow)) > radius) {
+                    continue;
+                }
+                damageTile(col, row, damage);
+            }
+        }
+        for (Zombie zombie : session.getZombies()) {
+            if (!zombie.isAlive()) {
+                continue;
+            }
+            int zCol = (int) Math.floor(zombie.getX());
+            if (Math.max(Math.abs(zCol - centerCol), Math.abs(zombie.getRow() - centerRow)) > radius) {
+                continue;
+            }
+            zombie.takeDamage(damage);
+            if (zombie.isDead()) {
+                onZombieKilled(zombie);
+            }
+        }
+    }
+
+    @Override
+    public void knockbackEatingZombies(Plant plant) {
+        if (plant == null) {
+            return;
+        }
+        for (Zombie zombie : session.getZombies()) {
+            if (!zombie.isAlive() || zombie.getState() != ZombieState.EATING) {
+                continue;
+            }
+            Plant target = getPlantInFront(zombie.getX(), zombie.getRow());
+            if (target != plant) {
+                continue;
+            }
+            zombie.moveRight(1.0);
+            zombie.setState(ZombieState.MOVING);
+        }
+    }
+
+    @Override
+    public void knockbackNearbyZombies(Plant plant, int radius) {
+        if (plant == null) {
+            return;
+        }
+        int plantCol = plant.getCol();
+        int plantRow = plant.getRow();
+        int chebyshevRadius = Math.max(0, radius);
+        for (Zombie zombie : session.getZombies()) {
+            if (!zombie.isAlive()) {
+                continue;
+            }
+            int zCol = (int) Math.floor(zombie.getX());
+            if (Math.max(Math.abs(zCol - plantCol), Math.abs(zombie.getRow() - plantRow)) > chebyshevRadius) {
+                continue;
+            }
+            zombie.moveRight(1.0);
+            zombie.setState(ZombieState.MOVING);
+        }
+    }
+
+    private void slamKiwibeastRing(Plant plant,
+                                   int minRadius,
+                                   int maxRadius,
+                                   int damage,
+                                   Set<KiwibeastPulseMark.HitTile> hits) {
+        int centerCol = plant.getCol();
+        int centerRow = plant.getRow();
+        for (int row = centerRow - maxRadius; row <= centerRow + maxRadius; row++) {
+            for (int col = centerCol - maxRadius; col <= centerCol + maxRadius; col++) {
+                int chebyshev = Math.max(Math.abs(col - centerCol), Math.abs(row - centerRow));
+                if (chebyshev < minRadius || chebyshev > maxRadius) {
+                    continue;
+                }
+                damageTile(col, row, damage);
+            }
+        }
+        for (Zombie zombie : session.getZombies()) {
+            if (!zombie.isAlive()) {
+                continue;
+            }
+            int zCol = (int) Math.floor(zombie.getX());
+            int chebyshev = Math.max(Math.abs(zCol - centerCol), Math.abs(zombie.getRow() - centerRow));
+            if (chebyshev < minRadius || chebyshev > maxRadius) {
+                continue;
+            }
+            zombie.takeDamage(damage);
+            hits.add(new KiwibeastPulseMark.HitTile(zCol, zombie.getRow()));
+            if (zombie.isDead()) {
+                onZombieKilled(zombie);
+            }
+        }
+    }
+
+    private void slamPhatBeetRing(Plant plant,
+                                  int minRadius,
+                                  int maxRadius,
+                                  int damage,
+                                  Set<PhatBeetPulseMark.HitTile> hits) {
+        int centerCol = plant.getCol();
+        int centerRow = plant.getRow();
+        for (int row = centerRow - maxRadius; row <= centerRow + maxRadius; row++) {
+            for (int col = centerCol - maxRadius; col <= centerCol + maxRadius; col++) {
+                int chebyshev = Math.max(Math.abs(col - centerCol), Math.abs(row - centerRow));
+                if (chebyshev < minRadius || chebyshev > maxRadius) {
+                    continue;
+                }
+                damageTile(col, row, damage);
+            }
+        }
+        for (Zombie zombie : session.getZombies()) {
+            if (!zombie.isAlive()) {
+                continue;
+            }
+            int zCol = (int) Math.floor(zombie.getX());
+            int chebyshev = Math.max(Math.abs(zCol - centerCol), Math.abs(zombie.getRow() - centerRow));
+            if (chebyshev < minRadius || chebyshev > maxRadius) {
+                continue;
+            }
+            zombie.takeDamage(damage);
+            hits.add(new PhatBeetPulseMark.HitTile(zCol, zombie.getRow()));
+            if (zombie.isDead()) {
+                onZombieKilled(zombie);
+            }
+        }
+    }
+
+    private void damageTile(int col, int row, int damage) {
+        if (col < 0 || col >= getColCount() || row < 0 || row >= getRowCount()) {
+            return;
+        }
+        damageGraveAt(col, row, damage);
+        damageIceAt(col, row, damage);
+    }
+
+    private void damageZombiesOnTile(int row, int minCol, int maxCol, int damage) {
+        for (Zombie zombie : getZombiesInRow(row)) {
+            if (!zombie.isAlive()) {
+                continue;
+            }
+            int zCol = (int) Math.floor(zombie.getX());
+            if (zCol >= minCol && zCol <= maxCol) {
+                zombie.takeDamage(damage);
+                if (zombie.isDead()) {
+                    onZombieKilled(zombie);
+                }
+            }
+        }
+    }
+
+    @Override
     public void projectileBurst(Plant plant, double value) {
         int shots = plant.getStats().damage() > 0
                 ? (int) Math.max(1, Math.ceil(value / plant.getStats().damage()))
@@ -555,6 +1074,29 @@ public final class BoardGameContext implements GameContext {
     }
 
     @Override
+    public void freezeGroundedZombiesForIceberg(Plant plant, double baseSeconds, double extensionSeconds) {
+        int ticks = IcebergLettuceMuzzles.mapFreezeTicks(baseSeconds, extensionSeconds);
+        for (Zombie zombie : session.getZombies()) {
+            if (!zombie.isAlive() || zombie.isHypnotized()) {
+                continue;
+            }
+            if (IcebergLettuceAbility.isAirborne(zombie, plant)) {
+                continue;
+            }
+            if (IcebergLettuceAbility.shouldChillInsteadOfFreeze(zombie, this)) {
+                zombie.applyChill(ticks);
+            } else {
+                zombie.applyFreeze(ticks);
+            }
+        }
+    }
+
+    @Override
+    public void enqueueIcebergFlash() {
+        session.getIcebergFlashSystem().enqueue();
+    }
+
+    @Override
     public void knockbackBlast(Plant plant) {
         for (Zombie zombie : getZombiesInRow(plant.getRow())) {
             if (zombie.getX() >= plant.getCol()) {
@@ -577,6 +1119,29 @@ public final class BoardGameContext implements GameContext {
                 session.createClone(plant, col, row);
                 spawned++;
             }
+        }
+    }
+
+    @Override
+    public void spawnForwardClones(Plant plant, int count) {
+        List<int[]> candidates = new ArrayList<>();
+        int sourceCol = plant.getCol();
+        for (int row = 0; row < session.getBoard().getRows(); row++) {
+            for (int col = sourceCol + 1; col < session.getBoard().getCols(); col++) {
+                if (session.getBoard().canPlace(plant.getDefinition(), col, row)
+                        == PlantPlacementResult.SUCCESS) {
+                    candidates.add(new int[] {col, row});
+                }
+            }
+        }
+        Collections.shuffle(candidates, session.getRandom());
+        int spawned = 0;
+        for (int[] tile : candidates) {
+            if (spawned >= count) {
+                break;
+            }
+            session.createPlantFoodClone(plant, tile[0], tile[1]);
+            spawned++;
         }
     }
 
@@ -1022,6 +1587,19 @@ public final class BoardGameContext implements GameContext {
             }
         }
         return false;
+    }
+
+    private static boolean zombieInExplosion(Plant plant, Zombie zombie,
+                                             int centerCol, int centerRow, double radius) {
+        if (plant.getDefinition().getAbilityValue() > 1.0) {
+            for (int row : zombie.occupiedRows()) {
+                if (inExplosionRange(plant, radius, centerCol, centerRow, zombie.getX(), row)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return zombieInBlast(zombie, centerCol, centerRow, radius);
     }
 
     private Zombie findFrontZombie(int row, int col) {

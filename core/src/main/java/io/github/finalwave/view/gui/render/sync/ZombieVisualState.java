@@ -34,6 +34,9 @@ public final class ZombieVisualState {
     }
 
     public static EntityAnimationCatalog.ClipSpec clip(Zombie zombie, ZombieClips clips) {
+        if (zombie.getFreezeTicksRemaining() > 0) {
+            return clips.idle(zombie.getType());
+        }
         String type = zombie.getType();
         if (zombie.isBoss()) {
             return clips.boss(type, zombie.getPresentationClip());

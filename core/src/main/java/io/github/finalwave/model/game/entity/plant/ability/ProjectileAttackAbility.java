@@ -3,6 +3,11 @@ package io.github.finalwave.model.game.entity.plant.ability;
 import io.github.finalwave.model.game.entity.GameContext;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCategory;
+import io.github.finalwave.model.game.entity.plant.PlantSpecialModifiers;
+import io.github.finalwave.model.game.entity.projectile.FumeMuzzles;
+import io.github.finalwave.model.game.entity.projectile.KernelMuzzles;
+import io.github.finalwave.model.game.entity.projectile.MelonMuzzles;
+import io.github.finalwave.model.game.entity.projectile.PepperMuzzles;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieState;
@@ -12,8 +17,13 @@ import java.util.List;
 
 public final class ProjectileAttackAbility implements PlantAbility {
     public static final int MUZZLE_TICKS = 4;
+    public static final int PEA_POD_MUZZLE_TICKS = 7;
+    public static final int PEA_POD_STAGGER_TICKS = 2;
+    public static final int FUME_MUZZLE_TICKS = 8;
 
     private static final String SPLIT_PEA = "Split Pea";
+    private static final String THREEPEATER = "Threepeater";
+    private static final int[] THREEPEATER_LANE_OFFSETS = {-1, 0, 1};
 
     private final int projectileCount;
     private final ProjectileProfile profile;
@@ -23,6 +33,9 @@ public final class ProjectileAttackAbility implements PlantAbility {
     private boolean pendingForward;
     private boolean pendingBackward;
     private boolean pendingDiagonal;
+    private int staggerRemaining;
+    private int nextMuzzleIndex;
+    private int volleyHeads;
 
     public ProjectileAttackAbility(int projectileCount, ProjectileProfile profile) {
         this.projectileCount = projectileCount;
@@ -59,6 +72,9 @@ public final class ProjectileAttackAbility implements PlantAbility {
         if (windupRemaining > 0) {
             windupRemaining--;
             if (windupRemaining == 0) {
+                if (plant.isPeaPod()) {
+                    return firePeaPodHead(plant, context, true);
+                }
                 onActionReady(plant, context);
                 if (pendingShots > 0) {
                     return false;
@@ -69,11 +85,18 @@ public final class ProjectileAttackAbility implements PlantAbility {
             }
             return false;
         }
+        if (nextMuzzleIndex > 0) {
+            staggerRemaining--;
+            if (staggerRemaining > 0) {
+                return false;
+            }
+            return firePeaPodHead(plant, context, false);
+        }
         if (!hasTarget(plant, context)) {
             return false;
         }
         prepareSplitFireVisual(plant, context);
-        windupRemaining = MUZZLE_TICKS;
+        windupRemaining = muzzleTicks(plant);
         plant.setAttacking(true);
         return false;
     }
@@ -85,6 +108,54 @@ public final class ProjectileAttackAbility implements PlantAbility {
 
     public ProjectileProfile getProfile() {
         return profile;
+    }
+
+    private static int muzzleTicks(Plant plant) {
+        if (plant.isPeaPod()) {
+            return PEA_POD_MUZZLE_TICKS;
+        }
+        if (plant.isFumeShroom()) {
+            return FUME_MUZZLE_TICKS;
+        }
+        if (plant.isKernelPult()) {
+            return KernelMuzzles.ATTACK_WINDUP_TICKS;
+        }
+        if (plant.isMelonPult() || plant.isWinterMelon()) {
+            return MelonMuzzles.ATTACK_WINDUP_TICKS;
+        }
+        if (plant.isPepperPult()) {
+            return PepperMuzzles.ATTACK_WINDUP_TICKS;
+        }
+        return MUZZLE_TICKS;
+    }
+
+    private boolean firePeaPodHead(Plant plant, GameContext context, boolean firstOfVolley) {
+        if (firstOfVolley) {
+            volleyHeads = Math.max(1, plant.getStackCount());
+            nextMuzzleIndex = 0;
+        }
+        do {
+            context.spawnProjectile(plant, plant.getStats().damage(), profile, nextMuzzleIndex);
+            int firedIndex = nextMuzzleIndex;
+            nextMuzzleIndex++;
+            if (nextMuzzleIndex >= volleyHeads) {
+                nextMuzzleIndex = 0;
+                staggerRemaining = 0;
+                volleyHeads = 0;
+                plant.setAttacking(false);
+                return true;
+            }
+            staggerRemaining = peaPodDelayAfter(firedIndex, volleyHeads);
+        } while (staggerRemaining == 0);
+        plant.setAttacking(true);
+        return false;
+    }
+
+    private static int peaPodDelayAfter(int firedIndex, int heads) {
+        if (firedIndex >= 1 && firedIndex < 3 && firedIndex < heads - 1) {
+            return 0;
+        }
+        return PEA_POD_STAGGER_TICKS;
     }
 
     private void fireVolley(Plant plant, GameContext context, boolean startPending) {
@@ -128,8 +199,12 @@ public final class ProjectileAttackAbility implements PlantAbility {
             }
             return;
         }
+        if (plant.isFumeShroom()) {
+            context.spawnProjectile(plant, plant.getStats().damage(), 1, profile);
+            return;
+        }
         int shots = Plant.isPeaPod(plant.getName()) ? plant.getStackCount() : projectileCount;
-        if (ahead) {
+        if (ahead || THREEPEATER.equals(plant.getName()) || plant.isPeaPod()) {
             context.spawnProjectile(plant, plant.getStats().damage(), shots, profile);
         }
         if (behind) {
@@ -181,7 +256,39 @@ public final class ProjectileAttackAbility implements PlantAbility {
         if (plant.getCategory() == PlantCategory.HOMING) {
             return hasHomingTarget(context);
         }
+        boolean anyX = SPLIT_PEA.equals(plant.getName());
+        if (THREEPEATER.equals(plant.getName())) {
+            for (int offset : THREEPEATER_LANE_OFFSETS) {
+                int row = plant.getRow() + offset;
+                if (row < 0 || row >= context.getRowCount()) {
+                    continue;
+                }
+                if (rowHasTarget(plant, context, row, anyX)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (plant.isFumeShroom()) {
+            return rowHasTarget(plant, context, plant.getRow(), anyX);
+        }
         return hasAhead(plant, context) || (SPLIT_PEA.equals(plant.getName()) && hasBehind(plant, context));
+    }
+
+    private static boolean rowHasTarget(Plant plant, GameContext context, int row, boolean anyX) {
+        List<Zombie> zombies = context.getZombiesInRow(row);
+        for (Zombie zombie : zombies) {
+            if (!isAttackableTarget(zombie)) {
+                continue;
+            }
+            if (anyX || zombie.getX() >= plant.getCol()) {
+                if (plant.isFumeShroom() && !fumeHasTarget(plant, zombie)) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean hasAhead(Plant plant, GameContext context) {
@@ -226,5 +333,12 @@ public final class ProjectileAttackAbility implements PlantAbility {
         }
         ZombieState state = zombie.getState();
         return state != ZombieState.SPAWNING && state != ZombieState.DYING;
+    }
+
+    private static boolean fumeHasTarget(Plant plant, Zombie zombie) {
+        double origin = plant.getCol() + 0.5;
+        double range = FumeMuzzles.RANGE_TILES
+                + plant.getStats().specialModifier(PlantSpecialModifiers.TILE_RANGE_EXT);
+        return FumeMuzzles.inRangeFromCenter(origin, zombie.getX(), range);
     }
 }

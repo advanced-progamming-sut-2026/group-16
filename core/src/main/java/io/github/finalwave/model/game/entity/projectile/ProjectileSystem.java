@@ -23,14 +23,31 @@ public final class ProjectileSystem {
     private static final float CACTUS_SPIKE_ANCHOR_Y = 0.88f;
     private static final double HOMING_PROJECTILE_SPEED = 0.34;
     private static final double BOWLING_SPEED = 0.32;
+    private static final int[] THREEPEATER_LANE_OFFSETS = {-1, 0, 1};
+    private static final double ARC_LAND_TILES = 4.0;
 
     private final List<Projectile> projectiles = new java.util.ArrayList<>();
     private final List<Projectile> pendingProjectiles = new java.util.ArrayList<>();
+    private final List<FumeHitMark> fumeHits = new java.util.ArrayList<>();
     private final Random random = new Random();
     private boolean ticking;
+    private long nextFumeHitId = 1;
 
     public List<Projectile> getProjectiles() {
         return List.copyOf(projectiles);
+    }
+
+    public List<FumeHitMark> getFumeHits() {
+        return List.copyOf(fumeHits);
+    }
+
+    public List<FumeHitMark> drainFumeHits() {
+        if (fumeHits.isEmpty()) {
+            return List.of();
+        }
+        List<FumeHitMark> drained = List.copyOf(fumeHits);
+        fumeHits.clear();
+        return drained;
     }
 
     public void spawn(Projectile projectile) {
@@ -57,15 +74,19 @@ public final class ProjectileSystem {
 
     public void spawnFromPlant(Plant plant, int damage, int shots,
                                ProjectileProfile profile, ProjectileEffect effect) {
-        spawnFromPlant(plant, damage, shots, profile, effect, false);
+        spawnFromPlant(plant, damage, shots, profile, effect, GameBoard.DEFAULT_ROWS);
     }
 
     public void spawnFromPlant(Plant plant, int damage, int shots,
                                ProjectileProfile profile, ProjectileEffect effect, boolean reverse) {
+        if (!reverse) {
+            spawnFromPlant(plant, damage, shots, profile, effect, GameBoard.DEFAULT_ROWS);
+            return;
+        }
         int additionalPierce = (int) plant.getStats()
                 .specialModifier(PlantSpecialModifiers.ADDITIONAL_PIERCE);
         int pierce = profile.piercing() ? 1 + additionalPierce : additionalPierce;
-        double startX = reverse ? plant.getCol() - 0.15 : plant.getCol() + 0.5;
+        double startX = plant.getCol() - 0.15;
         for (int i = 0; i < shots; i++) {
             ProjectileEffect resolvedEffect = resolveEffect(plant, effect);
             Projectile projectile = new Projectile(
@@ -76,10 +97,298 @@ public final class ProjectileSystem {
                     resolvedEffect,
                     plant,
                     pierce);
-            projectile.setReverse(reverse);
+            projectile.setReverse(true);
             applyPlantSpawnVisuals(plant, resolvedEffect, projectile);
             applyPlantProjectileClip(plant, resolvedEffect, projectile);
             projectiles.add(projectile);
+        }
+    }
+
+    public void spawnFromPlant(Plant plant, int damage, int shots,
+                               ProjectileProfile profile, ProjectileEffect effect, int boardRows) {
+        int additionalPierce = (int) plant.getStats()
+                .specialModifier(PlantSpecialModifiers.ADDITIONAL_PIERCE);
+        int pierce = profile.piercing() ? 1 + additionalPierce : additionalPierce;
+        if (isThreepeater(plant)) {
+            int volleys = Math.max(1, shots / 3);
+            for (int volley = 0; volley < volleys; volley++) {
+                for (int offset : THREEPEATER_LANE_OFFSETS) {
+                    int row = plant.getRow() + offset;
+                    if (row < 0 || row >= boardRows) {
+                        continue;
+                    }
+                    addPlantShot(plant, row, plant.getCol() + 0.5, damage, profile, effect, pierce, 0);
+                }
+            }
+            return;
+        }
+        if (isPeaPod(plant)) {
+            int heads = Math.max(1, plant.getStackCount());
+            int count = Math.max(1, shots);
+            for (int i = 0; i < count; i++) {
+                spawnPeaPodHead(plant, damage, profile, effect, i % heads, pierce);
+            }
+            return;
+        }
+        if (plant != null && plant.isFumeShroom()) {
+            addPlantShot(plant, plant.getRow(), plant.getCol() + 0.5, damage, profile, effect, pierce, 0);
+            return;
+        }
+        for (int i = 0; i < shots; i++) {
+            addPlantShot(plant, plant.getRow(), plant.getCol() + 0.5, damage, profile, effect, pierce, 0);
+        }
+    }
+
+    public void spawnPeaPodHead(Plant plant, int damage, ProjectileProfile profile,
+                                ProjectileEffect effect, int muzzleIndex) {
+        int additionalPierce = (int) plant.getStats()
+                .specialModifier(PlantSpecialModifiers.ADDITIONAL_PIERCE);
+        int pierce = profile.piercing() ? 1 + additionalPierce : additionalPierce;
+        spawnPeaPodHead(plant, damage, profile, effect, muzzleIndex, pierce);
+    }
+
+    public void spawnPeaPodGiant(Plant plant, int damage, ProjectileEffect effect) {
+        double startX = plant.getCol() + 0.5 + PeaPodMuzzles.giantX();
+        spawn(new Projectile(
+                plant.getRow(),
+                startX,
+                damage,
+                ProjectileProfile.straight(),
+                resolveEffect(plant, effect),
+                plant,
+                0,
+                PeaPodMuzzles.giantY(),
+                true));
+    }
+
+    public void spawnCabbagePlantFood(Plant plant, int damage) {
+        double startX = plant.getCol() + 0.5 + CabbageMuzzles.x();
+        spawn(new Projectile(
+                plant.getRow(),
+                startX,
+                damage,
+                ProjectileProfile.arcing(),
+                plant.projectileEffect(),
+                plant,
+                0,
+                CabbageMuzzles.y(),
+                false,
+                false,
+                true));
+    }
+
+    public void spawnKernelPlantFood(Plant plant, int damage) {
+        double startX = plant.getCol() + 0.5 + KernelMuzzles.plantFoodX();
+        spawn(new Projectile(
+                plant.getRow(),
+                startX,
+                damage,
+                ProjectileProfile.arcing(),
+                ProjectileEffect.KERNEL,
+                plant,
+                0,
+                KernelMuzzles.plantFoodY()));
+    }
+
+    public void spawnMelonPlantFood(Plant plant, int damage) {
+        double startX = plant.getCol() + 0.5 + MelonMuzzles.plantFoodX();
+        spawn(new Projectile(
+                plant.getRow(),
+                startX,
+                damage,
+                ProjectileProfile.arcing(),
+                ProjectileEffect.MELON,
+                plant,
+                0,
+                MelonMuzzles.plantFoodY(),
+                false,
+                false,
+                false,
+                true));
+    }
+
+    public void spawnWinterMelonPlantFood(Plant plant, int damage) {
+        double startX = plant.getCol() + 0.5 + MelonMuzzles.plantFoodX();
+        spawn(new Projectile(
+                plant.getRow(),
+                startX,
+                damage,
+                ProjectileProfile.arcing(),
+                ProjectileEffect.WINTER_MELON,
+                plant,
+                0,
+                MelonMuzzles.plantFoodY(),
+                false,
+                false,
+                false,
+                true));
+    }
+
+    public void spawnPepperPlantFood(Plant plant, int damage, int muzzleIndex) {
+        double startX = plant.getCol() + 0.5 + PepperMuzzles.plantFoodX(muzzleIndex);
+        spawn(new Projectile(
+                plant.getRow(),
+                startX,
+                damage,
+                ProjectileProfile.arcing(),
+                ProjectileEffect.PEPPER,
+                plant,
+                0,
+                PepperMuzzles.plantFoodY(muzzleIndex),
+                false,
+                false,
+                false,
+                false,
+                true));
+    }
+
+    public void spawnGrapeshotGrapes(Plant plant, int count, int damage, int boardRows, int boardCols) {
+        if (plant == null || count <= 0) {
+            return;
+        }
+        double startX = plant.getCol() + 0.5;
+        double startRow = plant.getRow() + 0.0;
+        double step = (Math.PI * 2.0) / count;
+        for (int i = 0; i < count; i++) {
+            double jitter = (random.nextDouble() * 2.0 - 1.0) * GrapeshotMuzzles.GRAPE_JITTER_RADIANS;
+            double angle = i * step + jitter;
+            double speed = GrapeshotMuzzles.GRAPE_SPEED_TILES_PER_TICK;
+            double velocityX = Math.cos(angle) * speed;
+            double velocityY = Math.sin(angle) * speed;
+            spawn(Projectile.grapeshotGrape(
+                    plant,
+                    startX,
+                    startRow,
+                    velocityX,
+                    velocityY,
+                    damage));
+        }
+    }
+
+    private void spawnPeaPodHead(Plant plant, int damage, ProjectileProfile profile,
+                                 ProjectileEffect effect, int muzzleIndex, int pierce) {
+        int heads = Math.max(1, plant.getStackCount());
+        int index = Math.max(0, Math.min(heads - 1, muzzleIndex));
+        double startX = plant.getCol() + 0.5 + PeaPodMuzzles.x(heads, index);
+        addPlantShot(plant, plant.getRow(), startX, damage, profile, effect, pierce,
+                PeaPodMuzzles.y(heads, index));
+    }
+
+    private void addPlantShot(Plant plant, int row, double startX, int damage, ProjectileProfile profile,
+                              ProjectileEffect effect, int pierce, double laneYOffset) {
+        double x = startX;
+        double yOffset = laneYOffset;
+        boolean fumeFood = plant != null && plant.isFumeShroom() && plant.isPlantFooding();
+        if (plant != null && plant.isFumeShroom()) {
+            x += fumeFood ? FumeMuzzles.plantFoodX() : FumeMuzzles.x();
+            yOffset = fumeFood ? FumeMuzzles.plantFoodY() : FumeMuzzles.y();
+        }
+        if (plant != null && plant.isKernelPult()) {
+            x += KernelMuzzles.x();
+            yOffset = KernelMuzzles.y();
+        }
+        if (plant != null && (plant.isMelonPult() || plant.isWinterMelon())) {
+            x += MelonMuzzles.x();
+            yOffset = MelonMuzzles.y();
+        }
+        if (plant != null && plant.isPepperPult()) {
+            x += PepperMuzzles.x();
+            yOffset = PepperMuzzles.y();
+        }
+        Projectile shot = new Projectile(
+                row,
+                x,
+                damage,
+                profile,
+                resolveEffect(plant, effect),
+                plant,
+                pierce,
+                yOffset,
+                false,
+                fumeFood);
+        if (plant != null && plant.isFumeShroom()) {
+            shot.setLifetimeTicks(fumeFood
+                    ? FumeMuzzles.PLANTFOOD_CLOUD_TICKS
+                    : FumeMuzzles.ATTACK_CLOUD_TICKS);
+        }
+        applyPlantSpawnVisuals(plant, shot.getEffect(), shot);
+        applyPlantProjectileClip(plant, shot.getEffect(), shot);
+        projectiles.add(shot);
+    }
+
+    private static boolean isThreepeater(Plant plant) {
+        return plant != null && "Threepeater".equals(plant.getName());
+    }
+
+    private static boolean isPeaPod(Plant plant) {
+        return plant != null && plant.isPeaPod();
+    }
+
+    private static boolean isFumeCloud(Projectile projectile) {
+        return projectile != null
+                && !projectile.isFromZombie()
+                && projectile.getEffect() == ProjectileEffect.FUME;
+    }
+
+    private static boolean isArcing(Projectile projectile) {
+        return projectile != null
+                && projectile.getProfile() != null
+                && projectile.getProfile().trajectory() == ProjectileProfile.Trajectory.ARCING;
+    }
+
+    private static boolean isBouncing(Projectile projectile) {
+        return projectile != null && projectile.isGrapeshotGrape();
+    }
+
+    private double resolveArcLandX(Projectile projectile, List<Zombie> zombies, GameBoard board) {
+        double launch = projectile.getX();
+        double land = Double.NaN;
+        if (zombies != null) {
+            for (Zombie zombie : zombies) {
+                if (zombie.isDead() || zombie.isHypnotized()
+                        || zombie.getRow() != projectile.getRow()) {
+                    continue;
+                }
+                if (zombie.getX() <= launch) {
+                    continue;
+                }
+                if (Double.isNaN(land) || zombie.getX() < land) {
+                    land = zombie.getX();
+                }
+            }
+        }
+        if (Double.isNaN(land)) {
+            land = launch + ARC_LAND_TILES;
+        }
+        return Math.min(land, board.getCols());
+    }
+
+    private void hitFumeLane(Projectile projectile, GameBoard board, List<Zombie> zombies,
+                             ProjectileKillCallback onZombieKilled, GameContext context) {
+        if (!FumeMuzzles.isHitTick(projectile.getFumeAgeTicks())) {
+            return;
+        }
+        Plant source = projectile.getSource();
+        double origin = source != null ? source.getCol() + 0.5 : projectile.getX();
+        double range = projectile.isFumePlantFood()
+                ? FumeMuzzles.PLANTFOOD_RANGE_TILES
+                : FumeMuzzles.RANGE_TILES;
+        if (source != null) {
+            range += source.getStats().specialModifier(PlantSpecialModifiers.TILE_RANGE_EXT);
+        }
+        for (Zombie zombie : zombies) {
+            if (zombie.isDead() || zombie.isHypnotized()
+                    || zombie.getRow() != projectile.getRow()) {
+                continue;
+            }
+            if (!FumeMuzzles.inRangeFromCenter(origin, zombie.getX(), range)) {
+                continue;
+            }
+            if (context != null && zombie.interceptProjectile(projectile, context)) {
+                continue;
+            }
+            fumeHits.add(new FumeHitMark(nextFumeHitId++, zombie.getRow(), zombie.getX()));
+            applyHit(projectile, zombie, board, zombies, onZombieKilled, context);
         }
     }
 
@@ -239,8 +548,54 @@ public final class ProjectileSystem {
                     iterator.remove();
                     continue;
                 }
+                if (isFumeCloud(projectile)) {
+                    projectile.advanceFumeAge();
+                    hitFumeLane(projectile, board, zombies, onZombieKilled, context);
+                    projectile.decrementLifetime();
+                    if (projectile.isExpired()) {
+                        iterator.remove();
+                    }
+                    continue;
+                }
+                if (isBouncing(projectile)) {
+                    moveGrapeshotGrape(projectile, board);
+                    Zombie hit = findGrapeshotHit(projectile, zombies);
+                    if (hit != null) {
+                        if (context != null && hit.interceptProjectile(projectile, context)) {
+                            iterator.remove();
+                            continue;
+                        }
+                        projectile.recordHit(hit.getId());
+                        applyHit(projectile, hit, board, zombies, onZombieKilled, context);
+                        iterator.remove();
+                        continue;
+                    }
+                    projectile.decrementLifetime();
+                    if (projectile.isExpired()) {
+                        iterator.remove();
+                    }
+                    continue;
+                }
+                if (isArcing(projectile) && !projectile.isFromZombie()) {
+                    if (!projectile.hasLandX()) {
+                        projectile.setLandX(resolveArcLandX(projectile, zombies, board));
+                    }
+                }
                 move(projectile, board, zombies, context);
                 if (projectile.isExpired()) {
+                    iterator.remove();
+                    continue;
+                }
+                if (isArcing(projectile) && !projectile.isFromZombie()
+                        && projectile.hasLandX()
+                        && projectile.getX() >= projectile.getLandX()) {
+                    Zombie landedOn = findTarget(projectile, zombies);
+                    if (landedOn != null) {
+                        if (context == null || !landedOn.interceptProjectile(projectile, context)) {
+                            projectile.recordHit(landedOn.getId());
+                            applyHit(projectile, landedOn, board, zombies, onZombieKilled, context);
+                        }
+                    }
                     iterator.remove();
                     continue;
                 }
@@ -327,6 +682,46 @@ public final class ProjectileSystem {
             }
         }
         return false;
+    }
+
+    private void moveGrapeshotGrape(Projectile projectile, GameBoard board) {
+        double x = projectile.getX() + projectile.getVelocityX();
+        double rowPos = projectile.getRowPosition() + projectile.getVelocityY();
+        double velocityX = projectile.getVelocityX();
+        double velocityY = projectile.getVelocityY();
+        double maxCol = board.getCols() - 1;
+        double maxRow = board.getRows() - 1;
+        if (x < 0) {
+            x = -x;
+            velocityX = -velocityX;
+        } else if (x > maxCol) {
+            x = maxCol - (x - maxCol);
+            velocityX = -velocityX;
+        }
+        if (rowPos < 0) {
+            rowPos = -rowPos;
+            velocityY = -velocityY;
+        } else if (rowPos > maxRow) {
+            rowPos = maxRow - (rowPos - maxRow);
+            velocityY = -velocityY;
+        }
+        projectile.setX(x);
+        projectile.setRowPosition(rowPos);
+        projectile.setVelocity(velocityX, velocityY);
+    }
+
+    private Zombie findGrapeshotHit(Projectile projectile, List<Zombie> zombies) {
+        for (Zombie zombie : zombies) {
+            if (zombie.isDead() || zombie.isHypnotized()) {
+                continue;
+            }
+            double dx = zombie.getX() - projectile.getX();
+            double dy = zombie.getRow() - projectile.getRowPosition();
+            if (Math.hypot(dx, dy) <= GrapeshotMuzzles.GRAPE_HIT_RADIUS) {
+                return zombie;
+            }
+        }
+        return null;
     }
 
     private void move(Projectile projectile, GameBoard board, List<Zombie> zombies,

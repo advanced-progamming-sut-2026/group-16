@@ -2,6 +2,9 @@ package io.github.finalwave.model.game;
 
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
+import io.github.finalwave.model.game.entity.plant.ability.ChomperAbility;
+import io.github.finalwave.model.game.entity.plant.ability.IcebergLettuceAbility;
+import io.github.finalwave.model.game.entity.plant.ability.TangleKelpAbility;
 import io.github.finalwave.model.game.entity.plant.ability.ExplosiveAbility;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.quest.event.GameEvent;
@@ -28,6 +31,7 @@ final class GameSessionCombat {
         session.getTileEffects().expireTimedEffects();
         session.getTileEffects().tickFireTiles();
         session.getTileEffects().tickGooPuddles();
+        session.getCraterSystem().tick(session.getBoard(), session.getCurrentTick());
         session.getTileEffects().tickCoveringsAndObstacles();
         session.getTileEffects().tickAdjacentFireIceMelt();
         tickLivingPlants();
@@ -39,6 +43,11 @@ final class GameSessionCombat {
                 session.zombieList(),
                 session::handleProjectileKill,
                 session.getContext());
+        session.getJalapenoFireSystem().tick(
+                session.getBoard(),
+                session.zombieList(),
+                session.getContext(),
+                session.getCurrentTick());
         if (session.getMiniGameState().isWalnutBowlingActive()) {
             session.getMiniGameState().getBowlingNutSystem().tick(session);
         }
@@ -188,7 +197,23 @@ final class GameSessionCombat {
         int col = (int) Math.floor(zombie.getX());
         for (int row : zombie.occupiedRows()) {
             Plant plant = session.getBoard().getGroundPlantAt(col, row);
-            if (plant == null || !plant.isAlive() || !plant.hasTag(PlantTag.TRAP) || !plant.isArmedTrap()) {
+            Plant inFront = session.getBoard().getPlantInFront(zombie.getX(), row);
+            Plant chomper = plant != null && plant.isChomper() ? plant
+                    : (inFront != null && inFront.isChomper() ? inFront : null);
+            if (chomper != null && chomper.isAlive()
+                    && chomper.getAbility() instanceof ChomperAbility ability) {
+                ability.onZombieContact(chomper, zombie, session.getContext());
+            }
+            if (plant == null || !plant.isAlive() || plant.isSquash()
+                    || !plant.hasTag(PlantTag.TRAP) || !plant.isArmedTrap()) {
+                continue;
+            }
+            if (plant.getAbility() instanceof TangleKelpAbility kelp) {
+                kelp.startGrab(plant, zombie, session.getContext());
+                continue;
+            }
+            if (plant.getAbility() instanceof IcebergLettuceAbility iceberg) {
+                iceberg.startTrapFreeze(plant, zombie, session.getContext());
                 continue;
             }
             if (plant.getAbility() instanceof ExplosiveAbility explosive) {
