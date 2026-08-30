@@ -1,7 +1,7 @@
 package io.github.finalwave.server.db;
 
 public final class DatabaseConfig {
-    private static final String DEFAULT_URL = "jdbc:sqlite:users.db";
+    private static final String DEFAULT_URL = "jdbc:sqlite:server/users.db";
     private static final String PROPERTY = "pvz.database.url";
     private static final String ENV = "PVZ_DATABASE_URL";
 

@@ -52,12 +52,22 @@ dependencies {
 
 def os = System.properties['os.name'].toLowerCase(Locale.ROOT)
 
+def forwardPvzSystemProperties(JavaExec exec) {
+  ['pvz.database.url', 'pvz.session.file'].each { key ->
+    def value = System.getProperty(key)
+    if (value != null && !value.isBlank()) {
+      exec.systemProperty key, value
+    }
+  }
+}
+
 run {
   workingDir = rootProject.file('assets').path
 // You can uncomment the next line if your IDE claims a build failure even when the app closed properly.
   //setIgnoreExitValue(true)
   jvmArgs += "--enable-native-access=ALL-UNNAMED"
   if (os.contains('mac')) jvmArgs += "-XstartOnFirstThread"
+  forwardPvzSystemProperties(it)
 }
 
 jar {

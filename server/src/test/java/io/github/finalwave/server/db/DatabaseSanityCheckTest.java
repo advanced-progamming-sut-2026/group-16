@@ -35,4 +35,12 @@ class DatabaseSanityCheckTest {
         database.initializeSchema();
         assertDoesNotThrow(() -> DatabaseSanityCheck.runOrThrow(database));
     }
+
+    @Test
+    void succeedsWhenRunTwiceAgainstSameDatabase() {
+        ServerDatabase database = new ServerDatabase();
+        database.initializeSchema();
+        DatabaseSanityCheck.runOrThrow(database);
+        assertDoesNotThrow(() -> DatabaseSanityCheck.runOrThrow(database));
+    }
 }

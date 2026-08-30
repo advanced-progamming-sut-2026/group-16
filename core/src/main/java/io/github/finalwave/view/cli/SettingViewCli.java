@@ -20,6 +20,11 @@ public class SettingViewCli extends CliView implements SettingView {
     }
 
     @Override
+    public void showOnlineStatus(String username, String status) {
+        displayMessage(username + ": " + status);
+    }
+
+    @Override
     public void errorInvalidCommand() {
         displayError("Invalid settings command.");
     }

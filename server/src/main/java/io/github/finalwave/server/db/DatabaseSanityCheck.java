@@ -5,6 +5,7 @@ import io.github.finalwave.model.user.User;
 
 public final class DatabaseSanityCheck {
     public static final String SANITY_USERNAME = "__sanity_check__";
+    private static final int SANITY_SCORE = 42;
 
     private DatabaseSanityCheck() {
     }
@@ -20,6 +21,15 @@ public final class DatabaseSanityCheck {
     }
 
     public static void runOrThrow(ServerDatabase database) {
+        User existing = database.getUser(SANITY_USERNAME);
+        if (existing == null) {
+            registerSanityUser(database);
+            verifyFreshUserDefaults(database);
+        }
+        verifyScoreRoundTrip(database);
+    }
+
+    private static void registerSanityUser(ServerDatabase database) {
         User user = new User(
                 SANITY_USERNAME,
                 "sanity-hash",
@@ -30,11 +40,10 @@ public final class DatabaseSanityCheck {
         user.setSecurityQuestionId(1);
         user.setSecurityAnswerHash("sanity-answer-hash");
         database.registerUser(user);
+    }
 
-        User reloaded = database.getUser(SANITY_USERNAME);
-        if (reloaded == null) {
-            throw new IllegalStateException("registered user not found");
-        }
+    private static void verifyFreshUserDefaults(ServerDatabase database) {
+        User reloaded = requireSanityUser(database);
         if (reloaded.getCoins() != 0 || reloaded.getDiamonds() != 0) {
             throw new IllegalStateException("wallet defaults incorrect");
         }
@@ -44,19 +53,27 @@ public final class DatabaseSanityCheck {
         if (reloaded.getBestMeowPoint() != 0) {
             throw new IllegalStateException("new user should have no score");
         }
+    }
 
-        reloaded.updateBestMeowPoint(42);
+    private static void verifyScoreRoundTrip(ServerDatabase database) {
+        User reloaded = requireSanityUser(database);
+        reloaded.updateBestMeowPoint(SANITY_SCORE);
         database.saveBestMeowPoint(reloaded);
 
-        User scored = database.getUser(SANITY_USERNAME);
-        if (scored == null) {
-            throw new IllegalStateException("scored user not found");
-        }
+        User scored = requireSanityUser(database);
         if (!scored.hasPlayed()) {
             throw new IllegalStateException("hasPlayed not persisted");
         }
-        if (scored.getBestMeowPoint() != 42) {
+        if (scored.getBestMeowPoint() != SANITY_SCORE) {
             throw new IllegalStateException("bestMeowPoint not persisted");
         }
+    }
+
+    private static User requireSanityUser(ServerDatabase database) {
+        User user = database.getUser(SANITY_USERNAME);
+        if (user == null) {
+            throw new IllegalStateException("registered user not found");
+        }
+        return user;
     }
 }

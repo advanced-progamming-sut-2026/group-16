@@ -20,6 +20,7 @@ import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.IZombieController;
+import io.github.finalwave.controller.NetworkedIZombieController;
 import io.github.finalwave.controller.ScoreGamePlayController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
@@ -36,6 +37,7 @@ import io.github.finalwave.model.minigame.GroundSeedPacket;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
 import io.github.finalwave.model.minigame.beghouled.BeghouledUpgradeRule;
 import io.github.finalwave.model.minigame.izombie.IZombieHandler;
+import io.github.finalwave.network.match.MatchRole;
 import io.github.finalwave.model.scoregame.MeowPointBreakdown;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
@@ -110,6 +112,7 @@ public final class GamePlayScreen extends MenuScreen {
     private VaseBreakerController vaseBreaker;
     private WalnutBowlingController walnutBowling;
     private IZombieController iZombie;
+    private NetworkedIZombieController networkedIZombie;
     private BeghouledController beghouled;
     private ZombotanyController zombotany;
     private MatchClock clock;
@@ -156,9 +159,22 @@ public final class GamePlayScreen extends MenuScreen {
         this.vaseBreaker = null;
         this.walnutBowling = null;
         this.iZombie = null;
+        this.networkedIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
         bindMatch(controller == null ? null : controller.getUser(), controller == null ? null : controller.session());
+    }
+
+    public void bind(NetworkedIZombieController networkedIZombie) {
+        this.controller = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.iZombie = null;
+        this.networkedIZombie = networkedIZombie;
+        this.beghouled = null;
+        this.zombotany = null;
+        bindMatch(networkedIZombie == null ? null : networkedIZombie.getUser(),
+                networkedIZombie == null ? null : networkedIZombie.session());
     }
 
     public void bind(VaseBreakerController vaseBreaker) {
@@ -166,7 +182,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.vaseBreaker = vaseBreaker;
         this.walnutBowling = null;
         this.iZombie = null;
-        this.beghouled = null;
+        this.networkedIZombie = null;
         this.zombotany = null;
         bindMatch(vaseBreaker == null ? null : vaseBreaker.getUser(), vaseBreaker == null ? null : vaseBreaker.session());
     }
@@ -176,6 +192,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.vaseBreaker = null;
         this.walnutBowling = walnutBowling;
         this.iZombie = null;
+        this.networkedIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
         bindMatch(walnutBowling == null ? null : walnutBowling.getUser(),
@@ -187,6 +204,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.vaseBreaker = null;
         this.walnutBowling = null;
         this.iZombie = iZombie;
+        this.networkedIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
         bindMatch(iZombie == null ? null : iZombie.getUser(), iZombie == null ? null : iZombie.session());
@@ -197,6 +215,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.vaseBreaker = null;
         this.walnutBowling = null;
         this.iZombie = null;
+        this.networkedIZombie = null;
         this.beghouled = beghouled;
         this.zombotany = null;
         bindMatch(beghouled == null ? null : beghouled.getUser(), beghouled == null ? null : beghouled.session());
@@ -207,6 +226,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.vaseBreaker = null;
         this.walnutBowling = null;
         this.iZombie = null;
+        this.networkedIZombie = null;
         this.beghouled = null;
         this.zombotany = zombotany;
         bindMatch(zombotany == null ? null : zombotany.getUser(), zombotany == null ? null : zombotany.session());
@@ -307,6 +327,22 @@ public final class GamePlayScreen extends MenuScreen {
         icebergFlashOverlay.fitStage(WORLD_WIDTH, WORLD_HEIGHT);
         modalLayer.addActor(icebergFlashOverlay);
         startIntroDialog();
+        finishNetworkedMatchBoot();
+    }
+
+    private void finishNetworkedMatchBoot() {
+        if (networkedIZombie == null) {
+            return;
+        }
+        resultShown = false;
+        if (clock != null) {
+            clock.setPaused(false);
+            clock.setResultShowing(false);
+        }
+        refreshHud();
+        if (networkedIZombie.role() == MatchRole.PLANT) {
+            networkedIZombie.tickHostSync();
+        }
     }
 
     @Override
@@ -455,7 +491,7 @@ public final class GamePlayScreen extends MenuScreen {
 
     public void refreshHud() {
         if (controller == null && vaseBreaker == null && walnutBowling == null && iZombie == null
-                && beghouled == null && zombotany == null) {
+                && networkedIZombie == null && beghouled == null && zombotany == null) {
             return;
         }
         User user = matchUser();
@@ -464,7 +500,7 @@ public final class GamePlayScreen extends MenuScreen {
             bindCurrency(user);
         }
         if (sunCounter != null && session != null) {
-            sunCounter.setAmount(session.getSunBalance());
+            sunCounter.setAmount(displaySunBalance(session));
             sunCounter.setCounting(clock == null || !clock.shouldFreeze());
             sunCounter.setCountSpeed(clock == null ? 1f : clock.speed());
         }
@@ -480,7 +516,7 @@ public final class GamePlayScreen extends MenuScreen {
         }
         boolean vaseMode = vaseBreaker != null;
         boolean bowlingMode = walnutBowling != null;
-        boolean iZombieMode = iZombie != null;
+        boolean iZombieMode = iZombie != null || networkedZombieRole();
         boolean hideAdventureHud = vaseMode || bowlingMode;
         boolean hideSeeds = hideSeedTools();
         if (sunCounter != null) {
@@ -515,6 +551,7 @@ public final class GamePlayScreen extends MenuScreen {
             if (hideSeeds || sandbox) {
                 seedBank.setVisible(false);
             } else {
+                seedBank.setVisible(true);
                 seedBank.refresh(session, user, seedBoosts(),
                         input == null ? null : input.mode());
             }
@@ -732,9 +769,10 @@ public final class GamePlayScreen extends MenuScreen {
 
         Table mid = new Table();
         mid.setTouchable(Touchable.childrenOnly);
-        if (iZombie != null) {
+        if (iZombie != null || networkedZombieRole()) {
             mid.add(zombieRoster).left().top().padLeft(8f).padTop(6f);
-        } else if (!hideSeedTools() && !sandboxMatch()) {
+        }
+        if ((!hideSeedTools() && !sandboxMatch()) || networkedPlantRole()) {
             mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
         }
         mid.add().expand();
@@ -799,7 +837,8 @@ public final class GamePlayScreen extends MenuScreen {
 
     private void startIntroDialog() {
         if (sandboxMatch() || npcDialog == null || controller == null || vaseBreaker != null
-                || walnutBowling != null || iZombie != null || beghouled != null || zombotany != null) {
+                || walnutBowling != null || iZombie != null || networkedIZombie != null
+                || beghouled != null || zombotany != null) {
             showObjectiveIfNeeded();
             return;
         }
@@ -821,7 +860,8 @@ public final class GamePlayScreen extends MenuScreen {
 
     private void showObjectiveIfNeeded() {
         if (sandboxMatch() || objectiveBanner == null || controller == null || vaseBreaker != null
-                || walnutBowling != null || iZombie != null || beghouled != null || zombotany != null) {
+                || walnutBowling != null || iZombie != null || networkedIZombie != null
+                || beghouled != null || zombotany != null) {
             resumeAfterIntro();
             return;
         }
@@ -891,6 +931,13 @@ public final class GamePlayScreen extends MenuScreen {
             MiniGameStageConfig stage = iZombie.getStage();
             return "I, Zombie - Stage " + stage.getStageIndex();
         }
+        if (networkedIZombie != null && networkedIZombie.getStage() != null) {
+            MiniGameStageConfig stage = networkedIZombie.getStage();
+            String role = networkedIZombie.role() == MatchRole.PLANT ? "Plants" : "Zombies";
+            String opponent = networkedIZombie.opponentUsername();
+            String versus = opponent == null || opponent.isBlank() ? "" : " vs " + opponent;
+            return "I, Zombie Online (" + role + ")" + versus;
+        }
         if (beghouled != null && beghouled.getStage() != null) {
             MiniGameStageConfig stage = beghouled.getStage();
             return "Beghouled - Stage " + stage.getStageIndex();
@@ -953,6 +1000,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (iZombie != null) {
             iZombie.cheatAddSun(50);
             return;
+        }
+        if (networkedIZombie != null) {
+            networkedIZombie.cheatAddSun(50);
         }
         if (zombotany != null) {
             zombotany.cheatAddSun(50);
@@ -1051,6 +1101,10 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (iZombie != null) {
             iZombie.confirmMatchExit();
+            return;
+        }
+        if (networkedIZombie != null) {
+            networkedIZombie.confirmMatchExit();
             return;
         }
         if (beghouled != null) {
@@ -1588,6 +1642,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (iZombie != null) {
             return iZombie.session();
         }
+        if (networkedIZombie != null) {
+            return networkedIZombie.session();
+        }
         if (beghouled != null) {
             return beghouled.session();
         }
@@ -1617,6 +1674,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (iZombie != null) {
             return iZombie.getUser();
         }
+        if (networkedIZombie != null) {
+            return networkedIZombie.getUser();
+        }
         if (beghouled != null) {
             return beghouled.getUser();
         }
@@ -1643,7 +1703,25 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private boolean hideSeedTools() {
-        return hideAdventureTools() || beghouled != null || iZombie != null;
+        return hideAdventureTools() || beghouled != null || iZombie != null || networkedZombieRole();
+    }
+
+    private boolean networkedZombieRole() {
+        return networkedIZombie != null && networkedIZombie.role() == MatchRole.ZOMBIE;
+    }
+
+    private boolean networkedPlantRole() {
+        return networkedIZombie != null && networkedIZombie.role() == MatchRole.PLANT;
+    }
+
+    private int displaySunBalance(GameSession session) {
+        if (session == null) {
+            return 0;
+        }
+        if (iZombie != null || networkedZombieRole()) {
+            return session.getIZombieSunBalance();
+        }
+        return session.getSunBalance();
     }
 
     private LawnActionHost lawnHost() {
@@ -1655,6 +1733,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (iZombie != null) {
             return new ControllerLawnHost(iZombie);
+        }
+        if (networkedIZombie != null) {
+            return new ControllerLawnHost(networkedIZombie);
         }
         if (beghouled != null) {
             return new ControllerLawnHost(beghouled);
@@ -1674,6 +1755,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (iZombie != null) {
             return new ControllerTicker(iZombie);
+        }
+        if (networkedIZombie != null) {
+            return new ControllerTicker(networkedIZombie);
         }
         if (beghouled != null) {
             return new ControllerTicker(beghouled);

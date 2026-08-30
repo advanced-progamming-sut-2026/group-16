@@ -467,6 +467,39 @@ public final class GameSession {
         return miniGameState.areAllIZombieBrainsEaten();
     }
 
+    public void syncIZombieBrainsFromNetwork(boolean[] eaten) {
+        miniGameState.syncIZombieBrainsFromNetwork(eaten);
+    }
+
+    public int getIZombieSunBalance() {
+        return miniGameState.getIZombieSunBalance();
+    }
+
+    public void setIZombieSunBalance(int amount) {
+        miniGameState.setIZombieSunBalance(amount);
+    }
+
+    public void addIZombieSunBalance(int amount) {
+        miniGameState.addIZombieSunBalance(amount);
+    }
+
+    public void withdrawIZombieSun(int amount) {
+        miniGameState.withdrawIZombieSun(amount);
+    }
+
+    public void syncNetworkTick(long tick) {
+        int next = (int) Math.max(0L, tick);
+        if (next > currentTick) {
+            currentTick = next;
+        }
+    }
+
+    public void advanceGuestDisplayTicks(int count) {
+        if (count > 0) {
+            currentTick += count;
+        }
+    }
+
     public PlantPlacementResult tryPlaceZombie(String alias, int col, int row) {
         return miniGameState.tryPlaceZombie(alias, col, row);
     }
