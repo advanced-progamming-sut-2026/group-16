@@ -79,6 +79,18 @@ public final class GameBoard {
         return cells[row][col].getOverlay();
     }
 
+    public Plant findPeaPod(int col, int row) {
+        Plant overlay = getOverlayPlantAt(col, row);
+        if (overlay != null && overlay.isPeaPod()) {
+            return overlay;
+        }
+        Plant ground = getGroundPlantAt(col, row);
+        if (ground != null && ground.isPeaPod()) {
+            return ground;
+        }
+        return null;
+    }
+
     public Plant getPlantInFront(double zombieX, int row) {
         if (row < 0 || row >= rows) {
             return null;

@@ -22,6 +22,7 @@ import io.github.finalwave.view.gui.render.sync.BowlingLineSync;
 import io.github.finalwave.view.gui.render.sync.BowlingNutSync;
 import io.github.finalwave.view.gui.render.sync.BrainSync;
 import io.github.finalwave.view.gui.render.sync.DeadLineSync;
+import io.github.finalwave.view.gui.render.sync.ExplosionSync;
 import io.github.finalwave.view.gui.render.sync.FireTileSync;
 import io.github.finalwave.view.gui.render.sync.GraveSync;
 import io.github.finalwave.view.gui.render.sync.GraveBusterDirtSync;
@@ -30,15 +31,20 @@ import io.github.finalwave.view.gui.render.sync.GroundSeedPacketSync;
 import io.github.finalwave.view.gui.render.sync.IceShroomFxSync;
 import io.github.finalwave.view.gui.render.sync.IceTileSync;
 import io.github.finalwave.view.gui.render.sync.IceWindSync;
+import io.github.finalwave.view.gui.render.sync.JalapenoFireSync;
+import io.github.finalwave.view.gui.render.sync.KiwibeastPulseSync;
 import io.github.finalwave.view.gui.render.sync.LawnBurstSync;
 import io.github.finalwave.view.gui.render.sync.MintSync;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
+import io.github.finalwave.view.gui.render.sync.PhatBeetPulseSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SandstormSync;
+import io.github.finalwave.view.gui.render.sync.ScorchedEarthSync;
 import io.github.finalwave.view.gui.render.sync.SlipperyTileSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
+import io.github.finalwave.view.gui.render.sync.TangleKelpGrabSync;
 import io.github.finalwave.view.gui.render.sync.VaseSync;
 import io.github.finalwave.view.gui.render.sync.ZombieSync;
 import io.github.finalwave.view.gui.widget.PamActor;
@@ -65,6 +71,11 @@ public final class BattlefieldGroup extends WidgetGroup {
     private final Group fxLayer = new Group();
 
     private PlantSync plantSync;
+    private ExplosionSync explosionSync;
+    private JalapenoFireSync jalapenoFireSync;
+    private TangleKelpGrabSync tangleKelpGrabSync;
+    private PhatBeetPulseSync phatBeetPulseSync;
+    private KiwibeastPulseSync kiwibeastPulseSync;
     private ZombieSync zombieSync;
     private ProjectileSync projectileSync;
     private SunSync sunSync;
@@ -80,6 +91,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private SlipperyTileSync slipperyTileSync;
     private IceWindSync iceWindSync;
     private BossFxSync bossFxSync;
+    private ScorchedEarthSync scorchedEarthSync;
     private DeadLineSync deadLineSync;
     private VaseSync vaseSync;
     private GroundSeedPacketSync packetSync;
@@ -126,6 +138,11 @@ public final class BattlefieldGroup extends WidgetGroup {
         clearBattlefield();
         if (assets == null || layout == null || catalog == null) {
             plantSync = null;
+            explosionSync = null;
+            jalapenoFireSync = null;
+            tangleKelpGrabSync = null;
+            phatBeetPulseSync = null;
+            kiwibeastPulseSync = null;
             zombieSync = null;
             projectileSync = null;
             sunSync = null;
@@ -140,6 +157,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             slipperyTileSync = null;
             iceWindSync = null;
             bossFxSync = null;
+            scorchedEarthSync = null;
             deadLineSync = null;
             vaseSync = null;
             packetSync = null;
@@ -156,6 +174,11 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         ProjectileClips projectileClips = new ProjectileClips();
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
+        explosionSync = new ExplosionSync(assets, layout, fxLayer);
+        jalapenoFireSync = new JalapenoFireSync(assets, layout, fxLayer);
+        tangleKelpGrabSync = new TangleKelpGrabSync(assets, layout, fxLayer);
+        phatBeetPulseSync = new PhatBeetPulseSync(assets, layout, fxLayer);
+        kiwibeastPulseSync = new KiwibeastPulseSync(assets, layout, fxLayer);
         zombieSync = new ZombieSync(assets, layout, new ZombieClips(catalog), new PlantClips(catalog), zombieLayer);
         projectileSync = new ProjectileSync(assets, layout, projectileClips, projectileLayer);
         sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
@@ -171,6 +194,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         slipperyTileSync = new SlipperyTileSync(assets, layout, environmentLayer);
         iceWindSync = new IceWindSync(assets, layout, fxLayer);
         bossFxSync = new BossFxSync(assets, layout, fxLayer);
+        scorchedEarthSync = new ScorchedEarthSync(assets, layout, environmentLayer);
         deadLineSync = new DeadLineSync(assets, layout, deadlineLayer);
         vaseSync = new VaseSync(assets, layout, environmentLayer);
         packetSync = new GroundSeedPacketSync(assets, layout, packetLayer);
@@ -251,6 +275,11 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (graveSync != null) {
             graveSync.sync(session);
+        }
+        if (scorchedEarthSync != null) {
+            scorchedEarthSync.sync(session);
+        }
+        if (graveSync != null || scorchedEarthSync != null) {
             sortByRow(environmentLayer, BattlefieldGroup::sortKey);
         }
         if (graveBusterDirtSync != null) {
@@ -307,11 +336,26 @@ public final class BattlefieldGroup extends WidgetGroup {
                 beghouledPlantSync.clear();
             }
             if (plantSync != null) {
-                plantSync.sync(session);
+                plantSync.sync(session, tickFraction);
             }
             if (mintSync != null) {
                 mintSync.sync(session);
             }
+        }
+        if (explosionSync != null && plantSync != null) {
+            explosionSync.sync(session, plantSync, tickFraction);
+        }
+        if (jalapenoFireSync != null) {
+            jalapenoFireSync.sync(session);
+        }
+        if (tangleKelpGrabSync != null) {
+            tangleKelpGrabSync.sync(session);
+        }
+        if (phatBeetPulseSync != null) {
+            phatBeetPulseSync.sync(session);
+        }
+        if (kiwibeastPulseSync != null) {
+            kiwibeastPulseSync.sync(session);
         }
         if (bowlingNutSync != null) {
             bowlingNutSync.sync(session, tickFraction);
@@ -397,6 +441,21 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (plantSync != null) {
             plantSync.clear();
         }
+        if (explosionSync != null) {
+            explosionSync.clear();
+        }
+        if (jalapenoFireSync != null) {
+            jalapenoFireSync.clear();
+        }
+        if (tangleKelpGrabSync != null) {
+            tangleKelpGrabSync.clear();
+        }
+        if (phatBeetPulseSync != null) {
+            phatBeetPulseSync.clear();
+        }
+        if (kiwibeastPulseSync != null) {
+            kiwibeastPulseSync.clear();
+        }
         if (zombieSync != null) {
             zombieSync.clear();
         }
@@ -450,6 +509,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (beachTideSync != null) {
             beachTideSync.clear();
+        }
+        if (scorchedEarthSync != null) {
+            scorchedEarthSync.clear();
         }
         if (deadLineSync != null) {
             deadLineSync.clear();

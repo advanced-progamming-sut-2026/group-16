@@ -33,6 +33,7 @@ public enum ProjectileEffect {
     STAR,
     STAR_PF,
     GOO_PF,
+    GRAPE,
     GENERIC;
 
     public static ProjectileEffect fromString(String type) {
@@ -63,6 +64,7 @@ public enum ProjectileEffect {
             case "bowling_cyan" -> BOWLING_CYAN;
             case "bowling_blue" -> BOWLING_BLUE;
             case "bowling_orange" -> BOWLING_ORANGE;
+            case "grape" -> GRAPE;
             default -> GENERIC;
         };
     }

@@ -2,6 +2,7 @@ package io.github.finalwave.model.game.entity.zombie.behavior;
 
 import io.github.finalwave.model.game.entity.*;
 import io.github.finalwave.model.game.entity.plant.Plant;
+import io.github.finalwave.model.game.entity.plant.PlantSmash;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieBehavior;
 import io.github.finalwave.model.game.entity.zombie.ZombieState;
@@ -11,8 +12,8 @@ public final class TransformBehavior implements ZombieBehavior {
     private final TransformType type;
     private final int cooldownTicks;
     private final boolean enabled;
-    private boolean used = false;        // for VAULT_OVER (one-time)
-    private int ticksUntilNextSmash = 0; // for SMASH
+    private boolean used = false;
+    private int ticksUntilNextSmash = 0;
     public TransformBehavior(TransformType type, int cooldownTicks) {
         this(type, cooldownTicks, true);
     }
@@ -53,8 +54,7 @@ public final class TransformBehavior implements ZombieBehavior {
 
         Plant target = context.getPlantInFront(zombie.getX(), zombie.getRow());
         if (target != null && target.canBeTargetedByZombie() && zombie.beginAbility("smash_left", 18)) {
-            zombie.attackPlant(target, target.getHealth());
-            context.onPlantDestroyed(target);
+            PlantSmash.apply(zombie, target, context);
             ticksUntilNextSmash = cooldownTicks;
         }
     }

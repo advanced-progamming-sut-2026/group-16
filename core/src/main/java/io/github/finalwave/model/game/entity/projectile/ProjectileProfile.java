@@ -3,7 +3,7 @@ package io.github.finalwave.model.game.entity.projectile;
 public record ProjectileProfile(Trajectory trajectory, boolean piercing, boolean homing) {
 
     public enum Trajectory {
-        STRAIGHT, ARCING
+        STRAIGHT, ARCING, BOUNCING
     }
 
     public static ProjectileProfile straight() {
@@ -20,5 +20,9 @@ public record ProjectileProfile(Trajectory trajectory, boolean piercing, boolean
 
     public static ProjectileProfile homingProfile() {
         return new ProjectileProfile(Trajectory.STRAIGHT, false, true);
+    }
+
+    public static ProjectileProfile bouncing() {
+        return new ProjectileProfile(Trajectory.BOUNCING, false, false);
     }
 }

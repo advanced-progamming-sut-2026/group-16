@@ -14,6 +14,8 @@ import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.Scaling;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
+import io.github.finalwave.model.game.entity.plant.Plant;
+import io.github.finalwave.model.game.entity.projectile.PepperMuzzles;
 import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.model.minigame.GroundSeedPacket;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
@@ -279,6 +281,7 @@ public final class LawnInputController implements Disposable {
             plantGhost.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
             plantGhost.setClip(spec.path(), spec.clip(), plantClips.scale(seed.plantName()), true);
             PlantSync.applyMagnetGhostVisibility(plantGhost, seed.plantName());
+            applyPlantGhostOffset(seed.plantName());
             plantGhost.setVisible(true);
             return;
         }
@@ -290,6 +293,7 @@ public final class LawnInputController implements Disposable {
             plantGhost.setVisible(true);
             return;
         }
+        plantGhost.setDrawOffset(0f, 0f);
         if (mode instanceof ToolMode.Shovel) {
             toolGhost.setDrawable(new TextureRegionDrawable(assets.region(LawnAssetIds.FLOATING_SHOVEL)));
             toolGhost.setSize(72f, 72f);
@@ -341,5 +345,15 @@ public final class LawnInputController implements Disposable {
                 || lower.equals("enforce-mint")
                 || lower.equals("reinforce-mint")
                 || lower.equals("enchant-mint");
+    }
+
+    private void applyPlantGhostOffset(String plantName) {
+        if (Plant.PEPPER_PULT.equals(plantName)) {
+            plantGhost.setDrawOffset(
+                    (float) PepperMuzzles.drawX() * layout.tileWidth(),
+                    (float) PepperMuzzles.drawY() * layout.tileHeight());
+            return;
+        }
+        plantGhost.setDrawOffset(0f, 0f);
     }
 }

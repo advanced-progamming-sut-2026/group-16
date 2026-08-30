@@ -10,6 +10,42 @@ public final class PlantAbilityFactory {
     }
 
     public static PlantAbility create(PlantDefinition definition, PlantCategory category) {
+        if ("Squash".equals(definition.getName())) {
+            return new SquashAbility();
+        }
+        if ("Grapeshot".equals(definition.getName())) {
+            return new GrapeshotAbility(resolveExplosionRadius(definition));
+        }
+        if ("Jalapeno".equals(definition.getName())) {
+            return new JalapenoAbility();
+        }
+        if ("Doom-shroom".equals(definition.getName())) {
+            return new DoomShroomAbility();
+        }
+        if ("Tangle Kelp".equals(definition.getName())) {
+            return new TangleKelpAbility();
+        }
+        if ("Iceberg Lettuce".equals(definition.getName())) {
+            return new IcebergLettuceAbility();
+        }
+        if ("Bonk Choy".equals(definition.getName())) {
+            return new BonkChoyAbility();
+        }
+        if ("Wasabi Whip".equals(definition.getName())) {
+            return new WasabiWhipAbility();
+        }
+        if ("Phat Beet".equals(definition.getName())) {
+            return new PhatBeetAbility();
+        }
+        if ("Kiwibeast".equals(definition.getName())) {
+            return new KiwibeastAbility();
+        }
+        if ("Endurian".equals(definition.getName())) {
+            return new EndurianAbility();
+        }
+        if ("Chomper".equals(definition.getName())) {
+            return new ChomperAbility();
+        }
         PlantAbilityType abilityType = PlantAbilityType.fromDefinition(definition.getAbilityType());
         String name = definition.getName();
         return switch (abilityType) {

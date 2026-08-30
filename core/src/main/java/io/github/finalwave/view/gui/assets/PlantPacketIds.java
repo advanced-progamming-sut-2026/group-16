@@ -9,7 +9,9 @@ public final class PlantPacketIds {
             Map.entry(PlantNameAliases.normalize("Cherry Bomb"), "IMAGE_UI_PACKETS_CHERRY_BOMB"),
             Map.entry(PlantNameAliases.normalize("Goo Peashooter"), "IMAGE_UI_PACKETS_PEASHOOTER"),
             Map.entry(PlantNameAliases.normalize("Giant Wall-nut"), "IMAGE_UI_PACKETS_TALLNUT"),
-            Map.entry(PlantNameAliases.normalize("Twin Sunflower"), "IMAGE_UI_PACKETS_TWINSUNFLOWER")
+            Map.entry(PlantNameAliases.normalize("Twin Sunflower"), "IMAGE_UI_PACKETS_TWINSUNFLOWER"),
+            Map.entry(PlantNameAliases.normalize("Iceberg Lettuce"), "IMAGE_UI_PACKETS_ICEBURG"),
+            Map.entry(PlantNameAliases.normalize("Bonk Choy"), "IMAGE_UI_PACKETS_BONKCHOY")
     );
 
     private PlantPacketIds() {

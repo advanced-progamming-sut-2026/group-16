@@ -53,6 +53,9 @@ public final class ZombieSync {
     private static final float WALK_GAIT_MAX = 2.2f;
     private static final String PARTICLE_HEAD = "particle_head";
     private static final String PARTICLE_ARM = "particle_arm";
+    private static final float ICE_TRAP_WIDTH_TILES = 0.88f;
+    private static final float ICE_TRAP_ASPECT = 72f / 162f;
+    private static final int ICE_TRAP_SORT_OFFSET = 1;
 
     private final GameAssets assets;
     private final LawnLayout layout;
@@ -61,11 +64,13 @@ public final class ZombieSync {
     private final Group layer;
     private final ActorRegistry<Zombie, PamActor> zombies = new ActorRegistry<>();
     private final ActorRegistry<Zombie, PamActor> overlays = new ActorRegistry<>();
+    private final ActorRegistry<Zombie, Image> iceTraps = new ActorRegistry<>();
     private final HitFlashTracker<Zombie> hits = new HitFlashTracker<>();
     private final Map<PamActor, String> aliases = new IdentityHashMap<>();
     private final Vector2 headScratch = new Vector2();
     private final Map<PamActor, Long> appearStart = new IdentityHashMap<>();
     private final Map<Zombie, Image> producerBadges = new IdentityHashMap<>();
+    private final Map<Zombie, Boolean> frozenPoses = new IdentityHashMap<>();
     private final List<PamActor> deathActors = new ArrayList<>();
     private final Set<PamActor> bossActors = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<PamActor, String> bossLogical = new IdentityHashMap<>();
@@ -75,6 +80,7 @@ public final class ZombieSync {
     private final ActorRegistry<Zombie, PamActor> iceShells = new ActorRegistry<>();
     private final Set<String> smashShaking = new HashSet<>();
     private final Map<String, Float> clipSeconds = new HashMap<>();
+    private final Map<PamActor, Zombie> actorZombies = new IdentityHashMap<>();
     private GameSession session;
     private float tickFraction;
     private BiConsumer<Float, Float> smashShake;
@@ -102,23 +108,31 @@ public final class ZombieSync {
             return;
         }
         List<Zombie> live = new ArrayList<>();
+        List<Zombie> frozen = new ArrayList<>();
         for (Zombie zombie : session.getZombies()) {
             if (ZombieVisualState.shouldDraw(zombie)) {
                 live.add(zombie);
+                if (zombie.getFreezeTicksRemaining() > 0) {
+                    frozen.add(zombie);
+                }
             }
         }
         zombies.sync(live, this::spawn, this::update, this::beginDeath);
         overlays.sync(overlayLive(live), this::spawnOverlay, this::updateOverlay, PamActor::remove);
         iceShells.sync(encased(live), this::spawnIceShell, this::updateIceShell, PamActor::remove);
         pruneProducerBadges(live);
+        iceTraps.sync(frozen, this::spawnIceTrap, this::updateIceTrap, Image::remove);
         hits.retain(live);
+        retainFrozenPoses(live);
         retainThrownArmor(live);
+        actorZombies.keySet().retainAll(zombies.actors());
     }
 
     public void clear() {
         zombies.clear(PamActor::remove);
         overlays.clear(PamActor::remove);
         iceShells.clear(PamActor::remove);
+        iceTraps.clear(Image::remove);
         hits.clear();
         aliases.clear();
         smashShaking.clear();
@@ -127,6 +141,8 @@ public final class ZombieSync {
             badge.remove();
         }
         producerBadges.clear();
+        actorZombies.clear();
+        frozenPoses.clear();
         thrownArmor.clear();
         lastArmorLayers.clear();
         bossActors.clear();
@@ -160,6 +176,7 @@ public final class ZombieSync {
     }
 
     private void update(Zombie zombie, PamActor actor) {
+        boolean frozen = zombie.getFreezeTicksRemaining() > 0;
         float worldX = layout.worldX(displayX(zombie));
         float worldY = layout.worldYForRow(displayY(zombie));
         float scale = LawnLayout.ZOMBIE_SCALE;
@@ -192,8 +209,18 @@ public final class ZombieSync {
         }
         actor.setPosition(worldX - actor.getWidth() / 2f, worldY);
         EntityAnimationCatalog.ClipSpec clip = ZombieVisualState.clip(zombie, clips);
-        applyClip(zombie, actor, scale);
-        actor.setTimeScale(locomotionScale(zombie, clip));
+        if (frozen) {
+            if (!Boolean.TRUE.equals(frozenPoses.put(zombie, true))) {
+                actor.forceClip(clip.path(), clip.clip(), scale, true);
+                actor.setStateTime(0f);
+            }
+            actor.setPlaying(false);
+        } else {
+            frozenPoses.remove(zombie);
+            actor.setPlaying(true);
+            applyClip(zombie, actor, scale);
+        }
+        actor.setTimeScale(frozen ? 0f : locomotionScale(zombie, clip));
         actor.setFlipX(shouldFlip(zombie));
         actor.setTint(ZombieVisualState.tint(zombie, session));
         Map<String, Boolean> vis = ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(),
@@ -212,11 +239,14 @@ public final class ZombieSync {
             actor.getColor().a *= fade;
         }
         aliases.put(actor, zombie.getType());
+        actorZombies.put(actor, zombie);
         float flashSeconds = zombie.consumeSuppressHitFlash() || zombie.getPoisonTicksRemaining() > 0
                 ? 0f
                 : (zombie.isBoss() ? 0.28f : 0.18f);
         hits.observe(zombie, flashHealth(zombie), actor, flashSeconds);
-        throwBrokenArmor(zombie, actor, clip);
+        if (!frozen) {
+            throwBrokenArmor(zombie, actor, clip);
+        }
         updateProducerBadge(zombie, actor);
         maybeShakeSmash(zombie, clip);
     }
@@ -502,7 +532,36 @@ public final class ZombieSync {
                 || "spin_walk".equals(clip);
     }
 
+    private Image spawnIceTrap(Zombie zombie) {
+        Image ice = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.ICE_TRAP)));
+        ice.setTouchable(Touchable.disabled);
+        ice.setScaling(Scaling.stretch);
+        layer.addActor(ice);
+        return ice;
+    }
+
+    private void updateIceTrap(Zombie zombie, Image ice) {
+        float worldX = layout.worldX(displayX(zombie));
+        float worldY = layout.worldYForRow(zombie.getRow());
+        float width = layout.tileWidth() * ICE_TRAP_WIDTH_TILES;
+        float height = width * ICE_TRAP_ASPECT;
+        ice.setSize(width, height);
+        ice.setPosition(worldX - width / 2f, worldY + layout.tileHeight() * LawnLayout.ICE_TRAP_Y_OFFSET_TILES);
+        ice.setUserObject(zombie.getRow() * 8 + ICE_TRAP_SORT_OFFSET);
+        ice.setVisible(!zombie.isSubmerged());
+    }
+
+    private void retainFrozenPoses(List<Zombie> live) {
+        frozenPoses.keySet().retainAll(live);
+    }
+
     private void beginDeath(PamActor actor) {
+        Zombie zombie = actorZombies.remove(actor);
+        if (zombie != null && zombie.isSwallowed()) {
+            aliases.remove(actor);
+            actor.remove();
+            return;
+        }
         actor.flashHit();
         String alias = aliases.remove(actor);
         bossLogical.remove(actor);
@@ -667,7 +726,11 @@ public final class ZombieSync {
         if (zombie.isAbilityHeld()) {
             return lerp(zombie.getPreviousX(), modelX, tickFraction);
         }
-        if (tickFraction <= 0f
+        if (zombie.isDragLocked()) {
+            return modelX + zombie.getDragStep() * tickFraction;
+        }
+        if (zombie.getFreezeTicksRemaining() > 0
+                || tickFraction <= 0f
                 || zombie.getState() != ZombieState.MOVING
                 || zombie.isStationary()) {
             return modelX;

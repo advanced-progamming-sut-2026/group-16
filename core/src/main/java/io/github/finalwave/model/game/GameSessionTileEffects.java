@@ -100,7 +100,7 @@ final class GameSessionTileEffects {
     }
 
     void addPlantFrostStack(Plant plant) {
-        if (plant == null || !plant.isAlive()) {
+        if (plant == null || !plant.isAlive() || plant.hasTag(PlantTag.FIRE)) {
             return;
         }
         int hits = plant.addHostileIceStack("frost");
@@ -177,6 +177,27 @@ final class GameSessionTileEffects {
                 }
                 if (hasAdjacentFirePlant(col, row)) {
                     damageIceAt(col, row, IceTile.ADJACENT_FIRE_DAMAGE_PER_TICK);
+                }
+            }
+        }
+        thawPlantsNearFire();
+    }
+
+    private void thawPlantsNearFire() {
+        GameBoard board = session.getBoard();
+        for (Plant plant : board.getAllPlants()) {
+            if (plant == null || !plant.isAlive() || plant.hasTag(PlantTag.FIRE)) {
+                continue;
+            }
+            if (!hasAdjacentFirePlant(plant.getCol(), plant.getRow())) {
+                continue;
+            }
+            plant.clearHostileIce();
+            for (PlantCovering covering : plantCoverings) {
+                if (covering.isAlive()
+                        && covering.getCoveredPlant() == plant
+                        && covering.getType() == PlantCovering.Type.HUNTER_ICE) {
+                    covering.takeDamage(covering.getHealth());
                 }
             }
         }

@@ -26,6 +26,20 @@ public final class EntityAnimationCatalog {
     private static final String DEFAULT_PLANT_CLIP = "idle";
     private static final String DEFAULT_ZOMBIE_CLIP = "idle";
 
+    private static final Map<String, String> PLANT_NAME_OVERRIDES = Map.ofEntries(
+            Map.entry(normalize("Twin Sunflower"), "SUNFLOWER_TWIN"),
+            Map.entry(normalize("Rotobaga"), "ROTORUTABAGA"),
+            Map.entry(normalize("Mega Gatling Pea"), "MEGAGATLING"),
+            Map.entry(normalize("Phat Beet"), "PHATBEETS"),
+            Map.entry(normalize("Giant Wall-nut"), "WALLNUT"),
+            Map.entry(normalize("Kernel-pult"), "KERNALPULT"),
+            Map.entry(normalize("Iceberg Lettuce"), "ICEBURG"),
+            Map.entry(normalize("Primal Sunflower"), "PRIMAL_SUNFLOWER"),
+            Map.entry(normalize("Primal Peashooter"), "PRIMAL_PEASHOOTER"),
+            Map.entry(normalize("Primal Potato Mine"), "PRIMAL_POTATOMINE"),
+            Map.entry(normalize("Pierce-mint"), "SPEARMINT")
+    );
+
     private static final Map<String, String> ZOMBIE_PATHS = zombiePaths();
 
     private final Map<String, ClipSpec> plantsByKey = new HashMap<>();
@@ -72,9 +86,17 @@ public final class EntityAnimationCatalog {
             ClipSpec spec = lookupPlantSpec(plantName);
             return spec == null ? FALLBACK_PLANT : new ClipSpec(spec.path(), "attack1");
         }
+        String key = normalize(plantName);
+        String overrideName = PLANT_NAME_OVERRIDES.get(key);
+        if (overrideName != null) {
+            ClipSpec override = plantsByKey.get(normalize(overrideName));
+            if (override != null) {
+                return withIdleClip(override);
+            }
+        }
         ClipSpec spec = lookupPlantSpec(plantName);
         if (spec != null) {
-            return spec;
+            return withIdleClip(spec);
         }
         if (missingPlants.add(plantName)) {
             Gdx.app.error(TAG, "No plant PAM for " + plantName);
@@ -175,6 +197,12 @@ public final class EntityAnimationCatalog {
             return clips.keySet().iterator().next();
         }
         return lastResort;
+    }
+
+    private ClipSpec withIdleClip(ClipSpec spec) {
+        String clip = pick(spec.path(), DEFAULT_PLANT_CLIP,
+                DEFAULT_PLANT_CLIP, "idle1_1", "loop", "idle_stage1");
+        return new ClipSpec(spec.path(), clip);
     }
 
     private static Map<String, String> clipNames(JsonValue clips) {

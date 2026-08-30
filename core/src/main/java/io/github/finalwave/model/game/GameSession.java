@@ -8,6 +8,11 @@ import io.github.finalwave.model.game.board.PlantPlacementResult;
 import io.github.finalwave.model.game.boss.BossVfx;
 import io.github.finalwave.model.game.entity.Vase;
 import io.github.finalwave.model.game.entity.plant.*;
+import io.github.finalwave.model.game.IcebergFlashSystem;
+import io.github.finalwave.model.game.PhatBeetPulseSystem;
+import io.github.finalwave.model.game.KiwibeastPulseSystem;
+import io.github.finalwave.model.game.TangleKelpGrabSystem;
+import io.github.finalwave.model.game.entity.plant.ability.JalapenoFireSystem;
 import io.github.finalwave.model.game.entity.projectile.ProjectileSystem;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
 import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
@@ -43,6 +48,12 @@ public final class GameSession {
     private final PlantRegistry plantRegistry;
     private final PlantArmor.PlantCooldownTracker cooldownTracker;
     private final ProjectileSystem projectileSystem;
+    private final JalapenoFireSystem jalapenoFireSystem;
+    private final TangleKelpGrabSystem tangleKelpGrabSystem;
+    private final IcebergFlashSystem icebergFlashSystem;
+    private final PhatBeetPulseSystem phatBeetPulseSystem;
+    private final KiwibeastPulseSystem kiwibeastPulseSystem;
+    private final CraterSystem craterSystem;
     private final GameEventBus eventBus;
     private final List<Zombie> zombies = new ArrayList<>();
     private final List<Zombie> pendingZombies = new ArrayList<>();
@@ -141,6 +152,12 @@ public final class GameSession {
         this.plantFactory = new PlantFactory(plantRegistry);
         this.cooldownTracker = new PlantArmor.PlantCooldownTracker();
         this.projectileSystem = new ProjectileSystem();
+        this.jalapenoFireSystem = new JalapenoFireSystem();
+        this.tangleKelpGrabSystem = new TangleKelpGrabSystem();
+        this.icebergFlashSystem = new IcebergFlashSystem();
+        this.phatBeetPulseSystem = new PhatBeetPulseSystem();
+        this.kiwibeastPulseSystem = new KiwibeastPulseSystem();
+        this.craterSystem = new CraterSystem();
         this.eventBus = new GameEventBus();
         this.context = new BoardGameContext(this);
         this.sunBalance = startingSun;
@@ -178,6 +195,30 @@ public final class GameSession {
 
     public ProjectileSystem getProjectileSystem() {
         return projectileSystem;
+    }
+
+    public JalapenoFireSystem getJalapenoFireSystem() {
+        return jalapenoFireSystem;
+    }
+
+    public TangleKelpGrabSystem getTangleKelpGrabSystem() {
+        return tangleKelpGrabSystem;
+    }
+
+    public IcebergFlashSystem getIcebergFlashSystem() {
+        return icebergFlashSystem;
+    }
+
+    public PhatBeetPulseSystem getPhatBeetPulseSystem() {
+        return phatBeetPulseSystem;
+    }
+
+    public KiwibeastPulseSystem getKiwibeastPulseSystem() {
+        return kiwibeastPulseSystem;
+    }
+
+    public CraterSystem getCraterSystem() {
+        return craterSystem;
     }
 
     public GameEventBus getEventBus() {
@@ -856,6 +897,14 @@ public final class GameSession {
 
     public void morphImitater(Plant imitater) {
         planting.morphImitater(imitater);
+    }
+
+    public Plant createDoomShroomSeedling(Plant source, int col, int row) {
+        return planting.createDoomShroomSeedling(source, col, row);
+    }
+
+    public Plant createPlantFoodClone(Plant source, int col, int row) {
+        return planting.createPlantFoodClone(source, col, row);
     }
 
     public void addSunBalance(int amount) {

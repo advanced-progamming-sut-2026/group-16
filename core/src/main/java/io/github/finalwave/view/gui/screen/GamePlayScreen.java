@@ -62,6 +62,7 @@ import io.github.finalwave.view.gui.hud.special.ConveyorBeltBar;
 import io.github.finalwave.view.gui.hud.special.LoveYourPlantsCounter;
 import io.github.finalwave.view.gui.hud.special.MeowPointBanner;
 import io.github.finalwave.view.gui.hud.special.StartWaveButton;
+import io.github.finalwave.view.gui.widget.IcebergFlashOverlay;
 import io.github.finalwave.view.gui.hud.special.TimedWarPanel;
 import io.github.finalwave.view.gui.hud.special.ZombossHealthMeter;
 import io.github.finalwave.view.gui.input.ControllerLawnHost;
@@ -140,6 +141,7 @@ public final class GamePlayScreen extends MenuScreen {
     private AlertBanner alertBanner;
     private LevelObjectiveBanner objectiveBanner;
     private NpcDialogBox npcDialog;
+    private IcebergFlashOverlay icebergFlashOverlay;
     private WidgetGroup cursorLayer;
     private boolean resultShown;
     private boolean bossOutroQueued;
@@ -301,6 +303,9 @@ public final class GamePlayScreen extends MenuScreen {
                 sunCounter.clearHeld();
             }
         });
+        icebergFlashOverlay = new IcebergFlashOverlay();
+        icebergFlashOverlay.fitStage(WORLD_WIDTH, WORLD_HEIGHT);
+        modalLayer.addActor(icebergFlashOverlay);
         startIntroDialog();
     }
 
@@ -333,6 +338,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (battlefield != null && matchSession() != null) {
             battlefield.sync(matchSession(), tickFraction);
+        }
+        if (icebergFlashOverlay != null && matchSession() != null) {
+            icebergFlashOverlay.sync(matchSession());
         }
         if (clock != null && battlefield != null) {
             float unitSpeed = clock.speed();
@@ -646,6 +654,11 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (battlefield != null) {
             battlefield.clearBattlefield();
+        }
+        if (icebergFlashOverlay != null) {
+            icebergFlashOverlay.remove();
+            icebergFlashOverlay.dispose();
+            icebergFlashOverlay = null;
         }
         super.hide();
         battlefield = null;
@@ -1342,7 +1355,11 @@ public final class GamePlayScreen extends MenuScreen {
                 preloadPlantPam(plantName);
             }
         }
-        for (String splatPath : new ProjectileClips().splatPaths()) {
+        ProjectileClips projectileClips = new ProjectileClips();
+        for (String flightPath : projectileClips.flightPaths()) {
+            preload(flightPath);
+        }
+        for (String splatPath : projectileClips.splatPaths()) {
             preload(splatPath);
         }
         preload(PlantClips.ICE_BLOCK_PATH);

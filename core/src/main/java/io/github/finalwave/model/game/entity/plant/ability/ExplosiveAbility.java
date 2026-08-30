@@ -6,12 +6,15 @@ import io.github.finalwave.model.game.entity.plant.Plant;
 public final class ExplosiveAbility implements PlantAbility {
 
     private static final String HOT_POTATO = "Hot Potato";
+    public static final int TRAP_DETONATION_WINDUP_TICKS = 7;
+    public static final int CHERRY_BOMB_DETONATION_WINDUP_TICKS = 17;
 
     private final double radius;
     private final boolean triggersOnPlant;
     private boolean armed;
     private boolean detonated;
     private boolean delayedDetonation;
+    private int detonationTicksRemaining = -1;
 
     public ExplosiveAbility(double radius, boolean triggersOnPlant) {
         this.radius = radius;
@@ -56,10 +59,42 @@ public final class ExplosiveAbility implements PlantAbility {
     }
 
     public void detonate(Plant plant, GameContext context) {
+        if (detonated || detonationTicksRemaining >= 0) {
+            return;
+        }
+        if (triggersOnPlant) {
+            if (plant.isCherryBomb()) {
+                plant.setAttacking(true);
+                detonationTicksRemaining = CHERRY_BOMB_DETONATION_WINDUP_TICKS;
+            } else {
+                finishDetonation(plant, context);
+            }
+            return;
+        }
+        plant.setAttacking(true);
+        detonationTicksRemaining = TRAP_DETONATION_WINDUP_TICKS;
+    }
+
+    public void tickDetonation(Plant plant, GameContext context) {
+        if (detonationTicksRemaining < 0) {
+            return;
+        }
+        detonationTicksRemaining--;
+        if (detonationTicksRemaining <= 0) {
+            finishDetonation(plant, context);
+        }
+    }
+
+    public boolean isDetonating() {
+        return detonationTicksRemaining >= 0;
+    }
+
+    private void finishDetonation(Plant plant, GameContext context) {
         if (detonated) {
             return;
         }
         detonated = true;
+        detonationTicksRemaining = -1;
         context.explode(plant, plant.getStats().damage(), radius);
         plant.consumeInstantly();
     }

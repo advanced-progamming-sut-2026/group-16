@@ -48,6 +48,9 @@ public final class Zombie extends Entity {
     private boolean laneLocked;
     private boolean bypassDisabledPlants;
     private boolean dodoBypass;
+    private boolean dragLocked;
+    private double dragStep;
+    private boolean swallowed;
     private boolean submerged;
     private final boolean basicKnightTarget;
     private final String knightTargetKey;
@@ -761,6 +764,33 @@ public final class Zombie extends Entity {
 
     public boolean isDodoBypass() {
         return dodoBypass;
+    }
+
+    public boolean isDragLocked() {
+        return dragLocked;
+    }
+
+    public void setDragLocked(boolean dragLocked) {
+        this.dragLocked = dragLocked;
+        if (!dragLocked) {
+            dragStep = 0;
+        }
+    }
+
+    public double getDragStep() {
+        return dragStep;
+    }
+
+    public void setDragStep(double dragStep) {
+        this.dragStep = dragStep;
+    }
+
+    public boolean isSwallowed() {
+        return swallowed;
+    }
+
+    public void setSwallowed(boolean swallowed) {
+        this.swallowed = swallowed;
     }
 
     public boolean shouldBypass(Plant plant) {

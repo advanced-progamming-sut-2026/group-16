@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.render.sync;
 
+import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.plant.ability.BowlingBulbAbility;
@@ -14,8 +15,28 @@ public final class PlantVisualState {
     private PlantVisualState() {
     }
 
+    public static EntityAnimationCatalog.ClipSpec clip(Plant plant, PlantClips clips, boolean justFired) {
+        return clip(plant, clips, justFired, List.of(), null, null);
+    }
+
+    public static EntityAnimationCatalog.ClipSpec clip(
+            Plant plant, PlantClips clips, boolean justFired, GameSession session) {
+        List<Zombie> zombies = session == null ? List.of() : session.getZombies();
+        return clip(plant, clips, justFired, zombies, null, session);
+    }
+
     public static EntityAnimationCatalog.ClipSpec clip(
             Plant plant, PlantClips clips, boolean justFired, List<Zombie> zombies, String currentClip) {
+        return clip(plant, clips, justFired, zombies, currentClip, null);
+    }
+
+    public static EntityAnimationCatalog.ClipSpec clip(
+            Plant plant, PlantClips clips, boolean justFired, List<Zombie> zombies, String currentClip,
+            GameSession session) {
+        EntityAnimationCatalog.ClipSpec specialized = specializedClip(plant, clips, justFired, session);
+        if (specialized != null) {
+            return specialized;
+        }
         String[] names = preferredClips(plant, justFired, cactusDown(plant, zombies), currentClip, zombies);
         return clips.clip(pamName(plant), names);
     }
@@ -465,5 +486,111 @@ public final class PlantVisualState {
             }
         }
         return false;
+    }
+
+    private static EntityAnimationCatalog.ClipSpec specializedClip(
+            Plant plant, PlantClips clips, boolean justFired, GameSession session) {
+        if (plant == null) {
+            return null;
+        }
+        if (plant.isPotatoMine()) {
+            return potatoMineClip(plant, clips, session);
+        }
+        if (plant.isSquash()) {
+            return clips.squashIdle();
+        }
+        if (plant.isTangleKelp()) {
+            return clips.tangleKelpIdle();
+        }
+        if (plant.isIcebergLettuce()) {
+            return clips.icebergLettuceIdle();
+        }
+        if (plant.isBonkChoy()) {
+            return clips.bonkChoyIdle();
+        }
+        if (plant.isWasabiWhip()) {
+            return clips.wasabiWhipIdle();
+        }
+        if (plant.isKiwibeast()) {
+            return clips.kiwibeastIdle(plant);
+        }
+        if (plant.isWallNut()) {
+            return clips.wallNutIdle(plant);
+        }
+        if (plant.isTallNut()) {
+            return clips.tallNutIdle(plant);
+        }
+        if (plant.isEndurian()) {
+            return clips.endurianIdle(plant);
+        }
+        if (plant.isChomper() && !plant.isAttacking() && !plant.isPlantFooding()) {
+            return clips.chomperIdle();
+        }
+        if (plant.isPlantFooding() && usesBranchPlantFood(plant)) {
+            return clips.plantFood(plant);
+        }
+        if ((justFired || plant.isAttacking())
+                && !plant.isDisabled()
+                && !plant.isCatTransformed()
+                && usesBranchAction(plant)
+                && clips.hasAction(plant)) {
+            return clips.action(plant);
+        }
+        return null;
+    }
+
+    private static boolean usesBranchPlantFood(Plant plant) {
+        return plant.isFumeShroom()
+                || plant.isPhatBeet()
+                || plant.isChomper()
+                || plant.isCabbagePult()
+                || plant.isKernelPult()
+                || plant.isMelonPult()
+                || plant.isWinterMelon()
+                || plant.isPepperPult()
+                || plant.isPeaPod();
+    }
+
+    private static boolean usesBranchAction(Plant plant) {
+        return plant.isFumeShroom()
+                || plant.isChomper()
+                || plant.isPeaPod()
+                || plant.isCabbagePult()
+                || plant.isKernelPult()
+                || plant.isMelonPult()
+                || plant.isWinterMelon()
+                || plant.isPepperPult();
+    }
+
+    private static EntityAnimationCatalog.ClipSpec potatoMineClip(
+            Plant plant, PlantClips clips, GameSession session) {
+        if (plant.isPlantFooding()) {
+            return clips.potatoMinePlantFood(plant);
+        }
+        if (plant.isAttacking()) {
+            return clips.potatoMineAttack(plant);
+        }
+        if (plant.isArmedTrap()) {
+            if (session != null && PotatoMineProximity.inRecoverRadius(session, plant)) {
+                return clips.potatoMineArmedIdle(plant);
+            }
+            return clips.potatoMineUnarmedIdle(plant);
+        }
+        return clips.potatoMineUnarmedIdle(plant);
+    }
+
+    public static boolean isAction(EntityAnimationCatalog.ClipSpec spec) {
+        return spec != null && isActionClip(spec.clip());
+    }
+
+    public static boolean isActionClip(String clipName) {
+        if (clipName == null || clipName.isBlank()) {
+            return false;
+        }
+        return clipName.startsWith("attack")
+                || clipName.startsWith("bite")
+                || clipName.startsWith("special")
+                || "recover".equals(clipName)
+                || clipName.startsWith("plantfood");
     }
 }

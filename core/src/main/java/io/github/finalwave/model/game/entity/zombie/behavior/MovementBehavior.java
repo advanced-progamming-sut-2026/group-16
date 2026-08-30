@@ -17,7 +17,7 @@ public final class MovementBehavior implements ZombieBehavior {
 
     @Override
     public void execute(Zombie zombie, GameContext context) {
-        if (zombie.getState() == ZombieState.DYING) {
+        if (zombie.getState() == ZombieState.DYING || zombie.isDragLocked()) {
             return;
         }
 
