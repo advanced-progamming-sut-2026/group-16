@@ -17,6 +17,7 @@ public final class ScoreGameStore {
                 CREATE TABLE IF NOT EXISTS user_score_game (
                     userId INTEGER PRIMARY KEY,
                     bestMeowPoint INTEGER NOT NULL DEFAULT 0,
+                    hasPlayed INTEGER NOT NULL DEFAULT 0 CHECK(hasPlayed IN (0, 1)),
                     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
                 );
                 """;
@@ -24,6 +25,7 @@ public final class ScoreGameStore {
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
             migrateLegacyColumn(stmt);
+            migrateHasPlayedColumn(stmt);
         } catch (SQLException e) {
             throw new RuntimeException("Could not create user_score_game table.", e);
         }
@@ -33,7 +35,16 @@ public final class ScoreGameStore {
         try {
             stmt.execute("ALTER TABLE user_score_game RENAME COLUMN bestMeioPoint TO bestMeowPoint");
         } catch (SQLException ignored) {
-            // column already renamed or never existed
+        }
+    }
+
+    private static void migrateHasPlayedColumn(Statement stmt) throws SQLException {
+        try {
+            stmt.execute("""
+                    ALTER TABLE user_score_game
+                    ADD COLUMN hasPlayed INTEGER NOT NULL DEFAULT 0 CHECK(hasPlayed IN (0, 1))
+                    """);
+        } catch (SQLException ignored) {
         }
     }
 
@@ -42,7 +53,7 @@ public final class ScoreGameStore {
             return;
         }
         String sql = """
-                SELECT bestMeowPoint
+                SELECT bestMeowPoint, hasPlayed
                 FROM user_score_game
                 WHERE userId = ?
                 """;
@@ -50,7 +61,11 @@ public final class ScoreGameStore {
             pstmt.setLong(1, user.getId());
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    user.setBestMeowPoint(rs.getInt("bestMeowPoint"));
+                    boolean hasPlayed = rs.getInt("hasPlayed") == 1;
+                    user.setHasPlayed(hasPlayed);
+                    if (hasPlayed) {
+                        user.setBestMeowPoint(rs.getInt("bestMeowPoint"));
+                    }
                 }
             }
         }
@@ -61,13 +76,16 @@ public final class ScoreGameStore {
             return;
         }
         String sql = """
-                INSERT INTO user_score_game (userId, bestMeowPoint)
-                VALUES (?, ?)
-                ON CONFLICT(userId) DO UPDATE SET bestMeowPoint = excluded.bestMeowPoint
+                INSERT INTO user_score_game (userId, bestMeowPoint, hasPlayed)
+                VALUES (?, ?, ?)
+                ON CONFLICT(userId) DO UPDATE SET
+                    bestMeowPoint = excluded.bestMeowPoint,
+                    hasPlayed = excluded.hasPlayed
                 """;
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setLong(1, user.getId());
             pstmt.setInt(2, user.getBestMeowPoint());
+            pstmt.setInt(3, user.hasPlayed() ? 1 : 0);
             pstmt.executeUpdate();
         }
     }

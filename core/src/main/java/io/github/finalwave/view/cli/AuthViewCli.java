@@ -158,4 +158,18 @@ public class AuthViewCli extends CliView implements AuthView {
     public void promptSecurityAnswerConfirm() {
         displayMessage("Please confirm your security answer.");
     }
+
+    @Override
+    public void showRegisterInlineError(String message) {
+        if (message != null && !message.isBlank()) {
+            displayMessage("Registration error: " + message);
+        }
+    }
+
+    @Override
+    public void showLoginInlineError(String message) {
+        if (message != null && !message.isBlank()) {
+            displayMessage("Login error: " + message);
+        }
+    }
 }

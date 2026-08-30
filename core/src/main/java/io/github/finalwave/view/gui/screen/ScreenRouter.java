@@ -433,6 +433,32 @@ public final class ScreenRouter {
         }
     }
 
+    public void showSignupInlineError(String message) {
+        if (signupScreen != null) {
+            signupScreen.closeSecurityQuestionModal();
+            signupScreen.showInlineError(message);
+        }
+    }
+
+    public void clearSignupInlineError() {
+        if (signupScreen != null) {
+            signupScreen.clearInlineError();
+        }
+    }
+
+    public void showLoginInlineError(String message) {
+        if (loginScreen != null) {
+            loginScreen.closeForgotPasswordModal();
+            loginScreen.showInlineError(message);
+        }
+    }
+
+    public void clearLoginInlineError() {
+        if (loginScreen != null) {
+            loginScreen.clearInlineError();
+        }
+    }
+
     public void showLoginPasswordResetStep() {
         if (loginScreen != null) {
             loginScreen.showPasswordResetStep();

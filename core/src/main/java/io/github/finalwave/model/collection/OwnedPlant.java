@@ -50,6 +50,13 @@ public final class OwnedPlant {
         return seedPackets;
     }
 
+    public void setSeedPackets(int seedPackets) {
+        if (seedPackets < 0) {
+            throw new IllegalArgumentException("seedPackets must not be negative");
+        }
+        this.seedPackets = seedPackets;
+    }
+
     public void addSeedPackets(int amount) {
         if (amount < 0) {
             throw new IllegalArgumentException("amount must not be negative");

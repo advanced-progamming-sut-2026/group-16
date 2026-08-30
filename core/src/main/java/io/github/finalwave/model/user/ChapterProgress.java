@@ -83,6 +83,10 @@ public final class ChapterProgress {
         completedLevels.computeIfAbsent(chapter, ignored -> new HashSet<>()).add(levelIndex);
     }
 
+    public void clearCompletedLevels() {
+        completedLevels.clear();
+    }
+
     public Map<ChapterId, Set<Integer>> getAllCompletedLevels() {
         Map<ChapterId, Set<Integer>> copy = new EnumMap<>(ChapterId.class);
         for (var entry : completedLevels.entrySet()) {

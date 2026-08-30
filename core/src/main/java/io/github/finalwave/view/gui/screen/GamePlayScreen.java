@@ -925,6 +925,10 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void onAddSun() {
+        User user = matchUser();
+        if (user == null || !user.isDebugMode()) {
+            return;
+        }
         if (controller != null) {
             controller.cheatAddSun(50);
             return;
@@ -939,6 +943,10 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void onAddPlantFood() {
+        User user = matchUser();
+        if (user == null || !user.isDebugMode()) {
+            return;
+        }
         if (zombotany != null && zombotany.session() != null) {
             if (zombotany.session().getPlantFoodCount() >= PlantFoodCounter.SLOT_COUNT) {
                 return;

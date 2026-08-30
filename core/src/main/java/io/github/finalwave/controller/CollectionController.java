@@ -159,7 +159,7 @@ public class CollectionController extends ViewController {
         PlantCollection.UpgradeResult result = collectionService.upgradePlant(user, plantName);
         if (result.success()) {
             userDatabase.saveUserWallet(user);
-            userDatabase.savePlantProgress(user);
+            userDatabase.savePlant(user, plantName);
             getCollectionView().showPlantUpgraded(plantName, result.newLevel());
             return;
         }
@@ -180,7 +180,7 @@ public class CollectionController extends ViewController {
         PlantCollection.PurchaseResult result = collectionService.purchasePlant(user, unlockService, plantName);
         if (result.success()) {
             userDatabase.saveUserWallet(user);
-            userDatabase.savePlantProgress(user);
+            userDatabase.savePlant(user, plantName);
             if (result.newlyUnlocked()) {
                 userDatabase.saveUserNews(user);
             }

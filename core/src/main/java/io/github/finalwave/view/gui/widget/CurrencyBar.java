@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
+import io.github.finalwave.debug.DebugCheatPersistence;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.gui.assets.GameAssets;
@@ -158,8 +159,7 @@ public final class CurrencyBar extends Table {
         if (user == null || !user.isDebugMode()) {
             return;
         }
-        user.addCoins(COIN_CHEAT_AMOUNT);
-        UserDatabase.getInstance().saveUserWallet(user);
+        DebugCheatPersistence.addCoins(user, UserDatabase.getInstance(), COIN_CHEAT_AMOUNT);
         refresh();
     }
 
@@ -167,8 +167,7 @@ public final class CurrencyBar extends Table {
         if (user == null || !user.isDebugMode()) {
             return;
         }
-        user.addDiamonds(DIAMOND_CHEAT_AMOUNT);
-        UserDatabase.getInstance().saveUserWallet(user);
+        DebugCheatPersistence.addDiamonds(user, UserDatabase.getInstance(), DIAMOND_CHEAT_AMOUNT);
         refresh();
     }
 

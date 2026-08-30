@@ -159,4 +159,22 @@ public final class AuthViewGui extends GuiViewBase implements AuthView {
     public void errorInvalidMenuName() {
         toastError("Invalid menu name.");
     }
+
+    @Override
+    public void showRegisterInlineError(String message) {
+        if (message == null || message.isBlank()) {
+            router.clearSignupInlineError();
+            return;
+        }
+        router.showSignupInlineError(message);
+    }
+
+    @Override
+    public void showLoginInlineError(String message) {
+        if (message == null || message.isBlank()) {
+            router.clearLoginInlineError();
+            return;
+        }
+        router.showLoginInlineError(message);
+    }
 }

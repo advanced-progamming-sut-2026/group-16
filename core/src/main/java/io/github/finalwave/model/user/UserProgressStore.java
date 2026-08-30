@@ -138,10 +138,10 @@ public final class UserProgressStore {
     }
 
     public static void saveUserProgress(Connection conn, User user) throws SQLException {
-        saveWallet(conn, user);
+        saveWalletRow(conn, user);
         saveGreenhousePots(conn, user);
-        saveStoredBoosts(conn, user);
-        saveNews(conn, user);
+        saveStoredBoostsRow(conn, user);
+        saveNewsRows(conn, user);
         saveUnlockSet(conn, user, "user_unlocked_zombies", user.getUnlockedZombies());
         saveUnlockSet(conn, user, "user_unlocked_levels", user.getUnlockedLevels());
         saveUnlockSet(conn, user, "user_unlocked_minigames", user.getUnlockedMinigames());
@@ -214,7 +214,7 @@ public final class UserProgressStore {
         }
     }
 
-    private static void saveWallet(Connection conn, User user) throws SQLException {
+    public static void saveWalletRow(Connection conn, User user) throws SQLException {
         String sql = """
                 INSERT INTO user_wallet (userId, coins, diamonds, plantFood, dailyOfferPlant,
                                          dailyOfferDate, dailyOfferPurchased, gamesPlayed, questDay)
@@ -243,7 +243,7 @@ public final class UserProgressStore {
         }
     }
 
-    private static void saveGreenhousePots(Connection conn, User user) throws SQLException {
+    public static void saveGreenhousePots(Connection conn, User user) throws SQLException {
         try (PreparedStatement delete = conn.prepareStatement("DELETE FROM greenhouse_pots WHERE userId = ?")) {
             delete.setLong(1, user.getId());
             delete.executeUpdate();
@@ -254,20 +254,40 @@ public final class UserProgressStore {
                 """;
         try (PreparedStatement insert = conn.prepareStatement(sql)) {
             for (GreenhousePot pot : user.getGreenhousePots()) {
-                insert.setLong(1, user.getId());
-                insert.setInt(2, pot.getX());
-                insert.setInt(3, pot.getY());
-                insert.setInt(4, pot.isLocked() ? 1 : 0);
-                insert.setString(5, pot.getPlantType());
-                insert.setLong(6, pot.getPlantedAtMillis());
-                insert.setInt(7, pot.isMarigold() ? 1 : 0);
+                bindPot(insert, user.getId(), pot);
                 insert.addBatch();
             }
             insert.executeBatch();
         }
     }
 
-    private static void saveStoredBoosts(Connection conn, User user) throws SQLException {
+    public static void saveSinglePot(Connection conn, long userId, GreenhousePot pot) throws SQLException {
+        String sql = """
+                INSERT INTO greenhouse_pots (userId, x, y, locked, plantType, plantedAtMillis, isMarigold)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(userId, x, y) DO UPDATE SET
+                    locked = excluded.locked,
+                    plantType = excluded.plantType,
+                    plantedAtMillis = excluded.plantedAtMillis,
+                    isMarigold = excluded.isMarigold
+                """;
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            bindPot(pstmt, userId, pot);
+            pstmt.executeUpdate();
+        }
+    }
+
+    private static void bindPot(PreparedStatement pstmt, long userId, GreenhousePot pot) throws SQLException {
+        pstmt.setLong(1, userId);
+        pstmt.setInt(2, pot.getX());
+        pstmt.setInt(3, pot.getY());
+        pstmt.setInt(4, pot.isLocked() ? 1 : 0);
+        pstmt.setString(5, pot.getPlantType());
+        pstmt.setLong(6, pot.getPlantedAtMillis());
+        pstmt.setInt(7, pot.isMarigold() ? 1 : 0);
+    }
+
+    public static void saveStoredBoostsRow(Connection conn, User user) throws SQLException {
         try (PreparedStatement delete = conn.prepareStatement("DELETE FROM stored_boosts WHERE userId = ?")) {
             delete.setLong(1, user.getId());
             delete.executeUpdate();
@@ -310,7 +330,7 @@ public final class UserProgressStore {
         NewsManager.syncNextIdFrom(user.getNewsItems());
     }
 
-    private static void saveNews(Connection conn, User user) throws SQLException {
+    public static void saveNewsRows(Connection conn, User user) throws SQLException {
         try (PreparedStatement delete = conn.prepareStatement("DELETE FROM user_news WHERE userId = ?")) {
             delete.setLong(1, user.getId());
             delete.executeUpdate();
@@ -363,5 +383,28 @@ public final class UserProgressStore {
             }
             insert.executeBatch();
         }
+    }
+
+    public static void saveSingleUnlock(Connection conn, long userId, String kind, String name) throws SQLException {
+        String tableName = unlockTableName(kind);
+        String sql = "INSERT OR IGNORE INTO " + tableName + " (userId, name) VALUES (?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setLong(1, userId);
+            pstmt.setString(2, name);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static String unlockTableName(String kind) {
+        if (UnlockKind.ZOMBIES.name().equals(kind)) {
+            return "user_unlocked_zombies";
+        }
+        if (UnlockKind.LEVELS.name().equals(kind)) {
+            return "user_unlocked_levels";
+        }
+        if (UnlockKind.MINIGAMES.name().equals(kind)) {
+            return "user_unlocked_minigames";
+        }
+        throw new IllegalArgumentException("Unknown unlock kind: " + kind);
     }
 }

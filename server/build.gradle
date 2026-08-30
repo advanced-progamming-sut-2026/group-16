@@ -1,0 +1,15 @@
+plugins {
+    id 'application'
+}
+
+java.sourceCompatibility = 25
+java.targetCompatibility = 25
+
+dependencies {
+    implementation project(':network')
+    implementation project(':core')
+}
+
+application {
+    mainClass = 'io.github.finalwave.server.Main'
+}

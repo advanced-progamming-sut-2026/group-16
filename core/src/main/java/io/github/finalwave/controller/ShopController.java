@@ -117,7 +117,10 @@ public class ShopController extends ViewController {
             case "plant_not_unlocked" -> getShopView().errorPlantNotUnlocked(result.errorArg());
             default -> {
                 userDatabase.saveUserWallet(user);
-                userDatabase.savePlantProgress(user);
+                if (result.extraInfo() != null && !result.extraInfo().isBlank()) {
+                    userDatabase.savePlant(user, result.extraInfo());
+                }
+                userDatabase.saveStoredBoosts(user);
                 getShopView().showItemPurchased(result.itemName(), result.count(), result.extraInfo());
             }
         }

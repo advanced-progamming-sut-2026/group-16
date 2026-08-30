@@ -28,6 +28,7 @@ public class User {
     private boolean showLawnGrid;
     private boolean debugMode;
     private int bestMeowPoint;
+    private boolean hasPlayed;
     private int gamesPlayed;
     private final ChapterProgress chapterProgress = new ChapterProgress();
     private final MiniGameProgress miniGameProgress = new MiniGameProgress();
@@ -42,6 +43,7 @@ public class User {
     private final Set<String> unlockedZombies = new LinkedHashSet<>();
     private final Set<String> unlockedLevels = new LinkedHashSet<>();
     private final Set<String> unlockedMinigames = new LinkedHashSet<>();
+    private io.github.finalwave.model.save.MatchSaveSnapshot matchSaveSnapshot;
 
     public User() {
 
@@ -230,7 +232,16 @@ public class User {
         this.bestMeowPoint = Math.max(0, bestMeowPoint);
     }
 
+    public boolean hasPlayed() {
+        return hasPlayed;
+    }
+
+    public void setHasPlayed(boolean hasPlayed) {
+        this.hasPlayed = hasPlayed;
+    }
+
     public boolean updateBestMeowPoint(int score) {
+        hasPlayed = true;
         if (score > bestMeowPoint) {
             bestMeowPoint = score;
             return true;
@@ -363,6 +374,14 @@ public class User {
 
     public Set<String> getUnlockedMinigames() {
         return unlockedMinigames;
+    }
+
+    public io.github.finalwave.model.save.MatchSaveSnapshot getMatchSaveSnapshot() {
+        return matchSaveSnapshot;
+    }
+
+    public void setMatchSaveSnapshot(io.github.finalwave.model.save.MatchSaveSnapshot matchSaveSnapshot) {
+        this.matchSaveSnapshot = matchSaveSnapshot;
     }
 
     @Override

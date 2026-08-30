@@ -1,5 +1,6 @@
 package io.github.finalwave.controller;
 
+import io.github.finalwave.debug.DebugCheatPersistence;
 import io.github.finalwave.model.adventure.AdventureRegistry;
 import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.ChapterId;
@@ -172,9 +173,27 @@ public class GameController extends ViewController {
             return;
         }
 
-        if ("coin".equalsIgnoreCase(type)) {
+        String normalized = type.trim().toLowerCase(Locale.ROOT);
+        if (user.isDebugMode()) {
+            boolean applied = switch (normalized) {
+                case "coin", "coins" -> DebugCheatPersistence.addCoins(user, userDatabase, amount);
+                case "diamond", "diamonds", "gem", "gems" ->
+                        DebugCheatPersistence.addDiamonds(user, userDatabase, amount);
+                case "plant_food", "plantfood" -> DebugCheatPersistence.addPlantFood(user, userDatabase, amount);
+                default -> false;
+            };
+            if (applied) {
+                getGameView().showCheatAdded(type, amount);
+            } else {
+                getGameView().errorInvalidCheatType();
+            }
+            return;
+        }
+
+        if ("coin".equals(normalized) || "coins".equals(normalized)) {
             user.addCoins(amount);
-        } else if ("diamond".equalsIgnoreCase(type)) {
+        } else if ("diamond".equals(normalized) || "diamonds".equals(normalized)
+                || "gem".equals(normalized) || "gems".equals(normalized)) {
             user.addDiamonds(amount);
         } else {
             getGameView().errorInvalidCheatType();

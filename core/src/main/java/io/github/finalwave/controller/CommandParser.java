@@ -1,6 +1,9 @@
 package io.github.finalwave.controller;
 
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.login.LocalLoginGateway;
+import io.github.finalwave.registration.LocalRegistrationGateway;
+import io.github.finalwave.registration.RegistrationGateway;
 import io.github.finalwave.view.cli.*;
 import io.github.finalwave.view.cli.minigame.BeghouledViewCli;
 import io.github.finalwave.view.cli.minigame.IZombieViewCli;
@@ -79,8 +82,10 @@ public class CommandParser implements NavigationBinder {
         leaderboardView = new LeaderboardViewCli();
         scoreGameView = new ScoreGameViewCli();
         UserDatabase userDatabase = UserDatabase.getInstance();
-        registrationController = new RegistrationController(userDatabase);
-        bootstrap = new AppBootstrap(userDatabase, this);
+        RegistrationGateway registrationGateway = new LocalRegistrationGateway(userDatabase);
+        io.github.finalwave.login.LoginGateway loginGateway = new LocalLoginGateway(userDatabase);
+        registrationController = new RegistrationController(registrationGateway, userDatabase, loginGateway);
+        bootstrap = new AppBootstrap(userDatabase, registrationGateway, loginGateway, this, true);
         bootstrap.start();
     }
 

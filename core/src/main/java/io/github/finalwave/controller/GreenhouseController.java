@@ -3,6 +3,7 @@ package io.github.finalwave.controller;
 import io.github.finalwave.model.command.GreenhouseMenuCommands;
 import io.github.finalwave.model.greenhouse.GreenhouseService;
 import io.github.finalwave.model.greenhouse.GreenhouseSlotState;
+import io.github.finalwave.model.user.GreenhousePot;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.view.api.GreenhouseView;
@@ -34,11 +35,14 @@ public class GreenhouseController extends ViewController {
     }
 
     public boolean cheatUnlockNextPot() {
+        if (!user.isDebugMode()) {
+            return false;
+        }
         GreenhouseService.UnlockResult result = greenhouseService.unlockNextLockedFree(user);
         if (!"success".equals(result.status())) {
             return false;
         }
-        userDatabase.saveUserWallet(user);
+        persistWalletAndPot(result.x(), result.y());
         getGreenhouseView().showPotUnlocked(result.x(), result.y());
         return true;
     }
@@ -93,7 +97,7 @@ public class GreenhouseController extends ViewController {
             case "locked" -> getGreenhouseView().errorPotLocked(potX, potY);
             case "occupied" -> getGreenhouseView().errorPotAlreadyOccupied(potX, potY);
             default -> {
-                userDatabase.saveUserWallet(user);
+                persistWalletAndPot(potX, potY);
                 getGreenhouseView().showPlantPlantedInPot(potX, potY, result.plantType());
             }
         }
@@ -110,7 +114,7 @@ public class GreenhouseController extends ViewController {
             case "no_plant" -> getGreenhouseView().errorNoPlantToCollect(potX, potY);
             case "not_ready" -> getGreenhouseView().errorPlantNotReady(potX, potY);
             default -> {
-                userDatabase.saveUserWallet(user);
+                persistWalletAndPot(potX, potY);
                 getGreenhouseView().showPotCollected(potX, potY, result.reward());
             }
         }
@@ -128,7 +132,7 @@ public class GreenhouseController extends ViewController {
             case "already_ready" -> getGreenhouseView().errorCannotAccelerateReadyPlant(potX, potY);
             case "not_enough_diamonds" -> getGreenhouseView().errorNotEnoughDiamondsForAccelerate();
             default -> {
-                userDatabase.saveUserWallet(user);
+                persistWalletAndPot(potX, potY);
                 getGreenhouseView().showPlantGrowthAccelerated(potX, potY, result.diamondsSpent());
             }
         }
@@ -145,7 +149,7 @@ public class GreenhouseController extends ViewController {
             case "already_unlocked" -> getGreenhouseView().errorPotAlreadyUnlocked(potX, potY);
             case "not_enough_diamonds" -> getGreenhouseView().errorNotEnoughDiamondsToUnlock();
             default -> {
-                userDatabase.saveUserWallet(user);
+                persistWalletAndPot(potX, potY);
                 getGreenhouseView().showPotUnlocked(potX, potY);
             }
         }
@@ -153,6 +157,14 @@ public class GreenhouseController extends ViewController {
 
     public void openShop() {
         navigator.push(new ShopController(user, userDatabase));
+    }
+
+    private void persistWalletAndPot(int potX, int potY) {
+        userDatabase.saveUserWallet(user);
+        GreenhousePot pot = user.getPotAt(potX, potY);
+        if (pot != null) {
+            userDatabase.saveGreenhousePot(user, pot);
+        }
     }
 
     private int parseCoordinate(String value) {

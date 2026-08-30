@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.LoginController;
+import io.github.finalwave.util.StayLoggedInStorage;
 import io.github.finalwave.view.gui.widget.FormField;
 import io.github.finalwave.view.gui.widget.ModalPanel;
 import io.github.finalwave.view.gui.widget.PanelLabels;
@@ -17,6 +18,7 @@ public final class LoginScreen extends MenuScreen {
     private LoginController controller;
     private FormField username;
     private FormField password;
+    private Label formError;
     private TextButton stayLoggedInBtn;
     private boolean stayLoggedIn;
     private ModalPanel forgotModal;
@@ -42,6 +44,10 @@ public final class LoginScreen extends MenuScreen {
         Skin skin = assets.skin();
         username = new FormField(skin, "Username");
         password = new FormField(skin, "Password", true);
+        String savedUsername = StayLoggedInStorage.loadUsername();
+        if (savedUsername != null && !savedUsername.isBlank()) {
+            username.field().setText(savedUsername);
+        }
         stayLoggedIn = false;
         stayLoggedInBtn = PvzButtons.textButton("Stay logged in: Off", skin, "brown", () -> {
             stayLoggedIn = !stayLoggedIn;
@@ -61,6 +67,10 @@ public final class LoginScreen extends MenuScreen {
         panel.pad(70);
         panel.defaults().width(400).padBottom(10);
         panel.add(PanelLabels.title(skin, "Login")).padBottom(24).row();
+        formError = new Label("", skin, "secondary");
+        formError.setColor(1f, 0.35f, 0.35f, 1f);
+        formError.setWrap(true);
+        panel.add(formError).width(400).left().padBottom(8).row();
         panel.add(username.field()).height(60).row();
         panel.add(password.field()).height(60).row();
         panel.add(stayLoggedInBtn).height(50).padBottom(16).row();
@@ -87,10 +97,22 @@ public final class LoginScreen extends MenuScreen {
         awaitingNewPassword = false;
     }
 
+    public void showInlineError(String message) {
+        if (formError == null) {
+            return;
+        }
+        formError.setText(message == null ? "" : message);
+    }
+
+    public void clearInlineError() {
+        showInlineError("");
+    }
+
     private void submitLogin() {
         if (controller == null) {
             return;
         }
+        clearInlineError();
         controller.login(username.text(), password.field().getText(), stayLoggedIn);
     }
 
