@@ -12,6 +12,7 @@ import io.github.finalwave.util.HashUtil;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LeaderboardServiceTest {
@@ -24,6 +25,7 @@ class LeaderboardServiceTest {
         alice.getMiniGameProgress().markStageCompleted(MiniGameId.VASE_BREAKER, 1);
         alice.getMiniGameProgress().markStageCompleted(MiniGameId.VASE_BREAKER, 2);
         alice.setBestMeowPoint(120);
+        alice.setHasPlayed(true);
         QuestTracker tracker = new QuestTracker(q -> {
         });
         tracker.setQuests(List.of(
@@ -48,9 +50,11 @@ class LeaderboardServiceTest {
     void sortByBestScoreDescending() {
         User low = user("low");
         low.setBestMeowPoint(10);
+        low.setHasPlayed(true);
         low.setQuestTracker(emptyTracker());
         User high = user("high");
         high.setBestMeowPoint(99);
+        high.setHasPlayed(true);
         high.setQuestTracker(emptyTracker());
 
         List<LeaderboardEntry> sorted = LeaderboardService.sort(
@@ -81,6 +85,33 @@ class LeaderboardServiceTest {
         LeaderboardEntry entry = LeaderboardService.build(List.of(user)).getFirst();
         assertEquals("-", entry.progressLabel());
         assertEquals(-1, entry.progressSortKey());
+    }
+
+    @Test
+    void unscoredUserHasNullBestScore() {
+        User user = user("never-played");
+        user.setQuestTracker(emptyTracker());
+        LeaderboardEntry entry = LeaderboardService.build(List.of(user)).getFirst();
+        assertNull(entry.bestScore());
+    }
+
+    @Test
+    void sortByBestScoreDescendingPutsNullScoresLast() {
+        User scored = user("scored");
+        scored.setBestMeowPoint(50);
+        scored.setHasPlayed(true);
+        scored.setQuestTracker(emptyTracker());
+        User unscored = user("unscored");
+        unscored.setQuestTracker(emptyTracker());
+
+        List<LeaderboardEntry> sorted = LeaderboardService.sort(
+                LeaderboardService.build(List.of(unscored, scored)),
+                LeaderboardSortColumn.BEST_SCORE,
+                false);
+
+        assertEquals("scored", sorted.get(0).username());
+        assertEquals("unscored", sorted.get(1).username());
+        assertNull(sorted.get(1).bestScore());
     }
 
     private static User user(String username) {

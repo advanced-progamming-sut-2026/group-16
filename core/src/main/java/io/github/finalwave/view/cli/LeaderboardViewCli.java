@@ -36,14 +36,18 @@ public class LeaderboardViewCli extends CliView implements LeaderboardView {
         }
         for (LeaderboardEntry entry : entries) {
             displayMessage(String.format(
-                    "%-16s %-22s %10d %8d %10d %10d",
+                    "%-16s %-22s %10d %8d %10d %10s",
                     entry.username(),
                     entry.progressLabel(),
                     entry.minigameCount(),
                     entry.dailyQuestCount(),
                     entry.nonDailyQuestCount(),
-                    entry.bestScore()));
+                    formatScore(entry.bestScore())));
         }
+    }
+
+    private static String formatScore(Integer score) {
+        return score == null ? "-" : String.valueOf(score);
     }
 
     @Override
@@ -64,5 +68,10 @@ public class LeaderboardViewCli extends CliView implements LeaderboardView {
     @Override
     public void errorInvalidSortOrder() {
         displayError("Invalid sort order. Use asc or desc.");
+    }
+
+    @Override
+    public void errorLoadFailed(String reason) {
+        displayError("Could not load leaderboard: " + (reason == null ? "unknown error" : reason));
     }
 }

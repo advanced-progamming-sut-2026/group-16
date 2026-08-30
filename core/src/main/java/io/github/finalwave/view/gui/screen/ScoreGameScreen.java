@@ -27,9 +27,9 @@ public final class ScoreGameScreen extends MenuScreen {
         }
     }
 
-    public void showResult(MeowPointBreakdown breakdown, int bestMeowPoint, boolean newBest) {
+    public void showResult(MeowPointBreakdown breakdown, Integer bestMeowPoint, boolean newBest) {
         if (bestLabel != null) {
-            bestLabel.setText("Best MeowPoint: " + bestMeowPoint);
+            bestLabel.setText("Best MeowPoint: " + formatBest(bestMeowPoint));
         }
         if (resultLabel == null) {
             return;
@@ -58,8 +58,8 @@ public final class ScoreGameScreen extends MenuScreen {
         BorderedTable panel = new BorderedTable();
         panel.pad(48f);
         panel.add(PanelLabels.title(skin, "Score Game")).padBottom(18f).row();
-        int best = controller == null ? 0 : controller.bestMeowPoint();
-        bestLabel = PanelLabels.body(skin, "Best MeowPoint: " + best);
+        Integer best = controller == null ? null : controller.bestMeowPoint();
+        bestLabel = PanelLabels.body(skin, "Best MeowPoint: " + formatBest(best));
         bestLabel.setAlignment(Align.center);
         panel.add(bestLabel).width(560f).padBottom(12f).row();
         resultLabel = PanelLabels.body(skin, "");
@@ -79,5 +79,9 @@ public final class ScoreGameScreen extends MenuScreen {
         });
         panel.add(back).width(220f).height(52f);
         contentLayer.add(panel);
+    }
+
+    private static String formatBest(Integer bestMeowPoint) {
+        return bestMeowPoint == null ? "-" : String.valueOf(bestMeowPoint);
     }
 }

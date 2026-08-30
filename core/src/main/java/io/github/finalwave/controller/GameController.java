@@ -1,6 +1,7 @@
 package io.github.finalwave.controller;
 
 import io.github.finalwave.debug.DebugCheatPersistence;
+import io.github.finalwave.leaderboard.LeaderboardGateway;
 import io.github.finalwave.model.adventure.AdventureRegistry;
 import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.ChapterId;
@@ -16,9 +17,12 @@ import java.util.regex.Matcher;
 public class GameController extends ViewController {
     private final User user;
     private final UserDatabase userDatabase;
-    public GameController(User user, UserDatabase userDatabase) {
+    private final LeaderboardGateway leaderboardGateway;
+
+    public GameController(User user, UserDatabase userDatabase, LeaderboardGateway leaderboardGateway) {
         this.user = user;
         this.userDatabase = userDatabase;
+        this.leaderboardGateway = leaderboardGateway;
     }
 
     public User getUser() {
@@ -153,7 +157,7 @@ public class GameController extends ViewController {
     }
 
     private void handleLeaderboard() {
-        navigator.push(new LeaderboardController(userDatabase));
+        navigator.push(new LeaderboardController(leaderboardGateway));
     }
 
     private void handleCoinWallet() {

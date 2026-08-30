@@ -5,6 +5,8 @@ import io.github.finalwave.model.command.LoginMenuCommands;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.login.LoginGateway;
+import io.github.finalwave.leaderboard.LeaderboardGateway;
+import io.github.finalwave.score.ScoreSubmitGateway;
 import io.github.finalwave.network.auth.LoginFailPayload;
 import io.github.finalwave.network.auth.LoginOkPayload;
 import io.github.finalwave.network.auth.LoginRequest;
@@ -25,6 +27,8 @@ public class LoginController extends ViewController {
     private final LoginGateway loginGateway;
     private final UserDatabase db;
     private final RegistrationGateway registrationGateway;
+    private final LeaderboardGateway leaderboardGateway;
+    private final ScoreSubmitGateway scoreSubmitGateway;
     private final boolean usernameOnlyStayLoggedIn;
     private String pendingPasswordResetUsername;
     private String pendingNewPassword;
@@ -32,20 +36,26 @@ public class LoginController extends ViewController {
     public LoginController(
             LoginGateway loginGateway,
             UserDatabase db,
-            RegistrationGateway registrationGateway
+            RegistrationGateway registrationGateway,
+            LeaderboardGateway leaderboardGateway,
+            ScoreSubmitGateway scoreSubmitGateway
     ) {
-        this(loginGateway, db, registrationGateway, false);
+        this(loginGateway, db, registrationGateway, leaderboardGateway, scoreSubmitGateway, false);
     }
 
     public LoginController(
             LoginGateway loginGateway,
             UserDatabase db,
             RegistrationGateway registrationGateway,
+            LeaderboardGateway leaderboardGateway,
+            ScoreSubmitGateway scoreSubmitGateway,
             boolean usernameOnlyStayLoggedIn
     ) {
         this.loginGateway = loginGateway;
         this.db = db;
         this.registrationGateway = registrationGateway;
+        this.leaderboardGateway = leaderboardGateway;
+        this.scoreSubmitGateway = scoreSubmitGateway;
         this.usernameOnlyStayLoggedIn = usernameOnlyStayLoggedIn;
     }
 
@@ -169,7 +179,7 @@ public class LoginController extends ViewController {
             sync.arm();
         }
         getAuthView().showUserLoggedIn();
-        navigator.reset(new MainMenuController(user, db, registrationGateway, loginGateway));
+        navigator.reset(new MainMenuController(user, db, registrationGateway, loginGateway, leaderboardGateway, scoreSubmitGateway));
     }
 
     private void handleLoginFailure(LoginFailPayload payload) {

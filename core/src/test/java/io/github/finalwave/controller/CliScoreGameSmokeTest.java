@@ -67,6 +67,7 @@ class CliScoreGameSmokeTest {
         assertTrue(output.contains("Best meowpoint:"), output);
         assertTrue(output.contains("The Game Started!") || output.contains("Game Started"), output);
         assertTrue(output.contains("Meowpoint:"), output);
+        assertTrue(output.contains("Could not submit score"), output);
         assertInstanceOf(ScoreGameController.class, parser.getCurrentController());
     }
 

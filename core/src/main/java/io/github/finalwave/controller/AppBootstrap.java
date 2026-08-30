@@ -4,6 +4,8 @@ import io.github.finalwave.model.App;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.login.LoginGateway;
+import io.github.finalwave.leaderboard.LeaderboardGateway;
+import io.github.finalwave.score.ScoreSubmitGateway;
 import io.github.finalwave.profile.ProfileApplier;
 import io.github.finalwave.registration.RegistrationGateway;
 import io.github.finalwave.util.StayLoggedInStorage;
@@ -15,6 +17,8 @@ public final class AppBootstrap {
     private final UserDatabase userDatabase;
     private final RegistrationGateway registrationGateway;
     private final LoginGateway loginGateway;
+    private final LeaderboardGateway leaderboardGateway;
+    private final ScoreSubmitGateway scoreSubmitGateway;
     private final boolean restoreLocalSession;
     private final boolean usernameOnlyStayLoggedIn;
     private final ControllerNavigator navigator;
@@ -23,16 +27,20 @@ public final class AppBootstrap {
             UserDatabase userDatabase,
             RegistrationGateway registrationGateway,
             LoginGateway loginGateway,
+            LeaderboardGateway leaderboardGateway,
+            ScoreSubmitGateway scoreSubmitGateway,
             NavigationBinder binder,
             boolean restoreLocalSession
     ) {
-        this(userDatabase, registrationGateway, loginGateway, binder, restoreLocalSession, !restoreLocalSession);
+        this(userDatabase, registrationGateway, loginGateway, leaderboardGateway, scoreSubmitGateway, binder, restoreLocalSession, !restoreLocalSession);
     }
 
     public AppBootstrap(
             UserDatabase userDatabase,
             RegistrationGateway registrationGateway,
             LoginGateway loginGateway,
+            LeaderboardGateway leaderboardGateway,
+            ScoreSubmitGateway scoreSubmitGateway,
             NavigationBinder binder,
             boolean restoreLocalSession,
             boolean usernameOnlyStayLoggedIn
@@ -40,6 +48,8 @@ public final class AppBootstrap {
         this.userDatabase = userDatabase;
         this.registrationGateway = registrationGateway;
         this.loginGateway = loginGateway;
+        this.leaderboardGateway = leaderboardGateway;
+        this.scoreSubmitGateway = scoreSubmitGateway;
         this.restoreLocalSession = restoreLocalSession;
         this.usernameOnlyStayLoggedIn = usernameOnlyStayLoggedIn;
         this.navigator = new ControllerNavigator(binder);
@@ -57,6 +67,14 @@ public final class AppBootstrap {
         return loginGateway;
     }
 
+    public LeaderboardGateway leaderboardGateway() {
+        return leaderboardGateway;
+    }
+
+    public ScoreSubmitGateway scoreSubmitGateway() {
+        return scoreSubmitGateway;
+    }
+
     public ControllerNavigator navigator() {
         return navigator;
     }
@@ -70,7 +88,9 @@ public final class AppBootstrap {
                         stayLoggedInUser,
                         userDatabase,
                         registrationGateway,
-                        loginGateway
+                        loginGateway,
+                        leaderboardGateway,
+                        scoreSubmitGateway
                 ));
                 return;
             }
@@ -79,6 +99,8 @@ public final class AppBootstrap {
                 registrationGateway,
                 userDatabase,
                 loginGateway,
+                leaderboardGateway,
+                scoreSubmitGateway,
                 usernameOnlyStayLoggedIn
         ));
     }
