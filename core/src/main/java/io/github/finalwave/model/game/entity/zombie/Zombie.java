@@ -615,6 +615,10 @@ public final class Zombie extends Entity {
         return freezeTicksRemaining;
     }
 
+    public int getChillTicksRemaining() {
+        return chillTicksRemaining;
+    }
+
     public int getPoisonTicksRemaining() {
         return poisonTicksRemaining;
     }

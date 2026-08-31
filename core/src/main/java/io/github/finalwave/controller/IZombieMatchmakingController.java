@@ -124,7 +124,7 @@ public final class IZombieMatchmakingController extends ViewController implement
     public void onMatchStart(MatchStartPayload start) {
         matchmakingView().showSearching(false);
         matchmakingView().hideInvite();
-        refreshDirectory();
+        matchmakingService.setListener(null);
     }
 
     @Override

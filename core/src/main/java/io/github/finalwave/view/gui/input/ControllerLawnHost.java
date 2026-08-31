@@ -177,6 +177,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         if (walnutBowling != null || iZombie != null || beghouled != null) {
             return false;
         }
+        if (networkedIZombie != null) {
+            return networkedIZombie.shovelAt(col, row);
+        }
         if (zombotany != null) {
             return zombotany.shovelAt(col, row);
         }

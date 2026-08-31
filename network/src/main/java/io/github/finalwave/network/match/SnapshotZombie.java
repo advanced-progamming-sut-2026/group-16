@@ -1,5 +1,8 @@
 package io.github.finalwave.network.match;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public final class SnapshotZombie {
     private String id;
     private String type;
@@ -9,6 +12,11 @@ public final class SnapshotZombie {
     private int health;
     private int maxHealth;
     private boolean stationary;
+    private String state;
+    private int freezeTicks;
+    private int chillTicks;
+    private int poisonTicks;
+    private List<SnapshotArmorLayer> armorLayers;
 
     public SnapshotZombie() {
     }
@@ -75,5 +83,45 @@ public final class SnapshotZombie {
 
     public void setStationary(boolean stationary) {
         this.stationary = stationary;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public int getFreezeTicks() {
+        return freezeTicks;
+    }
+
+    public void setFreezeTicks(int freezeTicks) {
+        this.freezeTicks = freezeTicks;
+    }
+
+    public int getChillTicks() {
+        return chillTicks;
+    }
+
+    public void setChillTicks(int chillTicks) {
+        this.chillTicks = chillTicks;
+    }
+
+    public int getPoisonTicks() {
+        return poisonTicks;
+    }
+
+    public void setPoisonTicks(int poisonTicks) {
+        this.poisonTicks = poisonTicks;
+    }
+
+    public List<SnapshotArmorLayer> getArmorLayers() {
+        return armorLayers;
+    }
+
+    public void setArmorLayers(List<SnapshotArmorLayer> armorLayers) {
+        this.armorLayers = armorLayers == null ? null : new ArrayList<>(armorLayers);
     }
 }

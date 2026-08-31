@@ -58,7 +58,7 @@ public final class MatchDirectoryHandler {
 
     public MessageEnvelope resetMatchmaking(MessageEnvelope incoming) {
         context.randomQueue().remove(handler);
-        context.matchRegistry().onDisconnect(handler);
+        context.matchRegistry().clearPendingInvites(handler);
         return new MessageEnvelope(
                 MessageTypes.MATCHMAKING_RESET_OK,
                 incoming.getRequestId(),

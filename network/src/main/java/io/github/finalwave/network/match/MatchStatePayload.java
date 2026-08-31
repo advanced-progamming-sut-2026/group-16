@@ -1,6 +1,9 @@
 package io.github.finalwave.network.match;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class MatchStatePayload {
     private String matchId;
@@ -12,6 +15,11 @@ public final class MatchStatePayload {
     private List<SnapshotPlant> plants;
     private List<SnapshotZombie> zombies;
     private List<SnapshotProjectile> projectiles;
+    private String phase;
+    private int secondsLeft;
+    private List<String> plantLoadout;
+    private List<String> zombieRoster;
+    private Map<String, Integer> zombieCosts;
 
     public MatchStatePayload() {
     }
@@ -86,5 +94,45 @@ public final class MatchStatePayload {
 
     public void setProjectiles(List<SnapshotProjectile> projectiles) {
         this.projectiles = projectiles;
+    }
+
+    public String getPhase() {
+        return phase;
+    }
+
+    public void setPhase(String phase) {
+        this.phase = phase;
+    }
+
+    public int getSecondsLeft() {
+        return secondsLeft;
+    }
+
+    public void setSecondsLeft(int secondsLeft) {
+        this.secondsLeft = secondsLeft;
+    }
+
+    public List<String> getPlantLoadout() {
+        return plantLoadout;
+    }
+
+    public void setPlantLoadout(List<String> plantLoadout) {
+        this.plantLoadout = plantLoadout == null ? null : new ArrayList<>(plantLoadout);
+    }
+
+    public List<String> getZombieRoster() {
+        return zombieRoster;
+    }
+
+    public void setZombieRoster(List<String> zombieRoster) {
+        this.zombieRoster = zombieRoster == null ? null : new ArrayList<>(zombieRoster);
+    }
+
+    public Map<String, Integer> getZombieCosts() {
+        return zombieCosts;
+    }
+
+    public void setZombieCosts(Map<String, Integer> zombieCosts) {
+        this.zombieCosts = zombieCosts == null ? null : new LinkedHashMap<>(zombieCosts);
     }
 }

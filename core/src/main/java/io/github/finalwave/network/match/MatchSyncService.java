@@ -10,6 +10,7 @@ import io.github.finalwave.network.NetworkManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class MatchSyncService {
 
@@ -28,11 +29,14 @@ public final class MatchSyncService {
     private final NetworkManager networkManager;
     private volatile Listener listener;
     private volatile StateListener stateListener;
+    private volatile Consumer<List<String>> guestPicksListener;
+    private volatile Consumer<MatchReactionPayload> reactionListener;
     private volatile String matchId;
     private volatile MatchRole role;
     private volatile GameSession hostSession;
     private volatile GameSession guestSession;
     private volatile MatchStatePayload pendingGuestState;
+    private volatile MatchStatePayload lastGuestState;
     private volatile long lastSnapshotMillis;
     private volatile long lastGuestSnapshotMillis;
     private volatile long lastGuestResyncRequestMillis;
@@ -44,6 +48,7 @@ public final class MatchSyncService {
         networkManager.registerListener(MessageTypes.MATCH_INPUT, this::handleInput);
         networkManager.registerListener(MessageTypes.MATCH_STATE, this::handleState);
         networkManager.registerListener(MessageTypes.MATCH_END, this::handleEnd);
+        networkManager.registerListener(MessageTypes.MATCH_REACTION, this::handleReaction);
     }
 
     public void setListener(Listener listener) {
@@ -52,6 +57,14 @@ public final class MatchSyncService {
 
     public void setStateListener(StateListener stateListener) {
         this.stateListener = stateListener;
+    }
+
+    public void setGuestPicksListener(Consumer<List<String>> guestPicksListener) {
+        this.guestPicksListener = guestPicksListener;
+    }
+
+    public void setReactionListener(Consumer<MatchReactionPayload> reactionListener) {
+        this.reactionListener = reactionListener;
     }
 
     public void registerMatch(MatchStartPayload start, GameSession session) {
@@ -86,10 +99,17 @@ public final class MatchSyncService {
         hostSession = null;
         guestSession = null;
         pendingGuestState = null;
+        lastGuestState = null;
         pendingHostInputs.clear();
         lastAppliedGuestTick = -1L;
         lastGuestSnapshotMillis = 0L;
         lastGuestResyncRequestMillis = 0L;
+        guestPicksListener = null;
+        reactionListener = null;
+    }
+
+    public MatchStatePayload lastGuestState() {
+        return lastGuestState;
     }
 
     public MatchRole role() {
@@ -141,6 +161,23 @@ public final class MatchSyncService {
         networkManager.trySend(MessageTypes.MATCH_INPUT, payload);
     }
 
+    public void sendGuestPicks(List<String> picks) {
+        String activeMatchId = matchId;
+        if (activeMatchId == null || role != MatchRole.ZOMBIE) {
+            return;
+        }
+        networkManager.trySend(MessageTypes.MATCH_INPUT, MatchInputPayload.submitPicks(activeMatchId, picks));
+    }
+
+    public void sendReaction(String kind, int index, String fromUsername) {
+        String activeMatchId = matchId;
+        if (activeMatchId == null) {
+            return;
+        }
+        MatchReactionPayload payload = new MatchReactionPayload(activeMatchId, kind, index, fromUsername);
+        networkManager.trySend(MessageTypes.MATCH_REACTION, payload);
+    }
+
     public void sendForfeit() {
         String activeMatchId = matchId;
         if (activeMatchId == null) {
@@ -186,7 +223,8 @@ public final class MatchSyncService {
             GameSession session = hostSession;
             if (session == null || role != MatchRole.PLANT) {
                 if (payload.getAction() == MatchInputAction.PLACE_ZOMBIE
-                        || payload.getAction() == MatchInputAction.GUEST_READY) {
+                        || payload.getAction() == MatchInputAction.GUEST_READY
+                        || payload.getAction() == MatchInputAction.SUBMIT_PICKS) {
                     pendingHostInputs.add(payload);
                 }
                 return;
@@ -215,6 +253,14 @@ public final class MatchSyncService {
     private void processHostInput(GameSession session, MatchInputPayload payload) {
         if (payload.getAction() == MatchInputAction.GUEST_READY) {
             pushHostSnapshotNow();
+            return;
+        }
+        if (payload.getAction() == MatchInputAction.SUBMIT_PICKS) {
+            Consumer<List<String>> picksListener = guestPicksListener;
+            List<String> picks = payload.getPicks() == null ? List.of() : List.copyOf(payload.getPicks());
+            if (picksListener != null) {
+                Gdx.app.postRunnable(() -> picksListener.accept(picks));
+            }
             return;
         }
         if (payload.getAction() == MatchInputAction.PLACE_ZOMBIE
@@ -271,6 +317,7 @@ public final class MatchSyncService {
         }
         lastAppliedGuestTick = payload.getTick();
         lastGuestSnapshotMillis = System.currentTimeMillis();
+        lastGuestState = payload;
         MatchSnapshotApplier.apply(session, payload);
         notifyStateListener();
     }
@@ -279,6 +326,25 @@ public final class MatchSyncService {
         StateListener applied = stateListener;
         if (applied != null) {
             Gdx.app.postRunnable(applied::onStateApplied);
+        }
+    }
+
+    private void handleReaction(MessageEnvelope envelope) {
+        try {
+            MatchReactionPayload payload = MAPPER.treeToValue(envelope.getPayload(), MatchReactionPayload.class);
+            if (payload == null || payload.getMatchId() == null) {
+                return;
+            }
+            String activeMatchId = matchId;
+            if (activeMatchId == null || !activeMatchId.equals(payload.getMatchId())) {
+                return;
+            }
+            Consumer<MatchReactionPayload> active = reactionListener;
+            if (active != null) {
+                Gdx.app.postRunnable(() -> active.accept(payload));
+            }
+        } catch (Exception exception) {
+            Gdx.app.error("MatchSyncService", "Failed to handle match reaction", exception);
         }
     }
 

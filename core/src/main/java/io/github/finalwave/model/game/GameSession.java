@@ -439,6 +439,10 @@ public final class GameSession {
         miniGameState.activateIZombie(placementColumn, zombiePool, zombieCosts);
     }
 
+    public void setIZombieRoster(List<String> zombiePool, Map<String, Integer> zombieCosts) {
+        miniGameState.setIZombieRoster(zombiePool, zombieCosts);
+    }
+
     public boolean isIZombieActive() {
         return miniGameState.isIZombieActive();
     }
