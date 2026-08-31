@@ -54,20 +54,20 @@ class NetworkedIZombieModeTest {
     }
 
     @Test
-    void guestSunTracksSnapshotWithoutOverwritingPlantSun() {
+    void guestReceivesHostZombiesIncludingSunProducers() {
         MiniGameStageConfig stage = MiniGameStageConfig.iZombie(1);
         NetworkedIZombieMode mode = new NetworkedIZombieMode(
-                stage, plantRegistry, zombieRegistry, new Random(3L));
+                stage, plantRegistry, zombieRegistry, new Random(11L));
         GameSession host = mode.createHostSession();
         host.start();
-        host.addIZombieSunBalance(25);
 
-        var payload = MatchSnapshotBuilder.build(host, "match-sun");
+        var payload = MatchSnapshotBuilder.build(host, "match-zombies");
+        assertTrue(payload.getZombies() != null && payload.getZombies().size() >= stage.getRows());
+
         GameSession guest = mode.createGuestSession();
-        guest.setSunBalance(999);
+        guest.start();
         MatchSnapshotApplier.apply(guest, payload);
 
-        assertEquals(host.getIZombieSunBalance(), guest.getIZombieSunBalance());
-        assertEquals(999, guest.getSunBalance());
+        assertEquals(payload.getZombies().size(), guest.getZombies().size());
     }
 }

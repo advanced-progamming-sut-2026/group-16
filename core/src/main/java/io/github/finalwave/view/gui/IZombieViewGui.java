@@ -64,6 +64,12 @@ public final class IZombieViewGui extends GuiViewBase implements IZombieView {
     }
 
     @Override
+    public void showOpponentLeft() {
+        router.dismissGamePlayResult();
+        router.toastGamePlayMessage("Your opponent left the match.");
+    }
+
+    @Override
     public void errorInvalidCommand() {
         router.toastGamePlayError("Invalid I, Zombie command.");
     }

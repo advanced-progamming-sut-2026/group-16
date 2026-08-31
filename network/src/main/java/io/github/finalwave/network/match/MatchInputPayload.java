@@ -18,6 +18,13 @@ public final class MatchInputPayload {
         this.row = row;
     }
 
+    public static MatchInputPayload guestReady(String matchId) {
+        MatchInputPayload payload = new MatchInputPayload();
+        payload.matchId = matchId;
+        payload.action = MatchInputAction.GUEST_READY;
+        return payload;
+    }
+
     public String getMatchId() {
         return matchId;
     }

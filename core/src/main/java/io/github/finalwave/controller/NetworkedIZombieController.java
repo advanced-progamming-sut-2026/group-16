@@ -11,6 +11,7 @@ import io.github.finalwave.model.minigame.MiniGameStageConfig;
 import io.github.finalwave.model.minigame.mode.NetworkedIZombieMode;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.network.match.MatchEndPayload;
+import io.github.finalwave.network.match.MatchEndReason;
 import io.github.finalwave.network.match.MatchRole;
 import io.github.finalwave.network.match.MatchSyncService;
 import io.github.finalwave.network.match.MatchWinner;
@@ -57,6 +58,7 @@ public final class NetworkedIZombieController extends ViewController implements 
         if (role == MatchRole.ZOMBIE) {
             getViewApi().showRoster(stage.getZombiePool(), stage.getZombieSunCosts());
         }
+        requestHostSync();
     }
 
     @Override
@@ -97,13 +99,17 @@ public final class NetworkedIZombieController extends ViewController implements 
     }
 
     public void confirmMatchExit() {
-        matchSyncService.setStateListener(null);
-        matchSyncService.clear();
-        navigator.pop();
+        sendForfeitAndLeave();
     }
 
     public void restartMatch() {
+        sendForfeitAndLeave();
+    }
+
+    private void sendForfeitAndLeave() {
+        matchSyncService.sendForfeit();
         matchSyncService.setStateListener(null);
+        matchSyncService.setListener(null);
         matchSyncService.clear();
         navigator.pop();
     }
@@ -121,13 +127,19 @@ public final class NetworkedIZombieController extends ViewController implements 
         if (role != MatchRole.ZOMBIE || ticks <= 0) {
             return;
         }
-        session.advanceGuestDisplayTicks(ticks);
+        matchSyncService.tickGuest();
     }
 
     public void tickHostSync() {
         if (role == MatchRole.PLANT) {
             matchSyncService.tickHost();
             maybeReturnAfterMatch();
+        }
+    }
+
+    public void requestHostSync() {
+        if (role == MatchRole.ZOMBIE) {
+            matchSyncService.sendGuestReady();
         }
     }
 
@@ -146,11 +158,26 @@ public final class NetworkedIZombieController extends ViewController implements 
         if (role != MatchRole.ZOMBIE) {
             return PlantPlacementResult.TILE_BLOCKED;
         }
-        PlantPlacementResult result = session.tryPlaceZombie(alias, col, row);
-        if (result == PlantPlacementResult.SUCCESS) {
-            matchSyncService.sendGuestPlaceZombie(alias, col, row);
+        if (alias == null || alias.isBlank()) {
+            getViewApi().errorUnknownZombie(alias);
+            return PlantPlacementResult.UNKNOWN_PLANT;
         }
-        return result;
+        if (col < 0 || row < 0) {
+            getViewApi().errorInvalidLocation(col, row);
+            return PlantPlacementResult.OUT_OF_BOUNDS;
+        }
+        String type = alias.trim();
+        if (!stage.getZombiePool().contains(type)) {
+            getViewApi().errorNotInRoster(type);
+            return PlantPlacementResult.NOT_IN_LOADOUT;
+        }
+        if (col <= session.getIZombiePlacementColumn()) {
+            getViewApi().errorBeyondPlantingLine(col, row, session.getIZombiePlacementColumn());
+            return PlantPlacementResult.BEYOND_PLANTING_LINE;
+        }
+        matchSyncService.sendGuestPlaceZombie(type, col, row);
+        getViewApi().showZombiePlaced(type, col, row);
+        return PlantPlacementResult.SUCCESS;
     }
 
     public boolean collectSunAt(int col, int row) {
@@ -158,27 +185,56 @@ public final class NetworkedIZombieController extends ViewController implements 
     }
 
     public void cheatAddSun(int amount) {
-        if (amount > 0) {
+        if (amount <= 0) {
+            return;
+        }
+        if (role == MatchRole.ZOMBIE) {
+            session.addIZombieSunBalance(amount);
+        } else {
             session.addSunBalance(amount);
         }
     }
 
     public void handleNetworkMatchEnd(MatchEndPayload payload) {
-        if (payload == null) {
+        if (payload == null || payload.getMatchId() == null) {
             return;
         }
-        if (payload.getWinner() == MatchWinner.PLANT) {
-            if (role == MatchRole.PLANT) {
+        String activeMatchId = matchSyncService.matchId();
+        if (activeMatchId == null || !activeMatchId.equals(payload.getMatchId())) {
+            return;
+        }
+        if (payload.getReason() == MatchEndReason.OPPONENT_DISCONNECTED) {
+            returnToMatchmakingAfterOpponentLeft();
+            return;
+        }
+        if (payload.getWinner() == null) {
+            return;
+        }
+        boolean zombieWon = payload.getWinner() == MatchWinner.ZOMBIE;
+        if (role == MatchRole.ZOMBIE) {
+            if (zombieWon) {
                 session.winMatch();
             } else {
                 session.loseMatch();
             }
-        } else if (role == MatchRole.ZOMBIE) {
-            session.winMatch();
-        } else {
+        } else if (zombieWon) {
             session.loseMatch();
+        } else {
+            session.winMatch();
         }
         maybeReturnAfterMatch();
+    }
+
+    private void returnToMatchmakingAfterOpponentLeft() {
+        if (finishedHandled) {
+            return;
+        }
+        finishedHandled = true;
+        matchSyncService.setStateListener(null);
+        matchSyncService.setListener(null);
+        matchSyncService.clear();
+        getViewApi().showOpponentLeft();
+        navigator.pop();
     }
 
     private void maybeReturnAfterMatch() {
@@ -213,11 +269,17 @@ public final class NetworkedIZombieController extends ViewController implements 
 
     @Override
     public void onWin() {
+        if (role != MatchRole.PLANT) {
+            return;
+        }
         getViewApi().showWinMessage();
     }
 
     @Override
     public void onLose() {
+        if (role != MatchRole.PLANT) {
+            return;
+        }
         getViewApi().showLoseMessage();
     }
 

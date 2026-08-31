@@ -74,6 +74,11 @@ public class IZombieViewCli extends CliView implements IZombieView {
     }
 
     @Override
+    public void showOpponentLeft() {
+        displayMessage("Your opponent left the match.");
+    }
+
+    @Override
     public void errorInvalidCommand() {
         displayError("Invalid I, Zombie command.");
     }

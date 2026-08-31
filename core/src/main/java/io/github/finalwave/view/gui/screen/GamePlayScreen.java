@@ -257,7 +257,7 @@ public final class GamePlayScreen extends MenuScreen {
         if (user == null && session == null) {
             return;
         }
-        clock = new MatchClock(matchTicker(), user);
+        clock = new MatchClock(matchTicker(), user, networkedZombieRole());
         if (session != null && session.getBoard() != null) {
             GameBoard board = session.getBoard();
             chapterBackground = new ChapterBackground(assets, ChapterId.fromName(session.getChapterId()));
@@ -335,6 +335,9 @@ public final class GamePlayScreen extends MenuScreen {
             return;
         }
         resultShown = false;
+        if (resultModal != null) {
+            resultModal.dismiss();
+        }
         if (clock != null) {
             clock.setPaused(false);
             clock.setResultShowing(false);
@@ -342,7 +345,18 @@ public final class GamePlayScreen extends MenuScreen {
         refreshHud();
         if (networkedIZombie.role() == MatchRole.PLANT) {
             networkedIZombie.tickHostSync();
+        } else {
+            networkedIZombie.requestHostSync();
         }
+    }
+
+    public void dismissResult() {
+        resultShown = false;
+        if (clock != null) {
+            clock.setResultShowing(false);
+        }
+        pauseModal.dismiss();
+        resultModal.dismiss();
     }
 
     @Override
@@ -379,7 +393,7 @@ public final class GamePlayScreen extends MenuScreen {
             icebergFlashOverlay.sync(matchSession());
         }
         if (clock != null && battlefield != null) {
-            float unitSpeed = clock.speed();
+            float unitSpeed = networkedOnlineMatch() ? 1f : clock.speed();
             float environmentSpeed = unitSpeed;
             GameSession session = matchSession();
             if (session != null
@@ -414,7 +428,8 @@ public final class GamePlayScreen extends MenuScreen {
         stage.act(delta);
         float flyDelta = 0f;
         if (clock == null || !clock.shouldFreeze()) {
-            flyDelta = delta * (clock == null ? 1f : clock.speed());
+            float speed = networkedOnlineMatch() ? 1f : (clock == null ? 1f : clock.speed());
+            flyDelta = delta * speed;
         }
         if (battlefield != null) {
             battlefield.tickSunFlights(flyDelta);
@@ -502,7 +517,8 @@ public final class GamePlayScreen extends MenuScreen {
         if (sunCounter != null && session != null) {
             sunCounter.setAmount(displaySunBalance(session));
             sunCounter.setCounting(clock == null || !clock.shouldFreeze());
-            sunCounter.setCountSpeed(clock == null ? 1f : clock.speed());
+            float countSpeed = clock == null ? 1f : (networkedOnlineMatch() ? 1f : clock.speed());
+            sunCounter.setCountSpeed(countSpeed);
         }
         if (timedWarPanel != null) {
             timedWarPanel.refresh(session);
@@ -616,8 +632,11 @@ public final class GamePlayScreen extends MenuScreen {
         if (zombossMeter != null && session != null && session.isBossActive()) {
             zombossMeter.refresh(session);
         }
-        if (speedButton != null && clock != null) {
+        if (speedButton != null && clock != null && !networkedOnlineMatch()) {
             speedButton.setSpeed(clock.speed());
+        }
+        if (speedButton != null) {
+            speedButton.actor().setVisible(!networkedOnlineMatch());
         }
     }
 
@@ -749,7 +768,9 @@ public final class GamePlayScreen extends MenuScreen {
         hudTop.add(meowPointBanner).padLeft(8f).padTop(10f);
         hudTop.add().expandX();
         Table utilities = new Table();
-        utilities.add(speedButton.actor()).size(72f).padRight(2f);
+        if (!networkedOnlineMatch()) {
+            utilities.add(speedButton.actor()).size(72f).padRight(2f);
+        }
         zombieSandbox = new ZombieSandboxPanel(assets, sandboxHost());
         zombieSandbox.setVisible(false);
         utilities.add(pause).size(72f).padRight(4f);
@@ -1054,12 +1075,23 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void onSpeed() {
+        if (networkedOnlineMatch()) {
+            return;
+        }
         if (clock != null) {
             clock.cycleSpeed();
         }
     }
 
     private void togglePause() {
+        if (networkedOnlineMatch()) {
+            if (pauseModal.isShowing()) {
+                resumeMatch();
+                return;
+            }
+            openPause();
+            return;
+        }
         if (resultShown || resultModal.isShowing() || matchFinished()
                 || (npcDialog != null && npcDialog.isShowing())
                 || (objectiveBanner != null && objectiveBanner.isShowing())) {
@@ -1073,6 +1105,13 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void openPause() {
+        if (networkedOnlineMatch()) {
+            if (input != null) {
+                input.setMode(new ToolMode.None());
+            }
+            pauseModal.showOnlineExit(modalLayer, viewport, assets, this::exitMatch);
+            return;
+        }
         if (clock != null) {
             clock.setPaused(true);
         }
@@ -1084,6 +1123,9 @@ public final class GamePlayScreen extends MenuScreen {
 
     private void resumeMatch() {
         pauseModal.dismiss();
+        if (networkedOnlineMatch()) {
+            return;
+        }
         if (clock != null && !resultShown && (npcDialog == null || !npcDialog.isShowing())
                 && (objectiveBanner == null || !objectiveBanner.isShowing())) {
             clock.setPaused(false);
@@ -1198,9 +1240,13 @@ public final class GamePlayScreen extends MenuScreen {
                 || pauseModal.isShowing()
                 || (npcDialog != null && npcDialog.isShowing())
                 || (objectiveBanner != null && objectiveBanner.isShowing())
-                || (clock != null && clock.isPaused())
+                || (!networkedOnlineMatch() && clock != null && clock.isPaused())
                 || matchFinished()
                 || (battlefield != null && battlefield.beghouledBusy());
+    }
+
+    private boolean networkedOnlineMatch() {
+        return networkedIZombie != null;
     }
 
     private boolean matchFinished() {

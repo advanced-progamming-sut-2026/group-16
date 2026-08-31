@@ -490,6 +490,12 @@ public final class ScreenRouter {
         }
     }
 
+    public void dismissGamePlayResult() {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.dismissResult();
+        }
+    }
+
     public MenuScreen currentMenuScreen() {
         Screen active = game.getScreen();
         if (active instanceof MenuScreen menuScreen) {

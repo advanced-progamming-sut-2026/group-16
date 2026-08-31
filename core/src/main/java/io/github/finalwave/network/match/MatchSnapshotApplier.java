@@ -20,6 +20,7 @@ public final class MatchSnapshotApplier {
             return;
         }
         session.syncNetworkTick(payload.getTick());
+        session.setSunBalance(payload.getSunBalance());
         session.setIZombieSunBalance(payload.getZombieSunBalance());
         session.syncIZombieBrainsFromNetwork(payload.getBrainsEaten());
         syncPlants(session, payload.getPlants());
@@ -108,6 +109,10 @@ public final class MatchSnapshotApplier {
             } else {
                 zombie.setPosition(dto.getX(), dto.getRow());
                 zombie.restoreHealth(dto.getHealth());
+                if (dto.isStationary()) {
+                    zombie.setStationary(true);
+                    zombie.lockLane();
+                }
             }
         }
         for (Zombie zombie : List.copyOf(session.getZombies())) {

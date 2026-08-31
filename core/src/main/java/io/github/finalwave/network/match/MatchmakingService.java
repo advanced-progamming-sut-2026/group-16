@@ -25,10 +25,16 @@ public final class MatchmakingService {
         void onQueueWaitingChanged(boolean waiting);
     }
 
+    @FunctionalInterface
+    public interface MatchStartHandler {
+        void onMatchStart(MatchStartPayload start);
+    }
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final NetworkManager networkManager;
     private volatile Listener listener;
+    private volatile MatchStartHandler matchStartHandler;
     private volatile boolean queueWaiting;
 
     public MatchmakingService(NetworkManager networkManager) {
@@ -44,6 +50,10 @@ public final class MatchmakingService {
 
     public void setListener(Listener listener) {
         this.listener = listener;
+    }
+
+    public void setMatchStartHandler(MatchStartHandler handler) {
+        this.matchStartHandler = handler;
     }
 
     public boolean isQueueWaiting() {
@@ -126,16 +136,22 @@ public final class MatchmakingService {
 
     private void handleMatchStart(MessageEnvelope envelope) {
         queueWaiting = false;
-        Listener active = listener;
-        if (active == null) {
+        MatchStartPayload payload;
+        try {
+            payload = MAPPER.treeToValue(envelope.getPayload(), MatchStartPayload.class);
+        } catch (Exception ignored) {
             return;
         }
-        try {
-            MatchStartPayload payload = MAPPER.treeToValue(envelope.getPayload(), MatchStartPayload.class);
-            if (payload != null) {
-                active.onMatchStart(payload);
-            }
-        } catch (Exception ignored) {
+        if (payload == null) {
+            return;
+        }
+        MatchStartHandler launch = matchStartHandler;
+        if (launch != null) {
+            launch.onMatchStart(payload);
+        }
+        Listener active = listener;
+        if (active != null) {
+            active.onMatchStart(payload);
         }
     }
 
