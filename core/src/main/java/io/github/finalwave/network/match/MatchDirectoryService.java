@@ -16,11 +16,13 @@ public final class MatchDirectoryService {
     private final NetworkManager networkManager;
     private final Map<String, Consumer<ListMatchUsersResponse>> listPending = new ConcurrentHashMap<>();
     private final Map<String, Runnable> resetPending = new ConcurrentHashMap<>();
+    private volatile Consumer<ListMatchUsersResponse> updateListener;
 
     public MatchDirectoryService(NetworkManager networkManager) {
         this.networkManager = networkManager;
         networkManager.registerListener(MessageTypes.LIST_MATCH_USERS_OK, this::handleListOk);
         networkManager.registerListener(MessageTypes.MATCHMAKING_RESET_OK, this::handleResetOk);
+        networkManager.registerListener(MessageTypes.MATCH_USERS_UPDATED, this::handleUsersUpdated);
     }
 
     public void refresh(Consumer<ListMatchUsersResponse> onResult) {
@@ -28,7 +30,37 @@ public final class MatchDirectoryService {
             Gdx.app.postRunnable(() -> onResult.accept(emptyResponse()));
             return;
         }
-        resetMatchmaking(() -> requestList(onResult));
+        resetMatchmaking(() -> list(onResult));
+    }
+
+    public void list(Consumer<ListMatchUsersResponse> onResult) {
+        if (!networkManager.isConnected()) {
+            Gdx.app.postRunnable(() -> onResult.accept(emptyResponse()));
+            return;
+        }
+        requestList(onResult);
+    }
+
+    public void setUpdateListener(Consumer<ListMatchUsersResponse> listener) {
+        this.updateListener = listener;
+    }
+
+    private void handleUsersUpdated(MessageEnvelope envelope) {
+        Consumer<ListMatchUsersResponse> listener = updateListener;
+        if (listener == null) {
+            return;
+        }
+        ListMatchUsersResponse response = emptyResponse();
+        try {
+            ListMatchUsersResponse parsed = MAPPER.treeToValue(
+                    envelope.getPayload(), ListMatchUsersResponse.class);
+            if (parsed != null) {
+                response = parsed;
+            }
+        } catch (Exception ignored) {
+        }
+        ListMatchUsersResponse finalResponse = response;
+        Gdx.app.postRunnable(() -> listener.accept(finalResponse));
     }
 
     public void resetMatchmaking(Runnable onDone) {

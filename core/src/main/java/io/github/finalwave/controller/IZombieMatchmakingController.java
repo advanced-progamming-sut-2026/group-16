@@ -39,12 +39,27 @@ public final class IZombieMatchmakingController extends ViewController implement
 
     @Override
     public void displayMenu() {
+        matchDirectoryService.setUpdateListener(response -> matchmakingView().showPlayerDirectory(response));
         matchmakingView().showOptions();
         refreshDirectory();
     }
 
+    @Override
+    public void onPause() {
+        matchDirectoryService.setUpdateListener(null);
+    }
+
+    @Override
+    public void onExit() {
+        matchDirectoryService.setUpdateListener(null);
+    }
+
     public void refreshDirectory() {
         matchDirectoryService.refresh(response -> matchmakingView().showPlayerDirectory(response));
+    }
+
+    public void pollDirectory() {
+        matchDirectoryService.list(response -> matchmakingView().showPlayerDirectory(response));
     }
 
     public User getUser() {

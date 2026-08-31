@@ -27,6 +27,13 @@ public final class MatchDirectoryHandler {
     }
 
     public MessageEnvelope listUsers(MessageEnvelope incoming) {
+        return new MessageEnvelope(
+                MessageTypes.LIST_MATCH_USERS_OK,
+                incoming.getRequestId(),
+                MAPPER.valueToTree(snapshot(context, handler)));
+    }
+
+    public static ListMatchUsersResponse snapshot(ServerContext context, ClientHandler handler) {
         Optional<String> selfUsername = context.sessionRegistry().usernameFor(handler);
         boolean selfOnline = selfUsername.isPresent();
         boolean selfBusy = context.matchRegistry().isBusy(handler);
@@ -45,15 +52,11 @@ public final class MatchDirectoryHandler {
         entries.sort(Comparator
                 .comparing(MatchUserEntry::isOnline).reversed()
                 .thenComparing(entry -> entry.getUsername().toLowerCase()));
-        ListMatchUsersResponse response = new ListMatchUsersResponse(
+        return new ListMatchUsersResponse(
                 selfUsername.orElse(""),
                 selfOnline,
                 selfBusy,
                 entries);
-        return new MessageEnvelope(
-                MessageTypes.LIST_MATCH_USERS_OK,
-                incoming.getRequestId(),
-                MAPPER.valueToTree(response));
     }
 
     public MessageEnvelope resetMatchmaking(MessageEnvelope incoming) {
