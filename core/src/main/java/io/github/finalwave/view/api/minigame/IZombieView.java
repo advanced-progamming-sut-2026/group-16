@@ -26,6 +26,8 @@ public interface IZombieView extends View {
 
     void showLoseMessage();
 
+    void showOpponentLeft();
+
     void errorInvalidCommand();
 
     void errorInvalidLocation(int col, int row);

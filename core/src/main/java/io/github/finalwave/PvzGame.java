@@ -4,12 +4,14 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import io.github.finalwave.controller.AppBootstrap;
+import io.github.finalwave.model.App;
 import io.github.finalwave.network.NetworkManager;
 import io.github.finalwave.network.NetworkPingProbe;
 import io.github.finalwave.login.NetworkLoginGateway;
 import io.github.finalwave.leaderboard.NetworkLeaderboardGateway;
 import io.github.finalwave.score.NetworkScoreSubmitGateway;
 import io.github.finalwave.network.sync.ProgressSyncService;
+import io.github.finalwave.network.match.MatchLaunchBridge;
 import io.github.finalwave.network.match.MatchDirectoryService;
 import io.github.finalwave.network.match.MatchmakingService;
 import io.github.finalwave.network.match.MatchSyncService;
@@ -86,6 +88,11 @@ public final class PvzGame extends Game {
             return;
         }
         applicationStarted = true;
+        MatchLaunchBridge.install(
+                matchmakingService,
+                matchSyncService,
+                bootstrap::navigator,
+                () -> App.getInstance().getCurrentUser());
         bootstrap.start();
     }
 

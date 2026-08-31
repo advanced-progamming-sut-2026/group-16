@@ -146,6 +146,100 @@ public final class PauseModal {
         modalLayer.addActor(root);
     }
 
+    public void showOnlineExit(Table modalLayer, Viewport viewport, GameAssets assets, Runnable onExit) {
+        dismiss();
+        Skin skin = assets.skin();
+        float width = viewport.getWorldWidth();
+        float height = viewport.getWorldHeight();
+
+        root = new Group();
+        root.setSize(width, height);
+        root.setTouchable(Touchable.childrenOnly);
+
+        Image dimmer = new Image(dimDrawable());
+        dimmer.setFillParent(true);
+        dimmer.setColor(1f, 1f, 1f, 0.58f);
+        dimmer.setTouchable(Touchable.enabled);
+        dimmer.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                return true;
+            }
+        });
+        root.addActor(dimmer);
+
+        WidgetGroup stageCard = new WidgetGroup();
+        stageCard.setTransform(false);
+
+        Table panel = new Table();
+        panel.setBackground(StoreChrome.panel());
+        panel.pad(48f, 52f, 92f, 52f);
+        panel.add(volumeRow(assets, skin, "Music", GameAudioSettings.musicVolume(), assets.audio()::setMusicVolume))
+                .growX()
+                .padBottom(26f)
+                .row();
+        panel.add(volumeRow(assets, skin, "Sound FX", GameAudioSettings.sfxVolume(), assets.audio()::setSfxVolume))
+                .growX();
+        panel.setSize(PANEL_WIDTH, PANEL_HEIGHT);
+        panel.setPosition(0f, 0f);
+        panel.validate();
+        stageCard.addActor(panel);
+
+        Table peek = new Table();
+        peek.setClip(true);
+        peek.setTransform(false);
+        peek.setTouchable(Touchable.disabled);
+        peek.setSize(PEEK_WIDTH, PEEK_HEIGHT);
+        peek.setPosition((PANEL_WIDTH - PEEK_WIDTH) * 0.5f, PANEL_HEIGHT - 8f);
+        Image sunflower = image(assets, LawnAssetIds.PAUSE_SUNFLOWER, Scaling.fit);
+        sunflower.setSize(HEAD_WIDTH, HEAD_HEIGHT);
+        sunflower.setPosition((PEEK_WIDTH - HEAD_WIDTH) * 0.5f, 18f);
+        sunflower.setOrigin(Align.center);
+        sunflower.addAction(Actions.forever(Actions.sequence(
+                Actions.rotateTo(6f, 0.85f, Interpolation.sine),
+                Actions.rotateTo(-6f, 0.85f, Interpolation.sine)
+        )));
+        peek.addActor(sunflower);
+        stageCard.addActor(peek);
+
+        Image topper = image(assets, LawnAssetIds.PAUSE_TOPPER, Scaling.stretch);
+        topper.setSize(TOPPER_WIDTH, TOPPER_HEIGHT);
+        topper.setPosition((PANEL_WIDTH - TOPPER_WIDTH) * 0.5f, PANEL_HEIGHT - 42f);
+        stageCard.addActor(topper);
+
+        Image cornerGear = image(assets, LawnAssetIds.PAUSE_SLIDER_BOLT, Scaling.fit);
+        cornerGear.setSize(58f, 58f);
+        cornerGear.setPosition(PANEL_WIDTH - 86f, PANEL_HEIGHT - 34f);
+        stageCard.addActor(cornerGear);
+
+        TextButton exitButton = skinButton(skin, "LEAVE MATCH", "brown", onExit);
+        exitButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
+        exitButton.setPosition((PANEL_WIDTH - BUTTON_WIDTH) * 0.5f, -22f);
+        stageCard.addActor(exitButton);
+
+        float cardHeight = PANEL_HEIGHT + PEEK_HEIGHT;
+        stageCard.setSize(PANEL_WIDTH, cardHeight);
+
+        Label title = new Label("ONLINE MATCH", skin, outlineStyle(skin, true));
+        title.setAlignment(Align.center);
+        title.setColor(Color.WHITE);
+        title.setFontScale(0.92f);
+
+        Label subtitle = new Label("Leaving ends the match for both players.", skin, outlineStyle(skin, false));
+        subtitle.setAlignment(Align.center);
+        subtitle.setColor(Color.WHITE);
+        subtitle.setFontScale(0.62f);
+
+        Table dialog = new Table();
+        dialog.setFillParent(true);
+        dialog.center();
+        dialog.add(title).padBottom(4f).row();
+        dialog.add(subtitle).padBottom(6f).row();
+        dialog.add(stageCard).size(PANEL_WIDTH, cardHeight).padTop(18f);
+        root.addActor(dialog);
+        modalLayer.addActor(root);
+    }
+
     public void dismiss() {
         if (root != null) {
             root.remove();

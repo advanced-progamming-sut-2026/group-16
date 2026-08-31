@@ -5,6 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.finalwave.network.MessageEnvelope;
 import io.github.finalwave.network.MessageTypes;
 import io.github.finalwave.network.match.MatchEndPayload;
+import io.github.finalwave.network.match.MatchEndReason;
+import io.github.finalwave.network.match.MatchInputAction;
+import io.github.finalwave.network.match.MatchInputPayload;
+import io.github.finalwave.network.match.MatchWinner;
 import io.github.finalwave.server.ClientHandler;
 import io.github.finalwave.server.ServerContext;
 
@@ -22,6 +26,10 @@ public final class MatchRelayHandler {
     }
 
     public MessageEnvelope handleInput(MessageEnvelope incoming) {
+        if (isForfeit(incoming)) {
+            handleForfeit(incoming);
+            return null;
+        }
         return relay(incoming, MessageTypes.MATCH_INPUT, true);
     }
 
@@ -44,6 +52,38 @@ public final class MatchRelayHandler {
             return null;
         } catch (Exception exception) {
             return null;
+        }
+    }
+
+    private void handleForfeit(MessageEnvelope incoming) {
+        try {
+            MatchInputPayload payload = MAPPER.treeToValue(incoming.getPayload(), MatchInputPayload.class);
+            if (payload == null || payload.getMatchId() == null || payload.getMatchId().isBlank()) {
+                return;
+            }
+            String matchId = payload.getMatchId();
+            Optional<ClientHandler> partner = context.matchRegistry().partnerFor(handler, matchId);
+            if (partner.isEmpty()) {
+                return;
+            }
+            MatchWinner winner = context.matchRegistry().isHost(handler, matchId)
+                    ? MatchWinner.ZOMBIE
+                    : MatchWinner.PLANT;
+            MatchEndPayload endPayload = new MatchEndPayload(matchId, winner, MatchEndReason.OPPONENT_DISCONNECTED);
+            JsonNode endNode = MAPPER.valueToTree(endPayload);
+            partner.get().push(clonePush(MessageTypes.MATCH_END, endNode));
+            handler.push(clonePush(MessageTypes.MATCH_END, endNode));
+            context.matchRegistry().endMatch(matchId);
+        } catch (Exception exception) {
+        }
+    }
+
+    private boolean isForfeit(MessageEnvelope incoming) {
+        try {
+            MatchInputPayload payload = MAPPER.treeToValue(incoming.getPayload(), MatchInputPayload.class);
+            return payload != null && payload.getAction() == MatchInputAction.FORFEIT;
+        } catch (Exception exception) {
+            return false;
         }
     }
 

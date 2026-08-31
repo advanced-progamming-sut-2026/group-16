@@ -219,9 +219,24 @@ public class MiniGameHubController extends ViewController {
             MatchStartPayload start,
             MatchSyncService matchSyncService,
             MiniGameStageConfig stage) {
+        if (start == null || start.getMatchId() == null || start.getMatchId().isBlank()) {
+            return;
+        }
+        String activeMatchId = matchSyncService.matchId();
+        if (activeMatchId != null && activeMatchId.equals(start.getMatchId())) {
+            return;
+        }
+        MiniGameStageConfig resolvedStage = stage;
+        if (start.getStageIndex() > 0) {
+            MiniGameStageConfig fromPayload = MiniGameRegistry.getInstance()
+                    .getStage(MiniGameId.I_ZOMBIE, start.getStageIndex());
+            if (fromPayload != null) {
+                resolvedStage = fromPayload;
+            }
+        }
         PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
         ZombieRegistry zombieRegistry = loadZombieRegistry();
-        NetworkedIZombieMode mode = new NetworkedIZombieMode(stage, plantRegistry, zombieRegistry, new Random());
+        NetworkedIZombieMode mode = new NetworkedIZombieMode(resolvedStage, plantRegistry, zombieRegistry, new Random());
         GameSession session = start.getYourRole() == MatchRole.PLANT
                 ? mode.createHostSession()
                 : mode.createGuestSession();
@@ -230,7 +245,7 @@ public class MiniGameHubController extends ViewController {
                 user,
                 mode,
                 session,
-                stage,
+                resolvedStage,
                 start.getYourRole(),
                 matchSyncService,
                 start.getOpponentUsername());

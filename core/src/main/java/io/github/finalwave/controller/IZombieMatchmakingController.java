@@ -125,8 +125,6 @@ public final class IZombieMatchmakingController extends ViewController implement
         matchmakingView().showSearching(false);
         matchmakingView().hideInvite();
         refreshDirectory();
-        MiniGameHubController.launchNetworkedIZombieMatch(
-                navigator, user, start, matchSyncService, stage);
     }
 
     @Override
