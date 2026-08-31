@@ -11,6 +11,7 @@ import io.github.finalwave.server.auth.RegisterHandler;
 import io.github.finalwave.server.auth.ResumeHandler;
 import io.github.finalwave.server.leaderboard.LeaderboardHandler;
 import io.github.finalwave.server.matchmaking.ChallengeHandler;
+import io.github.finalwave.server.matchmaking.MatchDirectoryBroadcaster;
 import io.github.finalwave.server.matchmaking.MatchDirectoryHandler;
 import io.github.finalwave.server.matchmaking.MatchRelayHandler;
 import io.github.finalwave.server.presence.UserStatusHandler;
@@ -69,6 +70,9 @@ public final class ClientHandler implements Runnable {
                 if (response != null) {
                     protocol.send(response);
                 }
+                if (affectsDirectory(incoming.getType())) {
+                    MatchDirectoryBroadcaster.broadcast(context);
+                }
             }
         } catch (IOException exception) {
             System.out.println("Client disconnected: " + clientLabel + " (" + exception.getMessage() + ")");
@@ -76,8 +80,21 @@ public final class ClientHandler implements Runnable {
             context.randomQueue().remove(this);
             context.matchRegistry().onDisconnect(this);
             context.sessionRegistry().unbind(this);
+            MatchDirectoryBroadcaster.broadcast(context);
             System.out.println("Client handler finished: " + clientLabel);
         }
+    }
+
+    private static boolean affectsDirectory(String type) {
+        return MessageTypes.LOGIN.equals(type)
+                || MessageTypes.RESUME.equals(type)
+                || MessageTypes.LOGOUT.equals(type)
+                || MessageTypes.CHALLENGE_REQUEST.equals(type)
+                || MessageTypes.CHALLENGE_RESPONSE.equals(type)
+                || MessageTypes.JOIN_RANDOM_QUEUE.equals(type)
+                || MessageTypes.LEAVE_QUEUE.equals(type)
+                || MessageTypes.MATCH_END.equals(type)
+                || MessageTypes.MATCHMAKING_RESET.equals(type);
     }
 
     public synchronized void push(MessageEnvelope message) {

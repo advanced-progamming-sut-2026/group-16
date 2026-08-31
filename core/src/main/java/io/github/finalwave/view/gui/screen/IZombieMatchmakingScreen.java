@@ -14,15 +14,22 @@ import io.github.finalwave.network.match.MatchUserEntry;
 import io.github.finalwave.view.gui.widget.ChallengeInviteDialog;
 import io.github.finalwave.view.gui.widget.PanelLabels;
 import io.github.finalwave.view.gui.widget.PvzButtons;
+import io.github.finalwave.view.gui.widget.SearchingOpponentDialog;
 import pvz.skin.BorderedTable;
 
 public final class IZombieMatchmakingScreen extends MenuScreen {
+    private static final float POLL_INTERVAL_SECONDS = 2.5f;
+
     private IZombieMatchmakingController controller;
-    private Table searchingOverlay;
+    private SearchingOpponentDialog searchingDialog;
     private ChallengeInviteDialog inviteDialog;
     private TextField usernameField;
     private Label sessionDebugLabel;
     private Table playerListTable;
+    private boolean searching;
+    private ListMatchUsersResponse lastDirectory;
+    private String lastDirectorySignature;
+    private float pollTimer;
 
     public IZombieMatchmakingScreen(PvzGame game) {
         super(game);
@@ -54,19 +61,15 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
         wrapper.add(columns);
         contentLayer.add(wrapper).expand().fill();
 
-        searchingOverlay = new Table();
-        searchingOverlay.setFillParent(true);
-        searchingOverlay.center();
-        searchingOverlay.setVisible(false);
-        Label searchingLabel = PanelLabels.title(skin, "Searching for opponent...");
-        searchingOverlay.add(searchingLabel).padBottom(16).row();
-        TextButton cancelBtn = PvzButtons.textButton("Cancel", skin, "green_small", () -> {
+        searchingDialog = new SearchingOpponentDialog(skin, () -> {
             if (controller != null) {
                 controller.leaveQueue();
             }
         });
-        searchingOverlay.add(cancelBtn).width(180).height(52);
-        modalLayer.addActor(searchingOverlay);
+        modalLayer.addActor(searchingDialog);
+        if (searching) {
+            searchingDialog.show();
+        }
 
         inviteDialog = new ChallengeInviteDialog(skin, (inviteId, accepted) -> {
             if (controller != null) {
@@ -75,6 +78,10 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
         });
         inviteDialog.setVisible(false);
         modalLayer.addActor(inviteDialog);
+
+        if (lastDirectory != null) {
+            applyDirectory(lastDirectory);
+        }
     }
 
     private BorderedTable buildLeftPanel(Skin skin) {
@@ -128,7 +135,7 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
 
         panel.add(actionButton("Refresh", skin, () -> {
             if (controller != null) {
-                controller.refreshDirectory();
+                controller.pollDirectory();
             }
         })).width(130).height(44).left().padBottom(12).row();
 
@@ -150,9 +157,20 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
     }
 
     public void updatePlayerDirectory(ListMatchUsersResponse response) {
+        lastDirectory = response;
+        String signature = directorySignature(response);
+        boolean changed = !signature.equals(lastDirectorySignature);
+        lastDirectorySignature = signature;
         if (playerListTable == null || sessionDebugLabel == null) {
             return;
         }
+        if (!changed) {
+            return;
+        }
+        applyDirectory(response);
+    }
+
+    private void applyDirectory(ListMatchUsersResponse response) {
         Skin skin = assets.skin();
         sessionDebugLabel.setText(formatSessionDebug(response));
         playerListTable.clearChildren();
@@ -166,6 +184,40 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
                 continue;
             }
             addPlayerRow(skin, entry, entry.getUsername().equals(selfUsername));
+        }
+    }
+
+    private static String directorySignature(ListMatchUsersResponse response) {
+        if (response == null) {
+            return "null";
+        }
+        StringBuilder builder = new StringBuilder()
+                .append(response.getSelfUsername())
+                .append('|').append(response.isSelfOnline())
+                .append('|').append(response.isSelfBusy());
+        if (response.getUsers() != null) {
+            for (MatchUserEntry entry : response.getUsers()) {
+                if (entry == null) {
+                    continue;
+                }
+                builder.append('|').append(entry.getUsername())
+                        .append(',').append(entry.isOnline())
+                        .append(',').append(entry.isBusy());
+            }
+        }
+        return builder.toString();
+    }
+
+    @Override
+    public void render(float delta) {
+        super.render(delta);
+        pollTimer += delta;
+        if (pollTimer < POLL_INTERVAL_SECONDS) {
+            return;
+        }
+        pollTimer = 0f;
+        if (controller != null) {
+            controller.pollDirectory();
         }
     }
 
@@ -233,8 +285,14 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
     }
 
     public void showSearching(boolean searching) {
-        if (searchingOverlay != null) {
-            searchingOverlay.setVisible(searching);
+        this.searching = searching;
+        if (searchingDialog == null) {
+            return;
+        }
+        if (searching) {
+            searchingDialog.show();
+        } else {
+            searchingDialog.hide();
         }
     }
 

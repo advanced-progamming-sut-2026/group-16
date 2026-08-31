@@ -65,6 +65,7 @@ public final class MessageTypes {
     public static final String CHECK_USER_STATUS_OK = "CHECK_USER_STATUS_OK";
     public static final String LIST_MATCH_USERS = "LIST_MATCH_USERS";
     public static final String LIST_MATCH_USERS_OK = "LIST_MATCH_USERS_OK";
+    public static final String MATCH_USERS_UPDATED = "MATCH_USERS_UPDATED";
     public static final String MATCHMAKING_RESET = "MATCHMAKING_RESET";
     public static final String MATCHMAKING_RESET_OK = "MATCHMAKING_RESET_OK";
     public static final String CHALLENGE_REQUEST = "CHALLENGE_REQUEST";

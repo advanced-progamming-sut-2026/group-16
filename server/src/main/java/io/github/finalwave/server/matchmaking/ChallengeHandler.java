@@ -117,6 +117,7 @@ public final class ChallengeHandler {
                 MessageTypes.CHALLENGE_TIMEOUT,
                 null,
                 MAPPER.valueToTree(payload)));
+        MatchDirectoryBroadcaster.broadcast(context);
     }
 
     private MessageEnvelope fail(MessageEnvelope incoming, ChallengeFailReason reason) {

@@ -3,6 +3,7 @@ package io.github.finalwave.server.session;
 import io.github.finalwave.network.auth.LoginFailReason;
 import io.github.finalwave.server.ClientHandler;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -45,5 +46,9 @@ public final class SessionRegistry {
 
     public boolean isOnline(String username) {
         return handlerFor(username).isPresent();
+    }
+
+    public List<ClientHandler> handlers() {
+        return List.copyOf(handlerToUsername.keySet());
     }
 }
