@@ -43,6 +43,7 @@ import io.github.finalwave.model.user.User;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.hud.AlertBanner;
+import io.github.finalwave.view.gui.hud.DuelPickOverlay;
 import io.github.finalwave.view.gui.hud.LevelObjectiveBanner;
 import io.github.finalwave.view.gui.hud.MatchResultModal;
 import io.github.finalwave.view.gui.hud.NpcDialogBox;
@@ -51,6 +52,8 @@ import io.github.finalwave.view.gui.hud.NpcDialogScript;
 import io.github.finalwave.view.gui.hud.PauseButton;
 import io.github.finalwave.view.gui.hud.PauseModal;
 import io.github.finalwave.view.gui.hud.PlantFoodCounter;
+import io.github.finalwave.view.gui.hud.ReactionBar;
+import io.github.finalwave.view.gui.hud.ReactionToast;
 import io.github.finalwave.view.gui.hud.SeedBankBar;
 import io.github.finalwave.view.gui.hud.ShovelButton;
 import io.github.finalwave.view.gui.hud.SpeedButton;
@@ -127,6 +130,9 @@ public final class GamePlayScreen extends MenuScreen {
     private BeghouledUpgradeBar upgradeBar;
     private ConveyorBeltBar conveyorBeltBar;
     private StartWaveButton startWaveButton;
+    private DuelPickOverlay duelPickOverlay;
+    private ReactionBar reactionBar;
+    private Label duelClockLabel;
     private Table hudTop;
     private Table hudBottom;
     private SunCounter sunCounter;
@@ -337,12 +343,54 @@ public final class GamePlayScreen extends MenuScreen {
             clock.setPaused(false);
             clock.setResultShowing(false);
         }
+        networkedIZombie.setReactionViewListener(payload ->
+                ReactionToast.show(modalLayer, assets.skin(), payload));
+        networkedIZombie.setPhaseChangeListener(ignored -> rebuildDuelOverlays());
+        rebuildDuelOverlays();
+        buildHud();
         refreshHud();
         if (networkedIZombie.role() == MatchRole.PLANT) {
             networkedIZombie.tickHostSync();
         } else {
             networkedIZombie.requestHostSync();
         }
+    }
+
+    private void rebuildDuelOverlays() {
+        if (duelPickOverlay != null) {
+            duelPickOverlay.remove();
+            duelPickOverlay = null;
+        }
+        if (reactionBar != null) {
+            if (reactionBar.getParent() != null) {
+                reactionBar.getParent().remove();
+            } else {
+                reactionBar.remove();
+            }
+            reactionBar = null;
+        }
+        if (networkedIZombie == null) {
+            return;
+        }
+        if (networkedIZombie.isPicking()) {
+            duelPickOverlay = new DuelPickOverlay(assets, networkedIZombie);
+            modalLayer.addActor(duelPickOverlay);
+            duelPickOverlay.updateChrome();
+            if (hudLayer != null) {
+                hudLayer.setTouchable(Touchable.disabled);
+            }
+            return;
+        }
+        if (hudLayer != null) {
+            hudLayer.setTouchable(Touchable.childrenOnly);
+            buildHud();
+        }
+        reactionBar = new ReactionBar(assets.skin(), (kind, index) -> networkedIZombie.sendReaction(kind, index));
+        Table holder = new Table();
+        holder.setFillParent(true);
+        holder.bottom().right().pad(12f);
+        holder.add(reactionBar);
+        modalLayer.addActor(holder);
     }
 
     public void dismissResult() {
@@ -578,6 +626,27 @@ public final class GamePlayScreen extends MenuScreen {
                 zombieRoster.setVisible(false);
             }
         }
+        if (duelClockLabel != null) {
+            if (networkedIZombie != null) {
+                duelClockLabel.setVisible(true);
+                if (networkedIZombie.isPicking()) {
+                    duelClockLabel.setText("Picking " + networkedIZombie.pickSecondsLeft() + "s");
+                    if (duelPickOverlay != null) {
+                        duelPickOverlay.updateChrome();
+                    }
+                    if (hudLayer != null) {
+                        hudLayer.setTouchable(Touchable.disabled);
+                    }
+                } else {
+                    duelClockLabel.setText("Time " + networkedIZombie.secondsLeft() + "s");
+                    if (hudLayer != null && hudLayer.getTouchable() == Touchable.disabled) {
+                        hudLayer.setTouchable(Touchable.childrenOnly);
+                    }
+                }
+            } else {
+                duelClockLabel.setVisible(false);
+            }
+        }
         layoutSandbox();
         if (upgradeBar != null) {
             upgradeBar.refresh(session);
@@ -743,12 +812,16 @@ public final class GamePlayScreen extends MenuScreen {
         zombossMeter = new ZombossHealthMeter(assets);
         speedButton = new SpeedButton(assets, this::onSpeed);
         Actor pause = PauseButton.create(assets, this::togglePause);
-        Actor shovel = hideSeedTools() ? null : ShovelButton.create(assets, this::onShovel);
+        boolean hideShovel = hideAdventureTools() || beghouled != null || iZombie != null || networkedZombieRole();
+        Actor shovel = hideShovel ? null : ShovelButton.create(assets, this::onShovel);
 
         hudTop = new Table();
         if (!hideAdventureTools()) {
             hudTop.add(sunCounter).padLeft(sunPad()).padTop(10f);
         }
+        duelClockLabel = new Label("", assets.skin(), "medium");
+        duelClockLabel.setVisible(false);
+        hudTop.add(duelClockLabel).padLeft(12f).padTop(12f);
         hudTop.add(startWaveButton).padLeft(8f).padTop(10f);
         hudTop.add(timedWarPanel).padLeft(8f).padTop(10f);
         hudTop.add(loveYourPlantsCounter).padLeft(8f).padTop(10f);
@@ -1225,7 +1298,8 @@ public final class GamePlayScreen extends MenuScreen {
                 || (objectiveBanner != null && objectiveBanner.isShowing())
                 || (!networkedOnlineMatch() && clock != null && clock.isPaused())
                 || matchFinished()
-                || (battlefield != null && battlefield.beghouledBusy());
+                || (battlefield != null && battlefield.beghouledBusy())
+                || (networkedIZombie != null && networkedIZombie.isPicking());
     }
 
     private boolean networkedOnlineMatch() {
@@ -1728,7 +1802,8 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private boolean hideSeedTools() {
-        return hideAdventureTools() || beghouled != null || iZombie != null || networkedZombieRole();
+        return hideAdventureTools() || beghouled != null || iZombie != null || networkedZombieRole()
+                || (networkedIZombie != null && networkedIZombie.isPicking());
     }
 
     private boolean networkedZombieRole() {

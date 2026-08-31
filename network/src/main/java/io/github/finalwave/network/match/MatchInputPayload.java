@@ -1,11 +1,15 @@
 package io.github.finalwave.network.match;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public final class MatchInputPayload {
     private String matchId;
     private MatchInputAction action;
     private String alias;
     private Integer col;
     private Integer row;
+    private List<String> picks;
 
     public MatchInputPayload() {
     }
@@ -22,6 +26,14 @@ public final class MatchInputPayload {
         MatchInputPayload payload = new MatchInputPayload();
         payload.matchId = matchId;
         payload.action = MatchInputAction.GUEST_READY;
+        return payload;
+    }
+
+    public static MatchInputPayload submitPicks(String matchId, List<String> picks) {
+        MatchInputPayload payload = new MatchInputPayload();
+        payload.matchId = matchId;
+        payload.action = MatchInputAction.SUBMIT_PICKS;
+        payload.picks = picks == null ? List.of() : new ArrayList<>(picks);
         return payload;
     }
 
@@ -63,5 +75,13 @@ public final class MatchInputPayload {
 
     public void setRow(Integer row) {
         this.row = row;
+    }
+
+    public List<String> getPicks() {
+        return picks;
+    }
+
+    public void setPicks(List<String> picks) {
+        this.picks = picks;
     }
 }

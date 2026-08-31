@@ -82,6 +82,7 @@ public final class MessageTypes {
     public static final String MATCH_INPUT = "MATCH_INPUT";
     public static final String MATCH_STATE = "MATCH_STATE";
     public static final String MATCH_END = "MATCH_END";
+    public static final String MATCH_REACTION = "MATCH_REACTION";
 
     private MessageTypes() {
     }

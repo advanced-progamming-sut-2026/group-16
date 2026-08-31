@@ -41,6 +41,10 @@ public final class Armor {
         health = 0;
     }
 
+    public void restoreHealth(int amount) {
+        health = Math.max(0, Math.min(maxHealth, amount));
+    }
+
     public String getAlias() {
         return alias;
     }

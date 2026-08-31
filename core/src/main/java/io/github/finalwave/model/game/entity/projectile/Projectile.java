@@ -10,13 +10,13 @@ public final class Projectile {
     private static final java.util.concurrent.atomic.AtomicLong NEXT_ID =
             new java.util.concurrent.atomic.AtomicLong(1);
 
-    private final String id = "proj-" + NEXT_ID.getAndIncrement();
+    private final String id;
     private double y;
     private double x;
     private final int damage;
     private final ProjectileProfile profile;
     private final ProjectileEffect effect;
-    private final Plant source;
+    private Plant source;
     private int pierceRemaining;
     private int lifetimeTicks;
     private boolean fromZombie;
@@ -34,6 +34,14 @@ public final class Projectile {
 
     public Projectile(int row, double x, int damage, ProjectileProfile profile,
                       ProjectileEffect effect, Plant source, int pierceRemaining) {
+        this(null, row, x, damage, profile, effect, source, pierceRemaining);
+    }
+
+    public Projectile(String networkId, int row, double x, int damage, ProjectileProfile profile,
+                      ProjectileEffect effect, Plant source, int pierceRemaining) {
+        this.id = networkId == null || networkId.isBlank()
+                ? "proj-" + NEXT_ID.getAndIncrement()
+                : networkId;
         this.y = row;
         this.x = x;
         this.damage = damage;
@@ -43,6 +51,22 @@ public final class Projectile {
         this.pierceRemaining = pierceRemaining;
         this.lifetimeTicks = 200;
         this.fromZombie = source == null;
+    }
+
+    public static Projectile forNetworkRestore(
+            String networkId,
+            int row,
+            double x,
+            int damage,
+            ProjectileProfile profile,
+            ProjectileEffect effect,
+            boolean fromZombie,
+            boolean reverse) {
+        Projectile projectile = new Projectile(
+                networkId, row, x, Math.max(0, damage), profile, effect, null, 0);
+        projectile.fromZombie = fromZombie;
+        projectile.reverse = reverse;
+        return projectile;
     }
 
     public static Projectile fromZombie(int row, double x, int damage, String projectileType) {
@@ -113,6 +137,13 @@ public final class Projectile {
 
     public Plant getSource() {
         return source;
+    }
+
+    public void setSource(Plant source) {
+        this.source = source;
+        if (source != null) {
+            this.fromZombie = false;
+        }
     }
 
     public boolean isFromZombie() {

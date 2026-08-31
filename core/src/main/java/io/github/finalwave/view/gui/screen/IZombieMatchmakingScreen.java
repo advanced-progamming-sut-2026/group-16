@@ -45,18 +45,18 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
         Skin skin = assets.skin();
 
         Table wrapper = new Table();
-        wrapper.setFillParent(true);
         wrapper.center();
 
         Table columns = new Table();
-        columns.defaults().top().left();
-        columns.add(buildLeftPanel(skin)).width(480).padRight(28);
-        columns.add(buildRightPanel(skin)).width(400);
+        columns.defaults().top();
+        columns.add(buildLeftPanel(skin)).width(440).padRight(14);
+        columns.add(buildRightPanel(skin)).width(440);
         wrapper.add(columns);
-        contentLayer.add(wrapper);
+        contentLayer.add(wrapper).expand().fill();
 
         searchingOverlay = new Table();
         searchingOverlay.setFillParent(true);
+        searchingOverlay.center();
         searchingOverlay.setVisible(false);
         Label searchingLabel = PanelLabels.title(skin, "Searching for opponent...");
         searchingOverlay.add(searchingLabel).padBottom(16).row();
@@ -66,7 +66,7 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
             }
         });
         searchingOverlay.add(cancelBtn).width(180).height(52);
-        modalLayer.add(searchingOverlay);
+        modalLayer.addActor(searchingOverlay);
 
         inviteDialog = new ChallengeInviteDialog(skin, (inviteId, accepted) -> {
             if (controller != null) {
@@ -74,21 +74,21 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
             }
         });
         inviteDialog.setVisible(false);
-        modalLayer.add(inviteDialog);
+        modalLayer.addActor(inviteDialog);
     }
 
     private BorderedTable buildLeftPanel(Skin skin) {
         BorderedTable panel = new BorderedTable();
         panel.pad(40);
         panel.top().left();
-        panel.add(PanelLabels.title(skin, "I, Zombie Online")).left().padBottom(20).row();
+        panel.add(PanelLabels.title(skin, "I, Zombie - Two Players")).left().padBottom(20).row();
         Label subtitle = new Label("Challenge a player or join random matchmaking.", skin, "secondary");
         subtitle.setWrap(true);
-        panel.add(subtitle).left().width(380).padBottom(18).row();
+        panel.add(subtitle).left().width(340).padBottom(18).row();
 
         usernameField = new TextField("", skin);
         panel.add(new Label("Username", skin, "medium")).left().padBottom(6).row();
-        panel.add(usernameField).width(340).height(48).padBottom(12).row();
+        panel.add(usernameField).width(320).height(48).padBottom(12).row();
 
         panel.add(actionButton("Challenge user", skin, () -> {
             if (controller != null && usernameField != null) {
@@ -124,7 +124,7 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
 
         sessionDebugLabel = new Label("Loading...", skin, "secondary");
         sessionDebugLabel.setWrap(true);
-        panel.add(sessionDebugLabel).width(340).left().padBottom(10).row();
+        panel.add(sessionDebugLabel).width(320).left().padBottom(10).row();
 
         panel.add(actionButton("Refresh", skin, () -> {
             if (controller != null) {
@@ -137,7 +137,7 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
         ScrollPane scroll = new ScrollPane(playerListTable, skin);
         scroll.setFadeScrollBars(false);
         scroll.setScrollingDisabled(true, false);
-        panel.add(scroll).width(340).height(480).left();
+        panel.add(scroll).width(320).height(480).left();
         return panel;
     }
 

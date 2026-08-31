@@ -219,9 +219,17 @@ final class GameSessionMiniGameState {
         session.getEventBus().publish(new GameEvent.SunSpent(cost));
         session.getCooldownTracker().startCooldown(
                 trimmed,
-                IZombiePacketRecharge.secondsFor(trimmed),
+                IZombiePacketRecharge.secondsFor(trimmed, cost),
                 GameSession.TICKS_PER_SECOND);
         return PlantPlacementResult.SUCCESS;
+    }
+
+    void setIZombieRoster(List<String> zombiePool, Map<String, Integer> zombieCosts) {
+        if (!iZombieActive) {
+            return;
+        }
+        iZombieZombiePool = zombiePool == null ? List.of() : List.copyOf(zombiePool);
+        iZombieZombieCosts = zombieCosts == null ? Map.of() : Map.copyOf(zombieCosts);
     }
 
     int getIZombieCheapestRosterCost() {

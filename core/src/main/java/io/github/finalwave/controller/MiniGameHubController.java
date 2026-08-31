@@ -226,14 +226,7 @@ public class MiniGameHubController extends ViewController {
         if (activeMatchId != null && activeMatchId.equals(start.getMatchId())) {
             return;
         }
-        MiniGameStageConfig resolvedStage = stage;
-        if (start.getStageIndex() > 0) {
-            MiniGameStageConfig fromPayload = MiniGameRegistry.getInstance()
-                    .getStage(MiniGameId.I_ZOMBIE, start.getStageIndex());
-            if (fromPayload != null) {
-                resolvedStage = fromPayload;
-            }
-        }
+        MiniGameStageConfig resolvedStage = MiniGameStageConfig.iZombieNetwork();
         PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
         ZombieRegistry zombieRegistry = loadZombieRegistry();
         NetworkedIZombieMode mode = new NetworkedIZombieMode(resolvedStage, plantRegistry, zombieRegistry, new Random());
@@ -248,9 +241,11 @@ public class MiniGameHubController extends ViewController {
                 resolvedStage,
                 start.getYourRole(),
                 matchSyncService,
-                start.getOpponentUsername());
+                start.getOpponentUsername(),
+                start);
         matchSyncService.registerMatch(start, session);
         matchSyncService.setListener(controller::handleNetworkMatchEnd);
+        NetworkMatchServices.matchmaking().setListener(null);
         navigator.push(controller);
     }
 

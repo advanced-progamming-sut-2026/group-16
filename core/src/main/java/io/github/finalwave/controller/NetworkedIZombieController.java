@@ -7,18 +7,24 @@ import io.github.finalwave.model.game.board.PlantPlacementResult;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.item.SunType;
+import io.github.finalwave.model.collection.CollectionService;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
+import io.github.finalwave.model.minigame.izombie.IZombieDuelCatalog;
+import io.github.finalwave.model.minigame.izombie.NetworkedIZombieHandler;
 import io.github.finalwave.model.minigame.mode.NetworkedIZombieMode;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.network.match.MatchEndPayload;
 import io.github.finalwave.network.match.MatchEndReason;
+import io.github.finalwave.network.match.MatchReactionPayload;
 import io.github.finalwave.network.match.MatchRole;
 import io.github.finalwave.network.match.MatchSyncService;
 import io.github.finalwave.network.match.MatchWinner;
 import io.github.finalwave.view.api.minigame.IZombieView;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public final class NetworkedIZombieController extends ViewController implements MatchListener {
 
@@ -29,8 +35,19 @@ public final class NetworkedIZombieController extends ViewController implements 
     private final MatchRole role;
     private final MatchSyncService matchSyncService;
     private final String opponentUsername;
+    private final List<String> pickPool;
+    private final int pickSlots;
+    private final long pickDeadlineMillis;
+    private final List<String> localPicks = new ArrayList<>();
     private boolean deferMatchExit;
     private boolean finishedHandled;
+    private boolean plantPicksReady;
+    private boolean guestPicksReady;
+    private List<String> guestPicks = List.of();
+    private String phase = IZombieDuelCatalog.PHASE_PICKING;
+    private int secondsLeft = IZombieDuelCatalog.ROUND_SECONDS;
+    private Consumer<MatchReactionPayload> reactionViewListener;
+    private Consumer<Void> phaseChangeListener;
 
     public NetworkedIZombieController(User user,
                                     NetworkedIZombieMode mode,
@@ -39,6 +56,17 @@ public final class NetworkedIZombieController extends ViewController implements 
                                     MatchRole role,
                                     MatchSyncService matchSyncService,
                                     String opponentUsername) {
+        this(user, mode, session, stage, role, matchSyncService, opponentUsername, null);
+    }
+
+    public NetworkedIZombieController(User user,
+                                    NetworkedIZombieMode mode,
+                                    GameSession session,
+                                    MiniGameStageConfig stage,
+                                    MatchRole role,
+                                    MatchSyncService matchSyncService,
+                                    String opponentUsername,
+                                    io.github.finalwave.network.match.MatchStartPayload start) {
         this.user = user;
         this.mode = mode;
         this.session = session;
@@ -47,18 +75,76 @@ public final class NetworkedIZombieController extends ViewController implements 
         this.matchSyncService = matchSyncService;
         this.opponentUsername = opponentUsername;
         this.session.setMatchListener(this);
+        this.pickSlots = start != null && start.getSlots() > 0
+                ? start.getSlots()
+                : (role == MatchRole.ZOMBIE
+                ? IZombieDuelCatalog.ZOMBIE_SLOTS
+                : IZombieDuelCatalog.PLANT_SLOTS);
+        int pickSeconds = start != null && start.getPickSeconds() > 0
+                ? start.getPickSeconds()
+                : IZombieDuelCatalog.PICK_SECONDS;
+        this.pickDeadlineMillis = System.currentTimeMillis() + pickSeconds * 1000L;
+        if (start != null && start.getPhase() != null && !start.getPhase().isBlank()) {
+            this.phase = start.getPhase();
+        }
+        if (start != null && start.getRoundSeconds() > 0) {
+            this.secondsLeft = start.getRoundSeconds();
+        }
+        this.pickPool = resolvePickPool();
         matchSyncService.setStateListener(this::onNetworkState);
+        matchSyncService.setGuestPicksListener(this::onGuestPicks);
+        matchSyncService.setReactionListener(this::onReactionInbound);
+    }
+
+    private List<String> resolvePickPool() {
+        if (role == MatchRole.ZOMBIE) {
+            List<String> aliases = mode.allZombieAliases();
+            return aliases.isEmpty() ? IZombieDuelCatalog.ZOMBIE_POOL : aliases;
+        }
+        CollectionService collection = CollectionService.createDefault(mode.plantRegistry());
+        List<String> owned = collection.selectablePlantNames(user);
+        if (owned == null || owned.isEmpty()) {
+            return IZombieDuelCatalog.DEFAULT_PLANTS;
+        }
+        return List.copyOf(owned);
     }
 
     private void onNetworkState() {
-        getViewApi().showStageStarted(
-                stage.getStageIndex(),
-                stage.getRedLineColumn(),
-                stage.getStartingSun());
         if (role == MatchRole.ZOMBIE) {
-            getViewApi().showRoster(stage.getZombiePool(), stage.getZombieSunCosts());
+            String previous = phase;
+            io.github.finalwave.network.match.MatchStatePayload state = matchSyncService.lastGuestState();
+            if (state != null && IZombieDuelCatalog.PHASE_PLAYING.equals(state.getPhase())) {
+                phase = IZombieDuelCatalog.PHASE_PLAYING;
+                secondsLeft = state.getSecondsLeft();
+            } else if (!session.getIZombieZombiePool().isEmpty()) {
+                phase = IZombieDuelCatalog.PHASE_PLAYING;
+            }
+            if (!previous.equals(phase)) {
+                notifyPhaseChange();
+            }
+            getViewApi().showStageStarted(
+                    stage.getStageIndex(),
+                    stage.getRedLineColumn(),
+                    stage.getStartingSun());
+            getViewApi().showRoster(session.getIZombieZombiePool(), session.getIZombieZombieCosts());
         }
         requestHostSync();
+    }
+
+    private void onGuestPicks(List<String> picks) {
+        if (role != MatchRole.PLANT || IZombieDuelCatalog.PHASE_PLAYING.equals(phase)) {
+            return;
+        }
+        guestPicks = picks == null ? List.of() : List.copyOf(picks);
+        guestPicksReady = true;
+        tryStartPlay();
+    }
+
+    private void onReactionInbound(MatchReactionPayload payload) {
+        Consumer<MatchReactionPayload> listener = reactionViewListener;
+        if (listener != null) {
+            listener.accept(payload);
+        }
     }
 
     @Override
@@ -68,7 +154,7 @@ public final class NetworkedIZombieController extends ViewController implements 
                 stage.getRedLineColumn(),
                 stage.getStartingSun());
         if (role == MatchRole.ZOMBIE) {
-            getViewApi().showRoster(stage.getZombiePool(), stage.getZombieSunCosts());
+            getViewApi().showRoster(session.getIZombieZombiePool(), session.getIZombieZombieCosts());
         } else {
             getViewApi().showRoster(List.of(), Map.of());
         }
@@ -94,6 +180,99 @@ public final class NetworkedIZombieController extends ViewController implements 
         return stage;
     }
 
+    public String phase() {
+        return phase;
+    }
+
+    public boolean isPicking() {
+        return IZombieDuelCatalog.PHASE_PICKING.equals(phase);
+    }
+
+    public boolean isPlaying() {
+        return IZombieDuelCatalog.PHASE_PLAYING.equals(phase);
+    }
+
+    public List<String> pickPool() {
+        return pickPool;
+    }
+
+    public int pickSlots() {
+        return pickSlots;
+    }
+
+    public List<String> localPicks() {
+        return List.copyOf(localPicks);
+    }
+
+    public int pickSecondsLeft() {
+        if (!isPicking()) {
+            return 0;
+        }
+        long remaining = pickDeadlineMillis - System.currentTimeMillis();
+        return (int) Math.max(0L, (remaining + 999L) / 1000L);
+    }
+
+    public int secondsLeft() {
+        if (isPicking()) {
+            return IZombieDuelCatalog.ROUND_SECONDS;
+        }
+        if (session.getActiveMiniGameHandler() instanceof NetworkedIZombieHandler handler) {
+            return handler.secondsLeft();
+        }
+        io.github.finalwave.network.match.MatchStatePayload state = matchSyncService.lastGuestState();
+        if (state != null) {
+            return state.getSecondsLeft();
+        }
+        return secondsLeft;
+    }
+
+    public void setReactionViewListener(Consumer<MatchReactionPayload> reactionViewListener) {
+        this.reactionViewListener = reactionViewListener;
+    }
+
+    public void setPhaseChangeListener(Consumer<Void> phaseChangeListener) {
+        this.phaseChangeListener = phaseChangeListener;
+    }
+
+    public void togglePick(String name) {
+        if (!isPicking() || name == null || name.isBlank()) {
+            return;
+        }
+        String trimmed = name.trim();
+        if (!pickPool.contains(trimmed)) {
+            return;
+        }
+        if (localPicks.contains(trimmed)) {
+            localPicks.remove(trimmed);
+            return;
+        }
+        if (localPicks.size() >= pickSlots) {
+            return;
+        }
+        localPicks.add(trimmed);
+    }
+
+    public void submitPicks() {
+        if (!isPicking()) {
+            return;
+        }
+        if (role == MatchRole.PLANT) {
+            plantPicksReady = true;
+            tryStartPlay();
+            return;
+        }
+        matchSyncService.sendGuestPicks(List.copyOf(localPicks));
+        guestPicksReady = true;
+    }
+
+    public void sendReaction(String kind, int index) {
+        if (!isPlaying()) {
+            return;
+        }
+        String username = user == null ? "" : user.getUsername();
+        matchSyncService.sendReaction(kind, index, username);
+    }
+
     public void setDeferMatchExit(boolean deferMatchExit) {
         this.deferMatchExit = deferMatchExit;
     }
@@ -110,6 +289,8 @@ public final class NetworkedIZombieController extends ViewController implements 
         matchSyncService.sendForfeit();
         matchSyncService.setStateListener(null);
         matchSyncService.setListener(null);
+        matchSyncService.setGuestPicksListener(null);
+        matchSyncService.setReactionListener(null);
         matchSyncService.clear();
         navigator.pop();
     }
@@ -118,7 +299,18 @@ public final class NetworkedIZombieController extends ViewController implements 
         if (role != MatchRole.PLANT || ticks <= 0) {
             return;
         }
+        if (isPicking()) {
+            if (System.currentTimeMillis() >= pickDeadlineMillis) {
+                plantPicksReady = true;
+                guestPicksReady = true;
+                tryStartPlay();
+            }
+            return;
+        }
         session.advanceTicks(ticks);
+        if (session.getActiveMiniGameHandler() instanceof NetworkedIZombieHandler handler) {
+            secondsLeft = handler.secondsLeft();
+        }
         matchSyncService.tickHost();
         maybeReturnAfterMatch();
     }
@@ -126,6 +318,9 @@ public final class NetworkedIZombieController extends ViewController implements 
     public void advanceGuest(int ticks) {
         if (role != MatchRole.ZOMBIE || ticks <= 0) {
             return;
+        }
+        if (isPicking() && System.currentTimeMillis() >= pickDeadlineMillis && !guestPicksReady) {
+            submitPicks();
         }
         matchSyncService.tickGuest();
     }
@@ -143,8 +338,33 @@ public final class NetworkedIZombieController extends ViewController implements 
         }
     }
 
+    private void tryStartPlay() {
+        if (role != MatchRole.PLANT || IZombieDuelCatalog.PHASE_PLAYING.equals(phase)) {
+            return;
+        }
+        boolean timedOut = System.currentTimeMillis() >= pickDeadlineMillis;
+        if (!timedOut && !(plantPicksReady && guestPicksReady)) {
+            return;
+        }
+        List<String> plants = plantPicksReady ? List.copyOf(localPicks) : List.of();
+        List<String> zombies = guestPicksReady ? guestPicks : List.of();
+        mode.applyPicks(session, plants, zombies);
+        phase = IZombieDuelCatalog.PHASE_PLAYING;
+        secondsLeft = IZombieDuelCatalog.ROUND_SECONDS;
+        getViewApi().showRoster(List.of(), Map.of());
+        matchSyncService.pushHostSnapshotNow();
+        notifyPhaseChange();
+    }
+
+    private void notifyPhaseChange() {
+        Consumer<Void> listener = phaseChangeListener;
+        if (listener != null) {
+            listener.accept(null);
+        }
+    }
+
     public PlantPlacementResult plantSeed(String plantName, int col, int row) {
-        if (role != MatchRole.PLANT) {
+        if (role != MatchRole.PLANT || isPicking()) {
             return PlantPlacementResult.TILE_BLOCKED;
         }
         PlantPlacementResult result = session.tryPlant(plantName, col, row, 1);
@@ -154,8 +374,19 @@ public final class NetworkedIZombieController extends ViewController implements 
         return result;
     }
 
+    public boolean shovelAt(int col, int row) {
+        if (role != MatchRole.PLANT || isPicking()) {
+            return false;
+        }
+        if (!session.pluckPlant(col, row)) {
+            return false;
+        }
+        tickHostSync();
+        return true;
+    }
+
     public PlantPlacementResult placeZombie(String alias, int col, int row) {
-        if (role != MatchRole.ZOMBIE) {
+        if (role != MatchRole.ZOMBIE || isPicking()) {
             return PlantPlacementResult.TILE_BLOCKED;
         }
         if (alias == null || alias.isBlank()) {
@@ -167,7 +398,7 @@ public final class NetworkedIZombieController extends ViewController implements 
             return PlantPlacementResult.OUT_OF_BOUNDS;
         }
         String type = alias.trim();
-        if (!stage.getZombiePool().contains(type)) {
+        if (!session.getIZombieZombiePool().contains(type)) {
             getViewApi().errorNotInRoster(type);
             return PlantPlacementResult.NOT_IN_LOADOUT;
         }
@@ -181,7 +412,14 @@ public final class NetworkedIZombieController extends ViewController implements 
     }
 
     public boolean collectSunAt(int col, int row) {
-        return session.collectSunAt(col, row);
+        if (role != MatchRole.PLANT || isPicking()) {
+            return false;
+        }
+        boolean collected = session.collectSunAt(col, row);
+        if (collected) {
+            tickHostSync();
+        }
+        return collected;
     }
 
     public void cheatAddSun(int amount) {
@@ -232,6 +470,8 @@ public final class NetworkedIZombieController extends ViewController implements 
         finishedHandled = true;
         matchSyncService.setStateListener(null);
         matchSyncService.setListener(null);
+        matchSyncService.setGuestPicksListener(null);
+        matchSyncService.setReactionListener(null);
         matchSyncService.clear();
         getViewApi().showOpponentLeft();
         navigator.pop();

@@ -152,6 +152,9 @@ public final class ClientHandler implements Runnable {
         if (MessageTypes.MATCH_END.equals(type)) {
             return matchRelayHandler.handleEnd(incoming);
         }
+        if (MessageTypes.MATCH_REACTION.equals(type)) {
+            return matchRelayHandler.handleReaction(incoming);
+        }
         if (isSyncType(type)) {
             return progressSyncHandler.handle(incoming);
         }

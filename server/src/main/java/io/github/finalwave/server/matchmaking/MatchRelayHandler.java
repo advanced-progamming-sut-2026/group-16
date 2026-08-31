@@ -37,6 +37,10 @@ public final class MatchRelayHandler {
         return relay(incoming, MessageTypes.MATCH_STATE, false);
     }
 
+    public MessageEnvelope handleReaction(MessageEnvelope incoming) {
+        return relayEither(incoming, MessageTypes.MATCH_REACTION);
+    }
+
     public MessageEnvelope handleEnd(MessageEnvelope incoming) {
         try {
             MatchEndPayload payload = MAPPER.treeToValue(incoming.getPayload(), MatchEndPayload.class);
@@ -98,6 +102,24 @@ public final class MatchRelayHandler {
                     return null;
                 }
             } else if (!context.matchRegistry().isHost(handler, matchId)) {
+                return null;
+            }
+            Optional<ClientHandler> partner = context.matchRegistry().partnerFor(handler, matchId);
+            partner.ifPresent(other -> other.push(clonePush(type, incoming.getPayload())));
+            return null;
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private MessageEnvelope relayEither(MessageEnvelope incoming, String type) {
+        try {
+            String matchId = extractMatchId(incoming.getPayload());
+            if (matchId == null || matchId.isBlank()) {
+                return null;
+            }
+            if (!context.matchRegistry().isHost(handler, matchId)
+                    && !context.matchRegistry().isGuest(handler, matchId)) {
                 return null;
             }
             Optional<ClientHandler> partner = context.matchRegistry().partnerFor(handler, matchId);

@@ -145,13 +145,13 @@ public final class MatchmakingService {
         if (payload == null) {
             return;
         }
-        MatchStartHandler launch = matchStartHandler;
-        if (launch != null) {
-            launch.onMatchStart(payload);
-        }
         Listener active = listener;
         if (active != null) {
             active.onMatchStart(payload);
+        }
+        MatchStartHandler launch = matchStartHandler;
+        if (launch != null) {
+            launch.onMatchStart(payload);
         }
     }
 

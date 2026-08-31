@@ -151,16 +151,22 @@ public final class MatchRegistry {
         return match;
     }
 
-    public void onDisconnect(ClientHandler handler) {
+    public void clearPendingInvites(ClientHandler handler) {
         String inviteId = handlerToInviteId.remove(handler);
-        if (inviteId != null) {
-            PendingInvite invite = pendingInvites.remove(inviteId);
-            if (invite != null) {
-                cancelTimeout(invite);
-                ClientHandler other = invite.challenger() == handler ? invite.target() : invite.challenger();
-                handlerToInviteId.remove(other);
-            }
+        if (inviteId == null) {
+            return;
         }
+        PendingInvite invite = pendingInvites.remove(inviteId);
+        if (invite == null) {
+            return;
+        }
+        cancelTimeout(invite);
+        ClientHandler other = invite.challenger() == handler ? invite.target() : invite.challenger();
+        handlerToInviteId.remove(other);
+    }
+
+    public void onDisconnect(ClientHandler handler) {
+        clearPendingInvites(handler);
         String matchId = handlerToMatchId.remove(handler);
         if (matchId != null) {
             ActiveMatch match = activeMatches.remove(matchId);
@@ -212,6 +218,15 @@ public final class MatchRegistry {
             String opponentUsername,
             MatchRole role) {
         MatchStartPayload payload = new MatchStartPayload(matchId, opponentUsername, role, NETWORKED_STAGE_INDEX);
+        payload.setPhase(io.github.finalwave.model.minigame.izombie.IZombieDuelCatalog.PHASE_PICKING);
+        payload.setPickSeconds(io.github.finalwave.model.minigame.izombie.IZombieDuelCatalog.PICK_SECONDS);
+        payload.setRoundSeconds(io.github.finalwave.model.minigame.izombie.IZombieDuelCatalog.ROUND_SECONDS);
+        payload.setPool(java.util.List.of());
+        if (role == MatchRole.ZOMBIE) {
+            payload.setSlots(io.github.finalwave.model.minigame.izombie.IZombieDuelCatalog.ZOMBIE_SLOTS);
+        } else {
+            payload.setSlots(io.github.finalwave.model.minigame.izombie.IZombieDuelCatalog.PLANT_SLOTS);
+        }
         handler.push(new MessageEnvelope(MessageTypes.MATCH_START, null, MAPPER.valueToTree(payload)));
     }
 

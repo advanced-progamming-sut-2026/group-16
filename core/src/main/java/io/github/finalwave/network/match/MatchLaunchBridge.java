@@ -2,8 +2,6 @@ package io.github.finalwave.network.match;
 
 import io.github.finalwave.controller.MiniGameHubController;
 import io.github.finalwave.controller.Navigator;
-import io.github.finalwave.model.minigame.MiniGameId;
-import io.github.finalwave.model.minigame.MiniGameRegistry;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
 import io.github.finalwave.model.user.User;
 
@@ -32,12 +30,9 @@ public final class MatchLaunchBridge {
             if (nav == null) {
                 return;
             }
-            MiniGameStageConfig stage = MiniGameRegistry.getInstance()
-                    .getStage(MiniGameId.I_ZOMBIE, start.getStageIndex());
-            if (stage == null) {
-                stage = MiniGameStageConfig.iZombie(1);
-            }
+            MiniGameStageConfig stage = MiniGameStageConfig.iZombieNetwork();
             MiniGameHubController.launchNetworkedIZombieMatch(nav, user, start, matchSync, stage);
+            matchmaking.setListener(null);
         });
     }
 }
