@@ -264,6 +264,7 @@ public final class MatchSnapshotApplier {
                 projectile.setY(dto.getY());
                 projectile.setReverse(dto.isReverse());
             }
+            projectile.setVisualClip(dto.getVisualClip());
             if (dto.getVx() != 0 || dto.getVy() != 0) {
                 projectile.setVelocity(dto.getVx(), dto.getVy());
             }

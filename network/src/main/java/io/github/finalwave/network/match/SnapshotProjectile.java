@@ -13,6 +13,7 @@ public final class SnapshotProjectile {
     private double vy;
     private int damage;
     private String sourcePlantId;
+    private String visualClip;
 
     public SnapshotProjectile() {
     }
@@ -111,5 +112,13 @@ public final class SnapshotProjectile {
 
     public void setSourcePlantId(String sourcePlantId) {
         this.sourcePlantId = sourcePlantId;
+    }
+
+    public String getVisualClip() {
+        return visualClip;
+    }
+
+    public void setVisualClip(String visualClip) {
+        this.visualClip = visualClip;
     }
 }

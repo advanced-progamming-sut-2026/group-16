@@ -511,6 +511,7 @@ public final class GamePlayScreen extends MenuScreen {
             battlefield.setPlantLayerPlaying(true);
         }
         if (battlefield != null && matchSession() != null) {
+            battlefield.setNetworkReplayProjectiles(networkedZombieRole());
             battlefield.sync(matchSession(), tickFraction);
         }
         if (clock != null && battlefield != null) {

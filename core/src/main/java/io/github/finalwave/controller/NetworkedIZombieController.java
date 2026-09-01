@@ -7,7 +7,11 @@ import io.github.finalwave.model.game.board.PlantPlacementResult;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.item.SunType;
+import io.github.finalwave.model.collection.CollectionPlantDetail;
+import io.github.finalwave.model.collection.CollectionPlantEntry;
+import io.github.finalwave.model.collection.CollectionPlantQuery;
 import io.github.finalwave.model.collection.CollectionService;
+import io.github.finalwave.model.definition.plant.PlantDefinition;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
 import io.github.finalwave.model.minigame.izombie.IZombieDuelCatalog;
 import io.github.finalwave.model.minigame.izombie.NetworkedIZombieHandler;
@@ -23,6 +27,7 @@ import io.github.finalwave.view.api.minigame.DuelPickController;
 import io.github.finalwave.view.api.minigame.IZombieView;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -36,6 +41,8 @@ public final class NetworkedIZombieController extends ViewController implements 
     private final MatchRole role;
     private final MatchSyncService matchSyncService;
     private final String opponentUsername;
+    private final CollectionService collectionService;
+    private final Map<String, CollectionPlantEntry> plantEntries = new LinkedHashMap<>();
     private final List<String> pickPool;
     private final int pickSlots;
     private final long pickDeadlineMillis;
@@ -75,6 +82,7 @@ public final class NetworkedIZombieController extends ViewController implements 
         this.role = role;
         this.matchSyncService = matchSyncService;
         this.opponentUsername = opponentUsername;
+        this.collectionService = CollectionService.createDefault(mode.plantRegistry());
         this.session.setMatchListener(this);
         this.pickSlots = start != null && start.getSlots() > 0
                 ? start.getSlots()
@@ -92,6 +100,7 @@ public final class NetworkedIZombieController extends ViewController implements 
             this.secondsLeft = start.getRoundSeconds();
         }
         this.pickPool = resolvePickPool();
+        buildPlantEntries();
         matchSyncService.setStateListener(this::onNetworkState);
         matchSyncService.setGuestPicksListener(this::onGuestPicks);
         matchSyncService.setReactionListener(this::onReactionInbound);
@@ -102,12 +111,53 @@ public final class NetworkedIZombieController extends ViewController implements 
             List<String> aliases = mode.allZombieAliases();
             return aliases.isEmpty() ? IZombieDuelCatalog.ZOMBIE_POOL : aliases;
         }
-        CollectionService collection = CollectionService.createDefault(mode.plantRegistry());
-        List<String> owned = collection.selectablePlantNames(user);
+        List<String> owned = collectionService.selectablePlantNames(user);
         if (owned == null || owned.isEmpty()) {
             return IZombieDuelCatalog.DEFAULT_PLANTS;
         }
         return List.copyOf(owned);
+    }
+
+    public CollectionPlantEntry plantEntry(String name) {
+        return name == null ? null : plantEntries.get(name);
+    }
+
+    public CollectionPlantDetail plantDetail(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        return collectionService.plantDetail(user, name);
+    }
+
+    public int plantCost(String name) {
+        PlantDefinition definition = mode.plantRegistry().getDefinition(name);
+        return definition == null ? 0 : definition.getCost();
+    }
+
+    public boolean plantBoosted(String name) {
+        return user != null && user.hasStoredBoost(name);
+    }
+
+    public boolean plantSelectable(String name) {
+        return collectionService.canSelectPlant(user, name);
+    }
+
+    public List<String> previewLaneNames() {
+        if (role == MatchRole.ZOMBIE) {
+            return IZombieDuelCatalog.DEFAULT_PLANTS;
+        }
+        return IZombieDuelCatalog.DEFAULT_ZOMBIES;
+    }
+
+    private void buildPlantEntries() {
+        if (role == MatchRole.ZOMBIE) {
+            return;
+        }
+        for (CollectionPlantEntry entry : collectionService.listPlants(user, CollectionPlantQuery.all())) {
+            if (entry != null && pickPool.contains(entry.name())) {
+                plantEntries.put(entry.name(), entry);
+            }
+        }
     }
 
     private void onNetworkState() {

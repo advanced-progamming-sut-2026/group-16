@@ -102,6 +102,7 @@ public final class MatchSnapshotBuilder {
         if (projectile.getSource() != null) {
             dto.setSourcePlantId(projectile.getSource().getId());
         }
+        dto.setVisualClip(projectile.getVisualClip());
         return dto;
     }
 }

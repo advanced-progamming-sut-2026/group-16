@@ -13,9 +13,15 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import io.github.finalwave.model.collection.CollectionPlantEntry;
 import io.github.finalwave.view.gui.assets.CollectionCardLooks;
+import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.assets.MenuAssetIds;
+import io.github.finalwave.view.gui.assets.PlantAnimationCatalog;
+import io.github.finalwave.view.gui.assets.ZombieCardLooks;
+
+import java.util.List;
+import java.util.Map;
 
 
 public final class PlantCardActor extends Group {
@@ -160,6 +166,7 @@ public final class PlantCardActor extends Group {
         empty = true;
         plantName = null;
         packetBackgroundId = LawnAssetIds.PACKET_EMPTY;
+        background.setVisible(true);
         packet.setDrawable(new TextureRegionDrawable(assets.region(LawnAssetIds.PACKET_EMPTY)));
         packet.setVisible(false);
         pamPortrait.setVisible(false);
@@ -217,6 +224,10 @@ public final class PlantCardActor extends Group {
     }
 
     public void setZombie(String alias) {
+        setZombie(alias, false);
+    }
+
+    public void setZombie(String alias, boolean barePortrait) {
         this.plantName = alias;
         empty = alias == null || alias.isBlank();
         if (empty) {
@@ -224,13 +235,37 @@ public final class PlantCardActor extends Group {
             return;
         }
         packetBackgroundId = LawnAssetIds.PACKET_BG;
-        packet.setDrawable(new TextureRegionDrawable(
-                assets.region(CollectionZombieCard.packetImageId(assets, alias))));
-        packet.setVisible(true);
-        pamPortrait.setVisible(false);
         familyBadge.setVisible(false);
         seedBar.setVisible(false);
         levelLabel.setText("");
+        EntityAnimationCatalog entityCatalog = assets.entityAnims();
+        Map<String, Boolean> armorLeaves = ZombieCardLooks.intactArmorLeaves(
+                assets.pamPlayer(),
+                entityCatalog,
+                alias,
+                ZombieCardLooks.armorAliasesFor(alias));
+        if (barePortrait) {
+            background.setVisible(false);
+            EntityAnimationCatalog.ClipSpec clip = entityCatalog.zombieClip(alias, "idle", "walk");
+            packet.setVisible(false);
+            pamPortrait.setVisible(true);
+            pamPortrait.freezeClip(new PlantAnimationCatalog.ClipSpec(clip.path(), clip.clip()), 0.42f);
+            pamPortrait.setVisibility(armorLeaves);
+        } else if (armorLeaves != null && !armorLeaves.isEmpty()) {
+            background.setVisible(true);
+            EntityAnimationCatalog.ClipSpec clip = entityCatalog.zombieClip(alias, "idle", "walk");
+            packet.setVisible(false);
+            pamPortrait.setVisible(true);
+            pamPortrait.freezeClip(new PlantAnimationCatalog.ClipSpec(clip.path(), clip.clip()), 0.42f);
+            pamPortrait.setVisibility(armorLeaves);
+        } else {
+            background.setVisible(true);
+            pamPortrait.setVisibility(null);
+            pamPortrait.setVisible(false);
+            packet.setDrawable(new TextureRegionDrawable(
+                    assets.region(CollectionZombieCard.packetImageId(assets, alias))));
+            packet.setVisible(true);
+        }
         refreshBackground();
     }
 
@@ -330,6 +365,9 @@ public final class PlantCardActor extends Group {
     }
 
     private void drawShadow(Batch batch, float parentAlpha) {
+        if (!background.isVisible()) {
+            return;
+        }
         Drawable drawable = background.getDrawable();
         if (drawable == null) {
             return;

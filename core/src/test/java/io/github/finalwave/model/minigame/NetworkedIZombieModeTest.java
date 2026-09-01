@@ -5,6 +5,8 @@ import io.github.finalwave.model.definition.ZombieRegistry;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.game.board.PlantPlacementResult;
+import io.github.finalwave.model.game.entity.projectile.Projectile;
+import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieState;
 import io.github.finalwave.model.minigame.izombie.IZombieDuelCatalog;
@@ -167,6 +169,56 @@ class NetworkedIZombieModeTest {
             assertTrue(ZombieVisualState.shouldDraw(zombie));
         }
         assertEquals(host.getBoard().getRows(), stationaryProducerCount(guest));
+    }
+
+    @Test
+    void projectileEffectFromStringParsesEnumNames() {
+        assertEquals(ProjectileEffect.GOO, ProjectileEffect.fromString("GOO"));
+        assertEquals(ProjectileEffect.GOO_PF, ProjectileEffect.fromString("GOO_PF"));
+        assertEquals(ProjectileEffect.ICE, ProjectileEffect.fromString("ice"));
+    }
+
+    @Test
+    void guestSnapshotRestoresGooProjectileEffectAndVisualClip() {
+        MiniGameStageConfig stage = MiniGameStageConfig.iZombieNetwork();
+        NetworkedIZombieMode mode = new NetworkedIZombieMode(
+                stage, plantRegistry, zombieRegistry, new Random(31L));
+        GameSession host = mode.createHostSession();
+        host.start();
+        List<String> plants = List.of(
+                "Goo Peashooter", "Peashooter", "Wall-nut", "Sunflower",
+                "Potato Mine", "Chomper", "Snow Pea", "Repeater");
+        mode.applyPicks(host, plants, IZombieDuelCatalog.DEFAULT_ZOMBIES);
+
+        assertEquals(PlantPlacementResult.SUCCESS, host.tryPlant("Goo Peashooter", 2, 2, 1));
+        assertEquals(PlantPlacementResult.SUCCESS,
+                host.tryPlaceZombie("ZombieDefault", IZombieDuelCatalog.FIRST_ZOMBIE_COLUMN, 2));
+
+        io.github.finalwave.network.match.MatchStatePayload payload = null;
+        for (int i = 0; i < GameSession.TICKS_PER_SECOND * 12; i++) {
+            host.advanceTicks(1);
+            Projectile hostProjectile = host.getProjectileSystem().getProjectiles().stream()
+                    .filter(projectile -> projectile.getEffect() == ProjectileEffect.GOO)
+                    .findFirst()
+                    .orElse(null);
+            if (hostProjectile == null) {
+                continue;
+            }
+            payload = MatchSnapshotBuilder.build(host, "match-goo-sync");
+            break;
+        }
+        assertTrue(payload != null, "host should fire goo projectiles");
+        assertFalse(payload.getProjectiles().isEmpty());
+        assertEquals("GOO", payload.getProjectiles().getFirst().getType());
+        assertEquals("projectile_t1", payload.getProjectiles().getFirst().getVisualClip());
+
+        GameSession guest = mode.createGuestSession();
+        guest.start();
+        MatchSnapshotApplier.apply(guest, payload);
+
+        Projectile guestProjectile = guest.getProjectileSystem().getProjectiles().getFirst();
+        assertEquals(ProjectileEffect.GOO, guestProjectile.getEffect());
+        assertEquals("projectile_t1", guestProjectile.getVisualClip());
     }
 
     @Test

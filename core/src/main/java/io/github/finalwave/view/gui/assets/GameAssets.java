@@ -31,6 +31,7 @@ public final class GameAssets implements Disposable {
     private Texture missingTexture;
     private TextureRegion missingRegion;
     private PlantAnimationCatalog plantAnims;
+    private EntityAnimationCatalog entityAnims;
 
     public GameAssets(FileHandle root) {
         this.root = root;
@@ -74,6 +75,13 @@ public final class GameAssets implements Disposable {
             plantAnims = new PlantAnimationCatalog(root);
         }
         return plantAnims;
+    }
+
+    public EntityAnimationCatalog entityAnims() {
+        if (entityAnims == null) {
+            entityAnims = new EntityAnimationCatalog(root);
+        }
+        return entityAnims;
     }
 
     public ResourceIndex resourceIndex() {
