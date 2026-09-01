@@ -332,6 +332,10 @@ public final class NetworkedIZombieController extends ViewController implements 
         }
         String username = user == null ? "" : user.getUsername();
         matchSyncService.sendReaction(kind, index, username);
+        String matchId = matchSyncService.matchId();
+        if (matchId != null) {
+            onReactionInbound(new MatchReactionPayload(matchId, kind, index, username));
+        }
     }
 
     public void setDeferMatchExit(boolean deferMatchExit) {

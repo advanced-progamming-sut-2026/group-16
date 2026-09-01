@@ -38,8 +38,15 @@ public final class StoreChrome {
     private static final Color WOOD_OUTER = rgb(22, 14, 8);
     private static final Color WOOD_INNER = rgb(48, 32, 18);
 
+    private static final int DRAWER_PATCH = 96;
+    private static final int DRAWER_SPLIT = 32;
+    private static final float DRAWER_RADIUS = 16f;
+    private static final float DRAWER_RIM = 8f;
+
     private static Texture panelTexture;
     private static NinePatchDrawable panelDrawable;
+    private static Texture drawerPanelTexture;
+    private static NinePatchDrawable drawerPanelDrawable;
     private static Texture purpleUpTexture;
     private static Texture purpleDownTexture;
     private static NinePatchDrawable purpleUpDrawable;
@@ -82,11 +89,23 @@ public final class StoreChrome {
         return panelDrawable;
     }
 
+    public static Drawable drawerPanel() {
+        if (drawerPanelDrawable == null) {
+            drawerPanelDrawable = new NinePatchDrawable(buildDrawerPanelPatch());
+        }
+        return drawerPanelDrawable;
+    }
+
     public static void dispose() {
         if (panelTexture != null) {
             panelTexture.dispose();
             panelTexture = null;
             panelDrawable = null;
+        }
+        if (drawerPanelTexture != null) {
+            drawerPanelTexture.dispose();
+            drawerPanelTexture = null;
+            drawerPanelDrawable = null;
         }
         if (purpleUpTexture != null) {
             purpleUpTexture.dispose();
@@ -192,6 +211,44 @@ public final class StoreChrome {
 
     public static Drawable disabledButton(TextureRegion region) {
         return patch(region, COIN_EDGE, COIN_EDGE, COIN_VERT, COIN_VERT);
+    }
+
+    private static NinePatch buildDrawerPanelPatch() {
+        Pixmap pixmap = new Pixmap(DRAWER_PATCH, DRAWER_PATCH, Pixmap.Format.RGBA8888);
+        pixmap.setBlending(Pixmap.Blending.None);
+        Color mix = new Color();
+        for (int y = 0; y < DRAWER_PATCH; y++) {
+            for (int x = 0; x < DRAWER_PATCH; x++) {
+                float sdf = leftRoundedBox(x + 0.5f, y + 0.5f, DRAWER_PATCH, DRAWER_PATCH, DRAWER_RADIUS);
+                float cover = smooth(0.75f, -0.75f, sdf);
+                if (cover <= 0.004f) {
+                    pixmap.drawPixel(x, y, 0);
+                    continue;
+                }
+                float depth = -sdf;
+                Color tone;
+                if (depth < 1.3f) {
+                    tone = WOOD_OUTER;
+                } else if (depth < DRAWER_RIM) {
+                    float along = (depth - 1.3f) / (DRAWER_RIM - 1.3f);
+                    mix.set(WOOD_OUTER).lerp(WOOD_RIM, along);
+                    float topGlow = MathUtils.clamp((0.42f - y / (float) DRAWER_PATCH) / 0.42f, 0f, 1f);
+                    mix.lerp(WOOD_HIGHLIGHT, topGlow * 0.55f);
+                    tone = mix;
+                } else if (depth < DRAWER_RIM + 1.6f) {
+                    tone = WOOD_INNER;
+                } else {
+                    tone = WOOD_FILL;
+                }
+                mix.set(tone);
+                mix.a = cover;
+                pixmap.drawPixel(x, y, Color.rgba8888(mix));
+            }
+        }
+        drawerPanelTexture = new Texture(pixmap);
+        drawerPanelTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        pixmap.dispose();
+        return new NinePatch(drawerPanelTexture, DRAWER_SPLIT, 4, DRAWER_SPLIT, DRAWER_SPLIT);
     }
 
     private static NinePatch buildPanelPatch() {
@@ -306,6 +363,32 @@ public final class StoreChrome {
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         pixmap.dispose();
         return texture;
+    }
+
+    private static float leftRoundedBox(float x, float y, float width, float height, float radius) {
+        if (x < 0f) {
+            if (y < radius) {
+                float dx = -x;
+                float dy = radius - y;
+                return (float) Math.sqrt(dx * dx + dy * dy) - radius;
+            }
+            if (y > height - radius) {
+                float dx = -x;
+                float dy = y - (height - radius);
+                return (float) Math.sqrt(dx * dx + dy * dy) - radius;
+            }
+            return -x;
+        }
+        if (x > width) {
+            return x - width;
+        }
+        if (y < 0f) {
+            return -y;
+        }
+        if (y > height) {
+            return y - height;
+        }
+        return -Math.min(Math.min(x, width - x), Math.min(y, height - y));
     }
 
     private static float roundedBox(float x, float y, float cx, float cy, float halfW, float halfH, float radius) {
