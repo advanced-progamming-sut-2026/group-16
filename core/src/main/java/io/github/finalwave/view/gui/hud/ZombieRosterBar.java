@@ -44,6 +44,18 @@ public final class ZombieRosterBar extends Table {
         setTouchable(enabled ? Touchable.childrenOnly : Touchable.disabled);
     }
 
+    public void setDockSide(boolean right) {
+        if (right) {
+            padLeft(0f);
+            padRight(22f);
+            top().right();
+        } else {
+            padRight(0f);
+            padLeft(22f);
+            top().left();
+        }
+    }
+
     public void refresh(GameSession session, ToolMode mode) {
         if (session == null || !session.isIZombieActive()) {
             setVisible(false);
