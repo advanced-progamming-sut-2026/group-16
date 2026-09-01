@@ -4,6 +4,7 @@ import io.github.finalwave.model.definition.PlantRegistry;
 import io.github.finalwave.model.definition.plant.PlantDefinition;
 import io.github.finalwave.model.user.GreenhousePot;
 import io.github.finalwave.model.user.User;
+import io.github.finalwave.model.user.UserProgressInitializer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,7 @@ public class GreenhouseService {
     }
 
     public List<GreenhouseSlotState> slotStates(User user) {
+        UserProgressInitializer.ensureGreenhousePots(user);
         List<GreenhouseSlotState> slots = new ArrayList<>();
         for (int y = 1; y <= GreenhouseLayout.ROWS; y++) {
             for (int x = 1; x <= GreenhouseLayout.COLUMNS; x++) {
@@ -178,6 +180,7 @@ public class GreenhouseService {
         if (!GreenhouseLayout.isValid(x, y)) {
             return null;
         }
+        UserProgressInitializer.ensureGreenhousePots(user);
         return user.getPotAt(x, y);
     }
 

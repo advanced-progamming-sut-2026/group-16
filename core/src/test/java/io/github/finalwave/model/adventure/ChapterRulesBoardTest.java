@@ -5,6 +5,7 @@ import io.github.finalwave.model.definition.ZombieRegistry;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.board.tile.GraveTile;
 import io.github.finalwave.model.game.board.tile.LowBeachTile;
+import io.github.finalwave.model.game.board.tile.WaterTile;
 import io.github.finalwave.model.game.mode.AdventureMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,14 +63,25 @@ class ChapterRulesBoardTest {
                 chapter, chapter.getLevel(1), plantRegistry, zombieRegistry, 3, new Random(3));
         GameSession session = mode.createSession();
         int water = 0;
+        int lowBeach = 0;
+        int plainWater = 0;
         for (int row = 0; row < session.getBoard().getRows(); row++) {
             for (int col = 0; col < session.getBoard().getCols(); col++) {
-                if (session.getBoard().getTile(col, row) instanceof LowBeachTile) {
+                var tile = session.getBoard().getTile(col, row);
+                if (tile != null && tile.isWater()) {
                     water++;
+                }
+                if (tile instanceof LowBeachTile) {
+                    lowBeach++;
+                }
+                if (tile instanceof WaterTile) {
+                    plainWater++;
                 }
             }
         }
         assertTrue(water > 0);
+        assertTrue(lowBeach > 0, "some cells should be designated low beach");
+        assertTrue(plainWater > 0, "not every water cell should be low beach");
     }
 
     @Test

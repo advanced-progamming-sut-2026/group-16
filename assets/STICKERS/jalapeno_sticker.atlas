@@ -1,0 +1,38 @@
+jalapeno_sticker.png
+size: 1881, 941
+format: RGBA8888
+filter: Linear, Linear
+repeat: none
+pma: false
+row-1-column-1
+  bounds: 0, 0, 314, 314
+row-1-column-2
+  bounds: 314, 0, 313, 314
+row-1-column-3
+  bounds: 627, 0, 314, 314
+row-1-column-4
+  bounds: 941, 0, 313, 314
+row-2-column-1
+  bounds: 1254, 0, 314, 313
+row-2-column-2
+  bounds: 1568, 0, 313, 313
+row-2-column-3
+  bounds: 0, 314, 314, 313
+row-2-column-4
+  bounds: 314, 314, 313, 313
+row-3-column-1
+  bounds: 627, 314, 314, 314
+row-3-column-2
+  bounds: 941, 314, 313, 314
+row-3-column-3
+  bounds: 1254, 314, 314, 314
+row-3-column-4
+  bounds: 1568, 314, 313, 314
+row-4-column-1
+  bounds: 0, 628, 314, 313
+row-4-column-2
+  bounds: 314, 628, 313, 313
+row-4-column-3
+  bounds: 627, 628, 314, 313
+row-4-column-4
+  bounds: 941, 628, 313, 313

@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.utils.Align;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.util.StayLoggedInStorage;
@@ -15,6 +16,12 @@ import pvz.skin.BorderedTable;
 
 
 public final class LoginScreen extends MenuScreen {
+    private enum ForgotStep {
+        IDENTITY,
+        SECURITY,
+        PASSWORD
+    }
+
     private LoginController controller;
     private FormField username;
     private FormField password;
@@ -23,7 +30,7 @@ public final class LoginScreen extends MenuScreen {
     private boolean stayLoggedIn;
     private ModalPanel forgotModal;
     private Table forgotContent;
-    private boolean awaitingNewPassword;
+    private ForgotStep forgotStep = ForgotStep.IDENTITY;
 
     public LoginScreen(PvzGame game) {
         super(game);
@@ -39,7 +46,7 @@ public final class LoginScreen extends MenuScreen {
         contentLayer.clearChildren();
         modalLayer.clearChildren();
         forgotModal = null;
-        awaitingNewPassword = false;
+        forgotStep = ForgotStep.IDENTITY;
 
         Skin skin = assets.skin();
         username = new FormField(skin, "Username");
@@ -85,12 +92,22 @@ public final class LoginScreen extends MenuScreen {
         contentLayer.add(panel);
     }
 
-    public void showPasswordResetStep() {
-        awaitingNewPassword = true;
+    public void showSecurityQuestionStep() {
+        forgotStep = ForgotStep.SECURITY;
         if (forgotModal == null) {
             openForgotPasswordModal();
+            return;
         }
-        buildForgotStepTwo();
+        buildForgotStepSecurity();
+    }
+
+    public void showPasswordResetStep() {
+        forgotStep = ForgotStep.PASSWORD;
+        if (forgotModal == null) {
+            openForgotPasswordModal();
+            return;
+        }
+        buildForgotStepPassword();
     }
 
     public void closeForgotPasswordModal() {
@@ -98,7 +115,10 @@ public final class LoginScreen extends MenuScreen {
             forgotModal.dismiss();
             forgotModal = null;
         }
-        awaitingNewPassword = false;
+        forgotStep = ForgotStep.IDENTITY;
+        if (controller != null) {
+            controller.cancelPasswordReset();
+        }
     }
 
     public void showInlineError(String message) {
@@ -131,36 +151,63 @@ public final class LoginScreen extends MenuScreen {
         forgotModal = new ModalPanel(skin, "Forgot Password");
         forgotContent = forgotModal.content();
         forgotContent.defaults().width(420).padBottom(8);
-        if (awaitingNewPassword) {
-            buildForgotStepTwo();
-        } else {
-            buildForgotStepOne();
+        switch (forgotStep) {
+            case SECURITY -> buildForgotStepSecurity();
+            case PASSWORD -> buildForgotStepPassword();
+            default -> buildForgotStepIdentity();
         }
         forgotModal.pack();
         forgotModal.show(modalLayer, viewport);
     }
 
-    private void buildForgotStepOne() {
+    private void buildForgotStepIdentity() {
         Skin skin = assets.skin();
         forgotContent.clearChildren();
         FormField userField = new FormField(skin, "Username");
         FormField emailField = new FormField(skin, "Email");
-        FormField answerField = new FormField(skin, "Security answer");
 
-        TextButton submit = PvzButtons.textButton("Verify", skin, "purple", () ->
-                controller.verifyIdentity(userField.text(), emailField.text(), answerField.text()));
+        if (username != null && !username.text().isBlank()) {
+            userField.field().setText(username.text());
+        }
+
+        TextButton submit = PvzButtons.textButton("Continue", skin, "purple", () ->
+                controller.beginPasswordReset(userField.text(), emailField.text()));
         TextButton cancel = PvzButtons.textButton("Cancel", skin, "green_small", this::closeForgotPasswordModal);
 
         forgotContent.add(PanelLabels.body(skin, "Verify your identity")).padBottom(12).row();
         forgotContent.add(userField.field()).height(55).row();
         forgotContent.add(emailField.field()).height(55).row();
+        forgotContent.add(submit).height(60).padTop(10).row();
+        forgotContent.add(cancel).height(45);
+        forgotModal.pack();
+    }
+
+    private void buildForgotStepSecurity() {
+        if (forgotModal == null) {
+            return;
+        }
+        Skin skin = assets.skin();
+        forgotContent.clearChildren();
+        String question = controller.pendingSecurityQuestionText();
+        Label questionLabel = PanelLabels.body(skin,
+                question != null && !question.isBlank() ? question : "Security question unavailable.");
+        questionLabel.setWrap(true);
+        questionLabel.setAlignment(Align.center);
+
+        FormField answerField = new FormField(skin, "Security answer");
+        TextButton submit = PvzButtons.textButton("Verify", skin, "purple", () ->
+                controller.verifySecurityAnswer(answerField.text()));
+        TextButton cancel = PvzButtons.textButton("Cancel", skin, "green_small", this::closeForgotPasswordModal);
+
+        forgotContent.add(PanelLabels.body(skin, "Answer your security question")).padBottom(12).row();
+        forgotContent.add(questionLabel).width(420).padBottom(8).row();
         forgotContent.add(answerField.field()).height(55).row();
         forgotContent.add(submit).height(60).padTop(10).row();
         forgotContent.add(cancel).height(45);
         forgotModal.pack();
     }
 
-    private void buildForgotStepTwo() {
+    private void buildForgotStepPassword() {
         if (forgotModal == null) {
             return;
         }

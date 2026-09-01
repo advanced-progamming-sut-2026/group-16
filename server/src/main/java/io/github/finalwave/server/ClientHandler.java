@@ -7,6 +7,8 @@ import io.github.finalwave.network.MessageEnvelope;
 import io.github.finalwave.network.MessageTypes;
 import io.github.finalwave.server.auth.LoginHandler;
 import io.github.finalwave.server.auth.LoginService;
+import io.github.finalwave.server.auth.PasswordChangeHandler;
+import io.github.finalwave.server.auth.PasswordChangeService;
 import io.github.finalwave.server.auth.RegisterHandler;
 import io.github.finalwave.server.auth.ResumeHandler;
 import io.github.finalwave.server.leaderboard.LeaderboardHandler;
@@ -37,6 +39,7 @@ public final class ClientHandler implements Runnable {
     private ChallengeHandler challengeHandler;
     private MatchDirectoryHandler matchDirectoryHandler;
     private MatchRelayHandler matchRelayHandler;
+    private PasswordChangeHandler passwordChangeHandler;
     private JsonLineProtocol protocol;
 
     public ClientHandler(Socket socket, ServerContext context) {
@@ -57,6 +60,7 @@ public final class ClientHandler implements Runnable {
         challengeHandler = new ChallengeHandler(context, this);
         matchDirectoryHandler = new MatchDirectoryHandler(context, this);
         matchRelayHandler = new MatchRelayHandler(context, this);
+        passwordChangeHandler = new PasswordChangeHandler(new PasswordChangeService(context), this);
         String clientLabel = String.valueOf(socket.getRemoteSocketAddress());
         System.out.println("Client connected: " + clientLabel);
         try (socket) {
@@ -123,6 +127,15 @@ public final class ClientHandler implements Runnable {
         }
         if (MessageTypes.LOGIN.equals(type)) {
             return loginHandler.handle(incoming);
+        }
+        if (MessageTypes.RESET_PASSWORD.equals(type)) {
+            return passwordChangeHandler.handleReset(incoming);
+        }
+        if (MessageTypes.SECURITY_QUESTION_LOOKUP.equals(type)) {
+            return passwordChangeHandler.handleLookup(incoming);
+        }
+        if (MessageTypes.CHANGE_PASSWORD.equals(type)) {
+            return passwordChangeHandler.handleChange(incoming);
         }
         if (MessageTypes.LOGOUT.equals(type)) {
             context.randomQueue().remove(this);

@@ -39,8 +39,12 @@ class BossHandlerTest {
 
     private GameSession newBossSession(ChapterId chapterId, Random random) {
         ChapterConfig chapter = AdventureRegistry.getInstance().getChapter(chapterId);
+        var bossLevel = chapter.getLevels().stream()
+                .filter(level -> level.getType() == io.github.finalwave.model.adventure.LevelType.BOSS)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("missing boss level for " + chapterId));
         AdventureMode mode = new AdventureMode(
-                chapter, chapter.getLevel(4), plantRegistry, zombieRegistry, 1, random);
+                chapter, bossLevel, plantRegistry, zombieRegistry, 1, random);
         GameSession session = mode.createSession();
         session.setWavesAutoStart(false);
         session.addSunBalance(1000);

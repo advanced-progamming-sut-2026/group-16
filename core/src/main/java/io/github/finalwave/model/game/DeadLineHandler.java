@@ -27,7 +27,7 @@ public record DeadLineHandler(int deadLineColumn) implements SpecialLevelHandler
             return;
         }
         for (Zombie zombie : session.getZombies()) {
-            if (!zombie.isAlive()) {
+            if (!zombie.countsAsEnemy()) {
                 continue;
             }
             if (zombie.getX() <= deadLineColumn) {

@@ -9,12 +9,18 @@ public final class RegisterOkPayload {
     private int coins;
     private int diamonds;
     private int plantFood;
+    private int securityQuestionNumber;
 
     public RegisterOkPayload() {
     }
 
     public RegisterOkPayload(long userId, String username, String nickname, String email, String gender,
                            int coins, int diamonds, int plantFood) {
+        this(userId, username, nickname, email, gender, coins, diamonds, plantFood, 0);
+    }
+
+    public RegisterOkPayload(long userId, String username, String nickname, String email, String gender,
+                           int coins, int diamonds, int plantFood, int securityQuestionNumber) {
         this.userId = userId;
         this.username = username;
         this.nickname = nickname;
@@ -23,6 +29,7 @@ public final class RegisterOkPayload {
         this.coins = coins;
         this.diamonds = diamonds;
         this.plantFood = plantFood;
+        this.securityQuestionNumber = securityQuestionNumber;
     }
 
     public long getUserId() {
@@ -87,5 +94,13 @@ public final class RegisterOkPayload {
 
     public void setPlantFood(int plantFood) {
         this.plantFood = plantFood;
+    }
+
+    public int getSecurityQuestionNumber() {
+        return securityQuestionNumber;
+    }
+
+    public void setSecurityQuestionNumber(int securityQuestionNumber) {
+        this.securityQuestionNumber = securityQuestionNumber;
     }
 }

@@ -152,7 +152,7 @@ public final class GameSession {
         this.random = random == null ? new Random() : random;
         this.plantFactory = new PlantFactory(plantRegistry);
         this.cooldownTracker = new PlantArmor.PlantCooldownTracker();
-        this.projectileSystem = new ProjectileSystem();
+        this.projectileSystem = new ProjectileSystem(this.random);
         this.jalapenoFireSystem = new JalapenoFireSystem();
         this.tangleKelpGrabSystem = new TangleKelpGrabSystem();
         this.icebergFlashSystem = new IcebergFlashSystem();
@@ -1163,7 +1163,6 @@ public final class GameSession {
         return tileEffects.isRowEffectActive(row, effectType);
     }
 
-    // --- package-private support for extracted helpers ---
 
     GameSessionSpecialLevelState getSpecialLevelState() {
         return specialLevelState;

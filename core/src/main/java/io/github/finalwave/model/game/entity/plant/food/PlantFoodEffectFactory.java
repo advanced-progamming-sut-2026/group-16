@@ -71,7 +71,7 @@ public final class PlantFoodEffectFactory {
             return new BidirectionalRapidFirePlantFoodEffect();
         }
         if ("Citron".equals(name)) {
-            return new LaneClearPlantFoodEffect((int) value, ProjectileEffect.PLASMA_PF, 14, 45);
+            return new CitronPlantFoodEffect((int) value);
         }
         if ("Cactus".equals(name)) {
             return new LaneClearPlantFoodEffect(1800, ProjectileEffect.SPIKE_PF, 10, 40);

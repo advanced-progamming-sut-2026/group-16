@@ -53,6 +53,30 @@ class WaveManagerTest {
     }
 
     @Test
+    void hypnotizedZombiesDoNotBlockWaveProgressOrClear() {
+        Wave wave = new Wave(1, 100, false);
+        Zombie enemy = new Zombie.Builder("ZombieDefault").maxHealth(100).position(5, 1).build();
+        Zombie ally = new Zombie.Builder("ZombieDefault").maxHealth(100).position(4, 1).build();
+        wave.markStarted();
+        wave.registerSpawn(enemy);
+        wave.registerSpawn(ally);
+
+        assertEquals(0.0, wave.getDestroyedHealthRatio(), 0.001);
+        assertFalse(wave.isCleared());
+
+        ally.hypnotize(1.0, 1.0);
+        assertEquals(0.5, wave.getDestroyedHealthRatio(), 0.001);
+        assertFalse(wave.isCleared());
+
+        enemy.takeDirectDamage(enemy.getHealth() + 99999);
+        assertEquals(1.0, wave.getDestroyedHealthRatio(), 0.001);
+        assertTrue(wave.isCleared());
+        assertTrue(ally.isAlive());
+        assertTrue(ally.isHypnotized());
+        assertFalse(ally.countsAsEnemy());
+    }
+
+    @Test
     void firstWaveAlwaysIncludesConeArmor() {
         List<String> pool = List.of("ZombieDefault", "ZombieArmor1");
         int[] seeds = {1, 2, 7, 9, 42, 99, 1234};

@@ -110,6 +110,17 @@ public class UserDatabase {
             try (Statement pragma = conn.createStatement()) {
                 pragma.execute("PRAGMA foreign_keys = ON");
             }
+            int securityQuestionId = user.getSecurityQuestionId();
+            String securityAnswerHash = user.getSecurityAnswerHash();
+            if (securityQuestionId <= 0) {
+                User existing = getUser(user.getUsername());
+                if (existing != null && existing.getSecurityQuestionId() > 0) {
+                    securityQuestionId = existing.getSecurityQuestionId();
+                    securityAnswerHash = existing.getSecurityAnswerHash();
+                    user.setSecurityQuestionId(securityQuestionId);
+                    user.setSecurityAnswerHash(securityAnswerHash);
+                }
+            }
             try (PreparedStatement delete = conn.prepareStatement("DELETE FROM users WHERE username = ?")) {
                 delete.setString(1, user.getUsername());
                 delete.executeUpdate();
@@ -126,12 +137,12 @@ public class UserDatabase {
                 insert.setString(4, user.getNickname());
                 insert.setString(5, user.getEmail());
                 insert.setString(6, user.getGender().name());
-                if (user.getSecurityQuestionId() > 0) {
-                    insert.setInt(7, user.getSecurityQuestionId());
+                if (securityQuestionId > 0) {
+                    insert.setInt(7, securityQuestionId);
                 } else {
                     insert.setNull(7, Types.INTEGER);
                 }
-                insert.setString(8, user.getSecurityAnswerHash());
+                insert.setString(8, securityAnswerHash);
                 insert.executeUpdate();
             }
             replacePlantProgress(conn, user);
@@ -242,6 +253,27 @@ public class UserDatabase {
             pstmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Could not update password.", e);
+        }
+    }
+
+    public void updateSecurityQuestion(String username, int securityQuestionId, String securityAnswerHash) {
+        String sql = """
+                UPDATE users
+                SET securityQuestionNumber = ?, securityAnswerHash = COALESCE(?, securityAnswerHash)
+                WHERE username = ?
+                """;
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            if (securityQuestionId > 0) {
+                pstmt.setInt(1, securityQuestionId);
+            } else {
+                pstmt.setNull(1, Types.INTEGER);
+            }
+            pstmt.setString(2, securityAnswerHash);
+            pstmt.setString(3, username);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not update security question.", e);
         }
     }
 

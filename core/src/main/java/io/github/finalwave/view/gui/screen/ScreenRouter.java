@@ -581,6 +581,12 @@ public final class ScreenRouter {
         }
     }
 
+    public void showLoginPasswordSecurityStep() {
+        if (loginScreen != null) {
+            loginScreen.showSecurityQuestionStep();
+        }
+    }
+
     public void closeLoginForgotPasswordModal() {
         if (loginScreen != null) {
             loginScreen.closeForgotPasswordModal();

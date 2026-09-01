@@ -18,6 +18,7 @@ public final class AdventureAssetIds {
     public static final String ICEAGE_ISLAND_1 = "IMAGE_WORLDMAP_ICEAGE_ISLAND22";
     public static final String ICEAGE_ISLAND_2 = "IMAGE_WORLDMAP_ICEAGE_ISLAND23";
     public static final String ICEAGE_ISLAND_3 = "IMAGE_WORLDMAP_ICEAGE_ISLAND24";
+    public static final String ICEAGE_ISLAND_4 = "IMAGE_WORLDMAP_ICEAGE_ISLAND41";
     public static final String ICEAGE_ISLAND_BOSS = "IMAGE_WORLDMAP_ICEAGE_ISLAND1";
 
     public static final String BEACH_ISLAND_1 = "IMAGE_WORLDMAP_BEACH_ISLAND16";
@@ -54,6 +55,7 @@ public final class AdventureAssetIds {
             ICEAGE_ISLAND_1,
             ICEAGE_ISLAND_2,
             ICEAGE_ISLAND_3,
+            ICEAGE_ISLAND_4,
             ICEAGE_ISLAND_BOSS,
             BEACH_ISLAND_1,
             BEACH_ISLAND_2,
@@ -99,7 +101,7 @@ public final class AdventureAssetIds {
         int index = Math.max(0, slot);
         return switch (id) {
             case ANCIENT_EGYPT -> egyptIslands()[index % 3];
-            case FROSTBITE_CAVES -> iceageIslands()[index % 3];
+            case FROSTBITE_CAVES -> iceageIslands()[index % iceageIslands().length];
             case BIG_WAVE_BEACH -> beachIslands()[index % 3];
             case DARK_AGES -> darkIslands()[index % 3];
         };
@@ -110,7 +112,7 @@ public final class AdventureAssetIds {
     }
 
     private static String[] iceageIslands() {
-        return new String[] {ICEAGE_ISLAND_1, ICEAGE_ISLAND_2, ICEAGE_ISLAND_3};
+        return new String[] {ICEAGE_ISLAND_1, ICEAGE_ISLAND_2, ICEAGE_ISLAND_3, ICEAGE_ISLAND_4};
     }
 
     private static String[] beachIslands() {

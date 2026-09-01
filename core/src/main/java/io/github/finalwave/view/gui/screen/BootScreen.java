@@ -5,10 +5,15 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
+import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.view.gui.assets.AdventureAssetIds;
@@ -30,6 +35,7 @@ public final class BootScreen extends ScreenAdapter {
     private final ExtendViewport viewport;
     private final SpriteBatch batch;
     private final Stage stage;
+    private final Image backgroundImage;
     private final ProgressBar progressBar;
     private final Label statusLabel;
 
@@ -46,23 +52,33 @@ public final class BootScreen extends ScreenAdapter {
         this.batch = new SpriteBatch();
         this.stage = new Stage(viewport, batch);
 
+        backgroundImage = new Image();
+        backgroundImage.setFillParent(true);
+        backgroundImage.setScaling(Scaling.fill);
+
         Label title = new Label("Loading...", assets.skin(), "big");
         title.setFontScale(0.8f);
         statusLabel = new Label("Preparing menu assets", assets.skin(), "medium");
         progressBar = new ProgressBar(0f, 1f, 0.01f, false, assets.skin(), "xp_green");
         progressBar.setAnimateDuration(0.15f);
 
-        Table root = new Table();
+        Table content = new Table();
+        content.setFillParent(true);
+        content.add(title).padBottom(30).row();
+        content.add(progressBar).width(800).height(45).padBottom(16).row();
+        content.add(statusLabel);
+
+        Stack root = new Stack();
         root.setFillParent(true);
-        root.add(title).padBottom(30).row();
-        root.add(progressBar).width(800).height(45).padBottom(16).row();
-        root.add(statusLabel);
+        root.add(backgroundImage);
+        root.add(content);
         stage.addActor(root);
     }
 
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+        applyRandomTitleBackdrop();
         collectAtlasIds();
         if (atlasIds.isEmpty()) {
             finishBoot();
@@ -78,6 +94,18 @@ public final class BootScreen extends ScreenAdapter {
             });
         }
         updateProgress();
+    }
+
+    private void applyRandomTitleBackdrop() {
+        String[] backdrops = MenuAssetIds.TITLE_BACKDROPS;
+        String imageId = backdrops[MathUtils.random(backdrops.length - 1)];
+        ResourceIndex.ImageEntry entry = assets.resourceIndex().image(imageId);
+        if (entry == null) {
+            Gdx.app.error(TAG, "Missing title backdrop id in RESOURCES.json: " + imageId);
+            return;
+        }
+        assets.textures().loadSync(entry.atlasId);
+        backgroundImage.setDrawable(new TextureRegionDrawable(assets.region(imageId)));
     }
 
     private void collectAtlasIds() {

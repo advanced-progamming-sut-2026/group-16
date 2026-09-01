@@ -7,7 +7,6 @@ public final class PlantPacketIds {
     private static final Map<String, String> OVERRIDES = Map.ofEntries(
             Map.entry(PlantNameAliases.normalize("Mega Gatling Pea"), "IMAGE_UI_PACKETS_MEGAGATLING"),
             Map.entry(PlantNameAliases.normalize("Cherry Bomb"), "IMAGE_UI_PACKETS_CHERRY_BOMB"),
-            Map.entry(PlantNameAliases.normalize("Goo Peashooter"), "IMAGE_UI_PACKETS_PEASHOOTER"),
             Map.entry(PlantNameAliases.normalize("Giant Wall-nut"), "IMAGE_UI_PACKETS_TALLNUT"),
             Map.entry(PlantNameAliases.normalize("Twin Sunflower"), "IMAGE_UI_PACKETS_TWINSUNFLOWER"),
             Map.entry(PlantNameAliases.normalize("Iceberg Lettuce"), "IMAGE_UI_PACKETS_ICEBURG"),

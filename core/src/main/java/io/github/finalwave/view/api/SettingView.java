@@ -7,8 +7,6 @@ public interface SettingView extends View {
 
     void showCurrentMenu(int difficulty);
 
-    void showOnlineStatus(String username, String status);
-
     void errorInvalidCommand();
 
     void errorInvalidDifficultyFormat();

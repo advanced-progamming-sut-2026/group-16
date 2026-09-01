@@ -16,13 +16,17 @@ import io.github.finalwave.model.game.board.tile.IceTile;
 import io.github.finalwave.model.game.board.tile.LowBeachTile;
 import io.github.finalwave.model.game.board.tile.NecromancyTile;
 import io.github.finalwave.model.game.board.tile.NormalTile;
+import io.github.finalwave.model.game.board.tile.Tile;
+import io.github.finalwave.model.game.board.tile.WaterTile;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 public class AdventureMode extends GameMode {
 
@@ -34,6 +38,7 @@ public class AdventureMode extends GameMode {
     private final int difficultyLevel;
     private int currentWaterColumns;
     private final List<FrozenZombieMarker> preFrozenMarkers = new ArrayList<>();
+    private final Set<String> lowBeachCells = new HashSet<>();
 
     public AdventureMode(ChapterConfig chapter,
                          LevelConfig level,
@@ -84,7 +89,9 @@ public class AdventureMode extends GameMode {
 
         ChapterRules rules = chapter.getRules();
         session.getSkySunSystem().setEnabled(
-                rules.isSkySunEnabled() && level.getType() != LevelType.NIGHT_OPS);
+                rules.isSkySunEnabled()
+                        && level.getType() != LevelType.NIGHT_OPS
+                        && level.getType() != LevelType.CONVEYOR_BELT);
         session.setZombiesImmuneToChill(rules.areZombiesImmuneToChill());
         session.applyUserDifficulty(difficultyLevel);
 
@@ -108,6 +115,7 @@ public class AdventureMode extends GameMode {
     private void applyBoardLayout(GameBoard board) {
         ChapterRules rules = chapter.getRules();
         if (rules.hasWaterColumns()) {
+            pickLowBeachCells(board, rules);
             applyWaterColumns(board, currentWaterColumns);
         }
         if (rules.hasGravesAtStart()) {
@@ -122,13 +130,52 @@ public class AdventureMode extends GameMode {
         }
     }
 
+    private void pickLowBeachCells(GameBoard board, ChapterRules rules) {
+        lowBeachCells.clear();
+        if (!rules.hasLowBeachEmerge()) {
+            return;
+        }
+        int cols = board.getCols();
+        int rows = board.getRows();
+        int maxTide = Math.min(Math.max(1, rules.getMaxTideColumn()), cols);
+        int permanent = Math.min(2, Math.max(1, rules.getInitialWaterColumns()));
+        int tideFrom = cols - maxTide;
+        int permanentFrom = cols - permanent;
+        List<String> candidates = new ArrayList<>();
+        for (int row = 0; row < rows; row++) {
+            for (int col = tideFrom; col < permanentFrom; col++) {
+                candidates.add(cellKey(col, row));
+            }
+        }
+        if (candidates.isEmpty()) {
+            // Narrow board: allow a few spots in the permanent zone instead.
+            for (int row = 0; row < rows; row++) {
+                for (int col = tideFrom; col < cols; col++) {
+                    candidates.add(cellKey(col, row));
+                }
+            }
+        }
+        Collections.shuffle(candidates, random);
+        int target = Math.max(2, candidates.size() / 3);
+        target = Math.min(target, Math.max(0, candidates.size() - 1));
+        for (int i = 0; i < target; i++) {
+            lowBeachCells.add(candidates.get(i));
+        }
+    }
+
     private void applyWaterColumns(GameBoard board, int waterColumns) {
         int cols = board.getCols();
         int fromCol = Math.max(0, cols - waterColumns);
         for (int row = 0; row < board.getRows(); row++) {
             for (int col = 0; col < cols; col++) {
-                if (col >= fromCol) {
-                    board.setTile(col, row, new LowBeachTile());
+                boolean underWater = col >= fromCol;
+                boolean lowBeach = lowBeachCells.contains(cellKey(col, row));
+                if (underWater && lowBeach) {
+                    board.setTile(col, row, new LowBeachTile(true));
+                } else if (underWater) {
+                    board.setTile(col, row, new WaterTile());
+                } else if (lowBeach) {
+                    board.setTile(col, row, new LowBeachTile(false));
                 } else {
                     board.setTile(col, row, new NormalTile());
                 }
@@ -264,21 +311,22 @@ public class AdventureMode extends GameMode {
 
     private void spawnLowBeachEmerges(GameSession session) {
         GameBoard board = session.getBoard();
-        List<int[]> waterCells = new ArrayList<>();
+        List<int[]> emergeCells = new ArrayList<>();
         for (int row = 0; row < board.getRows(); row++) {
             for (int col = 0; col < board.getCols(); col++) {
-                if (board.getTile(col, row) instanceof LowBeachTile) {
-                    waterCells.add(new int[]{col, row});
+                Tile tile = board.getTile(col, row);
+                if (tile instanceof LowBeachTile lowBeach && lowBeach.isFlooded()) {
+                    emergeCells.add(new int[]{col, row});
                 }
             }
         }
-        if (waterCells.isEmpty()) {
+        if (emergeCells.isEmpty()) {
             return;
         }
-        Collections.shuffle(waterCells, random);
-        int emergeCount = Math.min(1 + random.nextInt(2), waterCells.size());
+        Collections.shuffle(emergeCells, random);
+        int emergeCount = Math.min(1 + random.nextInt(2), emergeCells.size());
         for (int i = 0; i < emergeCount; i++) {
-            int[] cell = waterCells.get(i);
+            int[] cell = emergeCells.get(i);
             try {
                 session.spawnZombieOfType(pickPoolZombieAlias(), cell[1], cell[0] + 0.5);
             } catch (RuntimeException ignored) {
@@ -313,6 +361,10 @@ public class AdventureMode extends GameMode {
 
     public boolean areZombiesImmuneToChill() {
         return chapter.getRules().areZombiesImmuneToChill();
+    }
+
+    private static String cellKey(int col, int row) {
+        return col + ":" + row;
     }
 
     private record FrozenZombieMarker(int col, int row) {

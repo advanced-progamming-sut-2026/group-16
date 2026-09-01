@@ -151,8 +151,18 @@ Thumbs.db
 *.*#
 *#*#
 /.kotlin/
+# Large PVZ2 art packs stay local; bundled media under assets/ is tracked
+/assets/*
+!/assets/EMOJI/
+!/assets/EMOJI/**
+!/assets/sounds/
+!/assets/sounds/**
+!/assets/STICKERS/
+!/assets/STICKERS/**
 /assets/assets.txt
-/assets/
+/assets/users.db
+/assets/user.session
+/assets/users.session
 
 ## Special cases:
 

@@ -4,8 +4,15 @@ import io.github.finalwave.model.App;
 import io.github.finalwave.model.command.ProfileMenuCommands;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.login.NetworkPasswordChangeGateway;
+import io.github.finalwave.login.PasswordChangeGateway;
+import io.github.finalwave.network.auth.ChangePasswordRequest;
+import io.github.finalwave.network.auth.PasswordChangeFailPayload;
+import io.github.finalwave.network.auth.PasswordChangeFailReason;
+import io.github.finalwave.network.auth.PasswordChangeOkPayload;
 import io.github.finalwave.util.HashUtil;
 import io.github.finalwave.util.RegistrationValidator;
+import io.github.finalwave.util.SessionResumeCredentials;
 import io.github.finalwave.util.StayLoggedInStorage;
 import io.github.finalwave.view.api.ProfileView;
 
@@ -255,12 +262,16 @@ public class ProfileController extends ViewController {
     private void handleChangePassword(String newPassword, String oldPassword) {
         clearPendingStates();
         User user = currentUser();
-        if (!user.getPasswordHash().equals(HashUtil.hashSHA256(oldPassword))) {
-            getProfileView().errorWrongOldPassword();
-            return;
-        }
-
-        if (user.getPasswordHash().equals(HashUtil.hashSHA256(newPassword))) {
+        String currentHash = effectivePasswordHash(user);
+        String oldHash = HashUtil.hashSHA256(oldPassword);
+        if (currentHash == null || currentHash.isBlank() || !currentHash.equals(oldHash)) {
+            // Prefer server verification when local hash is missing/stale.
+            PasswordChangeGateway gateway = NetworkPasswordChangeGateway.getInstance();
+            if (gateway == null) {
+                getProfileView().errorWrongOldPassword();
+                return;
+            }
+        } else if (currentHash.equals(HashUtil.hashSHA256(newPassword))) {
             getProfileView().errorSamePassword();
             pendingPassword = true;
             getProfileView().promptNewPassword();
@@ -274,12 +285,13 @@ public class ProfileController extends ViewController {
             return;
         }
 
-        applyPasswordChange(user, newPassword);
+        applyPasswordChange(user, oldPassword, newPassword);
     }
 
     private void handlePendingPassword(String input) {
         User user = currentUser();
-        if (user.getPasswordHash().equals(HashUtil.hashSHA256(input))) {
+        String currentHash = effectivePasswordHash(user);
+        if (currentHash != null && currentHash.equals(HashUtil.hashSHA256(input))) {
             getProfileView().errorSamePassword();
             getProfileView().promptNewPassword();
             return;
@@ -291,16 +303,77 @@ public class ProfileController extends ViewController {
             return;
         }
 
-        applyPasswordChange(user, input);
+        // CLI pending flow only has the new password; keep local apply for tests.
+        applyLocalPasswordChange(user, input);
         pendingPassword = false;
     }
 
-    private void applyPasswordChange(User user, String newPassword) {
+    private void applyPasswordChange(User user, String oldPassword, String newPassword) {
+        PasswordChangeGateway gateway = NetworkPasswordChangeGateway.getInstance();
+        if (gateway == null) {
+            String currentHash = effectivePasswordHash(user);
+            if (currentHash == null || !currentHash.equals(HashUtil.hashSHA256(oldPassword))) {
+                getProfileView().errorWrongOldPassword();
+                return;
+            }
+            applyLocalPasswordChange(user, newPassword);
+            return;
+        }
+        ChangePasswordRequest request = new ChangePasswordRequest(oldPassword, newPassword);
+        String hash = HashUtil.hashSHA256(newPassword);
+        gateway.changePassword(request, new PasswordChangeGateway.Callback() {
+            @Override
+            public void onSuccess(PasswordChangeOkPayload payload) {
+                user.setPasswordHash(hash);
+                userDatabase.updatePassword(user.getUsername(), hash);
+                SessionResumeCredentials.remember(user.getUsername(), hash);
+                refreshStayLoggedInSession(user);
+                getProfileView().showUserInfo(user);
+            }
+
+            @Override
+            public void onFailure(PasswordChangeFailPayload payload) {
+                handleChangeFailure(payload);
+            }
+        });
+    }
+
+    private void applyLocalPasswordChange(User user, String newPassword) {
         String hash = HashUtil.hashSHA256(newPassword);
         user.setPasswordHash(hash);
         userDatabase.updatePassword(user.getUsername(), hash);
+        SessionResumeCredentials.remember(user.getUsername(), hash);
         refreshStayLoggedInSession(user);
         getProfileView().showUserInfo(user);
+    }
+
+    private void handleChangeFailure(PasswordChangeFailPayload payload) {
+        String reason = payload == null ? null : payload.getReason();
+        if (PasswordChangeFailReason.BAD_CREDENTIALS.equals(reason)
+                || PasswordChangeFailReason.AUTH_REQUIRED.equals(reason)) {
+            getProfileView().errorWrongOldPassword();
+            return;
+        }
+        if (PasswordChangeFailReason.SAME_PASSWORD.equals(reason)) {
+            getProfileView().errorSamePassword();
+            return;
+        }
+        if (PasswordChangeFailReason.WEAK_PASSWORD.equals(reason)) {
+            getProfileView().errorWeakPassword();
+            return;
+        }
+        getProfileView().errorWrongOldPassword();
+    }
+
+    private static String effectivePasswordHash(User user) {
+        if (user != null && user.getPasswordHash() != null && !user.getPasswordHash().isBlank()) {
+            return user.getPasswordHash();
+        }
+        String remembered = SessionResumeCredentials.passwordHash();
+        if (remembered != null && !remembered.isBlank()) {
+            return remembered;
+        }
+        return user == null ? null : user.getPasswordHash();
     }
 
     private void persistProfile(User user) {

@@ -36,6 +36,7 @@ public final class Zombie extends Entity {
     private int garlicDivertCol = -1;
     private int garlicDivertRow = -1;
     private int freezeTicksRemaining;
+    private int butterTicksRemaining;
     private int chillTicksRemaining;
     private int poisonTicksRemaining;
     private int poisonDamagePerTick;
@@ -766,6 +767,10 @@ public final class Zombie extends Entity {
         return hypnotized;
     }
 
+    public boolean countsAsEnemy() {
+        return isAlive() && !hypnotized;
+    }
+
     public void setHypnotized(boolean hypnotized) {
         this.hypnotized = hypnotized;
     }
@@ -835,6 +840,20 @@ public final class Zombie extends Entity {
         freezeTicksRemaining = Math.max(freezeTicksRemaining, ticks);
     }
 
+    public void applyButter(int ticks) {
+        int duration = Math.max(0, ticks);
+        butterTicksRemaining = Math.max(butterTicksRemaining, duration);
+        applyFreeze(duration);
+    }
+
+    public int getButterTicksRemaining() {
+        return butterTicksRemaining;
+    }
+
+    public boolean isButtered() {
+        return butterTicksRemaining > 0;
+    }
+
     public void applyChill(int ticks) {
         chillTicksRemaining = Math.max(chillTicksRemaining, ticks);
     }
@@ -854,9 +873,13 @@ public final class Zombie extends Entity {
     public void clearColdStatuses() {
         freezeTicksRemaining = 0;
         chillTicksRemaining = 0;
+        butterTicksRemaining = 0;
     }
 
     public void tickStatuses() {
+        if (butterTicksRemaining > 0) {
+            butterTicksRemaining--;
+        }
         if (freezeTicksRemaining > 0) {
             freezeTicksRemaining--;
         } else if (chillTicksRemaining > 0) {

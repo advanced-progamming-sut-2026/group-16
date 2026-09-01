@@ -25,7 +25,7 @@ public final class ProjectileClips {
     private static final EntityAnimationCatalog.ClipSpec KERNEL = spec(
             "768/INITIAL/EFFECTS/T_KERNALPULT_PROJECTILE/T_KERNALPULT_PROJECTILE.PAM", "animation");
     private static final EntityAnimationCatalog.ClipSpec BUTTER = spec(
-            "768/INITIAL/EFFECTS/SPLAT_KERNALPULT_BUTTER/SPLAT_KERNALPULT_BUTTER.PAM", "animation");
+            "768/INITIAL/EFFECTS/T_KERNALPULT_PROJECTILE/T_KERNALPULT_PROJECTILE.PAM", "animation2");
     private static final EntityAnimationCatalog.ClipSpec MELON = spec(
             "768/INITIAL/EFFECTS/T_MELON_PROJECTILE/T_MELON_PROJECTILE.PAM", "animation");
     private static final EntityAnimationCatalog.ClipSpec WINTER_MELON = spec(
@@ -67,7 +67,7 @@ public final class ProjectileClips {
     private static final EntityAnimationCatalog.ClipSpec PEAPOD_GIANT_PEA = spec(
             "768/FULL/EFFECTS/PEAPOD_PLANTFOOD_GIANTPEA/PEAPOD_PLANTFOOD_GIANTPEA.PAM", "animation");
     private static final EntityAnimationCatalog.ClipSpec PLASMA = spec(
-            "768/FULL/EFFECTS/T_CITRON_CITRUS_ORB/T_CITRON_CITRUS_ORB.PAM", "Citron_Citrus_Orb");
+            "768/FULL/EFFECTS/CITRON_CITRUS_ORB/CITRON_CITRUS_ORB.PAM", "Citron_Citrus_Orb");
     private static final EntityAnimationCatalog.ClipSpec CITRON = PLASMA;
     private static final EntityAnimationCatalog.ClipSpec PLASMA_PF = spec(
             "768/FULL/EFFECTS/CITRON_PLANTFOOD_ORB/CITRON_PLANTFOOD_ORB.PAM", "Plantfood_Citron_Plasma_Orb");
@@ -188,6 +188,9 @@ public final class ProjectileClips {
         }
         if (projectile != null && projectile.isGrapeshotGrape()) {
             return grapeshotFlightClip(projectile.getVelocityX(), projectile.getVelocityY());
+        }
+        if (projectile != null && projectile.getEffect() == ProjectileEffect.PLASMA_PF) {
+            return PLASMA_PF;
         }
         EntityAnimationCatalog.ClipSpec named = namedFlight(sourceName(projectile));
         if (named != null) {
@@ -330,6 +333,9 @@ public final class ProjectileClips {
         }
         if (projectile != null && projectile.getEffect() == ProjectileEffect.FUME) {
             return null;
+        }
+        if (projectile != null && projectile.getEffect() == ProjectileEffect.PLASMA_PF) {
+            return SPLAT_PLASMA_PF;
         }
         EntityAnimationCatalog.ClipSpec named = namedSplat(sourceName(projectile));
         if (named != null || "Bowling Bulb".equals(sourceName(projectile))) {

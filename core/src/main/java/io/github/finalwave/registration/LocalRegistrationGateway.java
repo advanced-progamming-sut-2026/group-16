@@ -74,7 +74,8 @@ public final class LocalRegistrationGateway implements RegistrationGateway {
                 user.getGender().name(),
                 user.getCoins(),
                 user.getDiamonds(),
-                user.getPlantFood()
+                user.getPlantFood(),
+                user.getSecurityQuestionId()
         );
     }
 }

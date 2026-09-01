@@ -24,6 +24,15 @@ public final class ExplosionLooks {
     public static final String ICE_PATH =
             "768/FULL/EFFECTS/ICESHROOM_FX/ICESHROOM_FX.PAM";
     public static final String ICE_CLIP = "animation";
+    public static final String CITRON_PF_LIGHTNING_PATH =
+            "768/FULL/EFFECTS/CITRON_PLANTFOOD_LIGHTNING_CHARGE/CITRON_PLANTFOOD_LIGHTNING_CHARGE.PAM";
+    public static final String CITRON_PF_LIGHTNING_CLIP = "Citron_Plantfood_Lightning_Charge";
+    public static final String CITRON_PF_SHOCK_PATH =
+            "768/FULL/EFFECTS/CITRON_PLANTFOOD_SHOCK/CITRON_PLANTFOOD_SHOCK.PAM";
+    public static final String CITRON_PF_SHOCK_CLIP = "animation";
+    public static final String CITRON_PF_HIT_PATH =
+            "768/FULL/EFFECTS/CITRON_PLANTFOOD_HIT/CITRON_PLANTFOOD_HIT.PAM";
+    public static final String CITRON_PF_HIT_CLIP = "animation";
     public static final String SCORCH_IMAGE =
             "IMAGE_EFFECTS_ESCAPEROOT_EXPLOSION_CHERRYBOMB_REAR_MC_CHERRYBOMB_EXPLOSION_SCORCH";
     private static final float CHERRY_CANVAS_HEIGHT = 500f;
@@ -41,6 +50,9 @@ public final class ExplosionLooks {
             case BONE_HIT -> BONE_HIT_PATH;
             case LASER -> LASER_PATH;
             case ICE -> ICE_PATH;
+            case CITRON_PF_LIGHTNING -> CITRON_PF_LIGHTNING_PATH;
+            case CITRON_PF_SHOCK -> CITRON_PF_SHOCK_PATH;
+            case CITRON_PF_HIT -> CITRON_PF_HIT_PATH;
             case CHERRY, GENERIC -> CHERRY_PATH;
         };
     }
@@ -59,6 +71,9 @@ public final class ExplosionLooks {
             case BONE_HIT -> BONE_HIT_CLIP;
             case LASER -> LASER_CLIP;
             case ICE -> ICE_CLIP;
+            case CITRON_PF_LIGHTNING -> CITRON_PF_LIGHTNING_CLIP;
+            case CITRON_PF_SHOCK -> CITRON_PF_SHOCK_CLIP;
+            case CITRON_PF_HIT -> CITRON_PF_HIT_CLIP;
             case CHERRY, GENERIC -> CHERRY_CLIP;
         };
     }
@@ -71,12 +86,20 @@ public final class ExplosionLooks {
         if (kind == LawnBurst.Kind.LASER) {
             return 1.15f;
         }
+        if (kind == LawnBurst.Kind.CITRON_PF_LIGHTNING
+                || kind == LawnBurst.Kind.CITRON_PF_SHOCK
+                || kind == LawnBurst.Kind.CITRON_PF_HIT) {
+            return 1.1f;
+        }
         return 1.05f;
     }
 
     public static float liftY(LawnBurst.Kind kind, float scale) {
         if (kind == LawnBurst.Kind.BURN || kind == LawnBurst.Kind.BONE_HIT
-                || kind == LawnBurst.Kind.LASER || kind == LawnBurst.Kind.ICE) {
+                || kind == LawnBurst.Kind.LASER || kind == LawnBurst.Kind.ICE
+                || kind == LawnBurst.Kind.CITRON_PF_LIGHTNING
+                || kind == LawnBurst.Kind.CITRON_PF_SHOCK
+                || kind == LawnBurst.Kind.CITRON_PF_HIT) {
             return 0f;
         }
         float canvas = kind == LawnBurst.Kind.MINE ? MINE_CANVAS_HEIGHT : CHERRY_CANVAS_HEIGHT;

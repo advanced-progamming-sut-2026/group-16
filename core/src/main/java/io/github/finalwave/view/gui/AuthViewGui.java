@@ -45,6 +45,11 @@ public final class AuthViewGui extends GuiViewBase implements AuthView {
     }
 
     @Override
+    public void promptPasswordResetSecurityAnswer() {
+        router.showLoginPasswordSecurityStep();
+    }
+
+    @Override
     public void promptPasswordConfirm() {
         toast("Please confirm your new password.");
     }

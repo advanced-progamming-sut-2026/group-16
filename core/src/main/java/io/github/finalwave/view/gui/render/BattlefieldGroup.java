@@ -224,7 +224,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         beghouledPlantSync = new BeghouledPlantSync(assets, layout, new PlantClips(catalog), plantLayer, this);
         lawnBurstSync = new LawnBurstSync(assets, layout, fxLayer);
         sandstormSync = new SandstormSync(assets, layout, environmentLayer, fxLayer);
-        beachTideSync = new BeachTideSync(layout, environmentLayer, highlightLayer);
+        beachTideSync = new BeachTideSync(assets, layout, environmentLayer, highlightLayer);
         necromancyTileSync = new NecromancyTileSync(layout, environmentLayer);
     }
 

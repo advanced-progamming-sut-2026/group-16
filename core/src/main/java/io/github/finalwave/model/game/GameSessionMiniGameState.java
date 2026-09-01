@@ -143,7 +143,6 @@ final class GameSessionMiniGameState {
         return true;
     }
 
-    /** Marks the row's brain as eaten if it wasn't already; returns whether it was newly marked. */
     boolean markBrainEatenIfNew(int row) {
         if (row >= 0 && row < iZombieBrainsEaten.length && !iZombieBrainsEaten[row]) {
             iZombieBrainsEaten[row] = true;

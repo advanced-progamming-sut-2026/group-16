@@ -39,6 +39,8 @@ public interface AuthView extends View {
 
     public void promptNewPassword();
 
+    public void promptPasswordResetSecurityAnswer();
+
     public void promptPasswordConfirm();
 
     public void showUserLoggedIn();

@@ -3,6 +3,18 @@ package io.github.finalwave.view.gui.assets;
 
 public final class MenuAssetIds {
     public static final String BACKGROUND = "IMAGE_MAINMENU_BACKGROUND";
+    public static final String[] TITLE_BACKDROPS = {
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_A",
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_B",
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_C",
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_D",
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_E",
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_F",
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_G",
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_H",
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_I",
+            "IMAGE_TITLEBACKGROUNDS_BACKDROP_J",
+    };
     public static final String LOGO = "IMAGE_UI_MAINMENU_PVZ2_LOGO_HORIZONTAL";
     public static final String NAME_ENTRY = "IMAGE_UI_MAINMENU_MM_NAMEENTRY";
     public static final String PROFILE_ICON = "IMAGE_UI_MAINMENU_MM_PLAYERICON";

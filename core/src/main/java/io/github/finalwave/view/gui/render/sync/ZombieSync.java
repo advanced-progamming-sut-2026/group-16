@@ -1,10 +1,14 @@
 package io.github.finalwave.view.gui.render.sync;
 
 import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Action;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.actions.TemporalAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
@@ -20,10 +24,12 @@ import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.render.ActorRegistry;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.clip.ArmorPartVisibility;
+import io.github.finalwave.view.gui.render.clip.IceBlockVisibility;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ZombossClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
 import io.github.finalwave.view.gui.render.clip.ZombieDeathLooks;
+import io.github.finalwave.view.gui.render.clip.ZombieLimbLooks;
 import io.github.finalwave.view.gui.render.clip.ZombotanyLooks;
 import io.github.finalwave.view.gui.widget.ActorFades;
 import io.github.finalwave.view.gui.widget.HitFlashTracker;
@@ -46,6 +52,10 @@ import java.util.function.BiConsumer;
 public final class ZombieSync {
     private static final float DEBRIS_DROP_SECONDS = 0.5f;
     private static final float DEBRIS_DROP_X = 0.35f;
+    private static final float HEAD_THROW_SECONDS = 0.7f;
+    private static final float HEAD_THROW_X_MIN = 0.35f;
+    private static final float HEAD_THROW_X_MAX = 0.95f;
+    private static final float HEAD_THROW_PEAK_Y = 0.55f;
     private static final float HEAD_DROP_Y = 0.58f;
     private static final float ARM_DROP_Y = 0.7f;
     private static final float ARMOR_DROP_Y = 1.15f;
@@ -79,6 +89,7 @@ public final class ZombieSync {
     private final Map<PamActor, String> abilityLatch = new IdentityHashMap<>();
     private final Set<Armor> thrownArmor = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<Armor, String> lastArmorLayers = new IdentityHashMap<>();
+    private final Set<Zombie> droppedArms = Collections.newSetFromMap(new IdentityHashMap<>());
     private final ActorRegistry<Zombie, PamActor> iceShells = new ActorRegistry<>();
     private final Set<String> smashShaking = new HashSet<>();
     private final Set<Zombie> eatingZombies = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -121,7 +132,7 @@ public final class ZombieSync {
         for (Zombie zombie : session.getZombies()) {
             if (ZombieVisualState.shouldDraw(zombie)) {
                 live.add(zombie);
-                if (zombie.getFreezeTicksRemaining() > 0) {
+                if (zombie.getFreezeTicksRemaining() > 0 && !zombie.isButtered()) {
                     frozen.add(zombie);
                 }
             }
@@ -134,6 +145,7 @@ public final class ZombieSync {
         hits.retain(live);
         retainFrozenPoses(live);
         retainThrownArmor(live);
+        droppedArms.retainAll(live);
         eatingZombies.retainAll(live);
         actorZombies.keySet().retainAll(zombies.actors());
     }
@@ -155,6 +167,7 @@ public final class ZombieSync {
         frozenPoses.clear();
         thrownArmor.clear();
         lastArmorLayers.clear();
+        droppedArms.clear();
         bossActors.clear();
         bossLogical.clear();
         ArmorPartVisibility.clear();
@@ -239,6 +252,11 @@ public final class ZombieSync {
         if (ZombotanyLooks.plantFor(zombie.getType()) != null) {
             vis = ZombotanyLooks.withHeadHidden(assets.pamPlayer(), clip.path(), vis);
         }
+        if (droppedArms.contains(zombie) || ZombieLimbLooks.shouldDropArm(zombie)) {
+            vis = ZombieLimbLooks.withArmDropped(assets.pamPlayer(), clip.path(), vis);
+        } else {
+            vis = ZombieLimbLooks.withArmIntact(assets.pamPlayer(), clip.path(), vis);
+        }
         vis = hideRaStaffSun(zombie, vis);
         vis = hideExplorerTorch(zombie, vis);
         vis = hideGargantuarImpAmmo(zombie, vis, clip);
@@ -265,6 +283,7 @@ public final class ZombieSync {
         }
         if (!frozen) {
             throwBrokenArmor(zombie, actor, clip);
+            maybeDropArm(zombie, actor);
         }
         updateProducerBadge(zombie, actor);
         maybeShakeSmash(zombie, clip);
@@ -442,7 +461,7 @@ public final class ZombieSync {
     private List<Zombie> encased(List<Zombie> live) {
         List<Zombie> frozen = new ArrayList<>();
         for (Zombie zombie : live) {
-            if (zombie.isBoss() || zombie.getFreezeTicksRemaining() < 40) {
+            if (zombie.isBoss() || zombie.isButtered() || zombie.getFreezeTicksRemaining() < 40) {
                 continue;
             }
             frozen.add(zombie);
@@ -454,12 +473,16 @@ public final class ZombieSync {
         PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.ZOMBIE_ANCHOR_Y);
+        actor.getColor().a = ZombossClips.ICE_OVERLAY_ALPHA;
         actor.playOnce(
                 ZombossClips.ICE_BLOCK_ZOMBIE_SPAWN,
                 ZombossClips.ICE_BLOCK_ZOMBIE_SPAWN_CLIP,
                 LawnLayout.ICE_BLOCK_SCALE,
                 () -> actor.setClip(
-                        ZombossClips.ICE_BLOCK_ZOMBIE, "idle", LawnLayout.ICE_BLOCK_SCALE, true));
+                        ZombossClips.ICE_BLOCK_ZOMBIE,
+                        ZombossClips.ICE_BLOCK_ZOMBIE_CLIP,
+                        LawnLayout.ICE_BLOCK_SCALE,
+                        true));
         layer.addActor(actor);
         return actor;
     }
@@ -469,9 +492,15 @@ public final class ZombieSync {
         float worldY = layout.worldYForRow(displayY(zombie));
         actor.setSize(layout.tileWidth(), layout.tileHeight());
         actor.setPosition(worldX - actor.getWidth() / 2f, worldY);
+        actor.getColor().a = ZombossClips.ICE_OVERLAY_ALPHA;
         if (!ZombossClips.ICE_BLOCK_ZOMBIE_SPAWN_CLIP.equals(actor.clipName())) {
-            actor.setClip(ZombossClips.ICE_BLOCK_ZOMBIE, "idle", LawnLayout.ICE_BLOCK_SCALE, true);
+            actor.setClip(
+                    ZombossClips.ICE_BLOCK_ZOMBIE,
+                    ZombossClips.ICE_BLOCK_ZOMBIE_CLIP,
+                    LawnLayout.ICE_BLOCK_SCALE,
+                    true);
         }
+        actor.setVisibility(IceBlockVisibility.fromFreezeTicksRemaining(zombie.getFreezeTicksRemaining()));
         actor.setUserObject(zombie.getRow() * 8 + 3);
         actor.setVisible(true);
     }
@@ -607,13 +636,23 @@ public final class ZombieSync {
         }
         EntityAnimationCatalog.ClipSpec die = clips.die(alias);
         EntityAnimationCatalog.ClipSpec parts = clips.particles(alias);
-        spawnParticles(actor, parts);
+        boolean armAlreadyDropped = zombie != null && droppedArms.contains(zombie);
+        spawnDeathParticles(actor, parts, armAlreadyDropped);
         deathActors.add(actor);
+        Map<String, Boolean> deathVis = null;
         if (zombie != null && zombie.shouldHideGargantuarImpAmmo()
                 && zombie.getType() != null && zombie.getType().contains("Gargantuar")) {
-            actor.setVisibility(hideGargantuarImpAmmo(zombie, null, die));
-        } else {
-            actor.setVisibility(null);
+            deathVis = hideGargantuarImpAmmo(zombie, null, die);
+        }
+        if (zombie != null) {
+            if (armAlreadyDropped) {
+                deathVis = ZombieLimbLooks.withArmDropped(assets.pamPlayer(), die.path(), deathVis);
+            }
+            deathVis = ZombieLimbLooks.withHeadDropped(assets.pamPlayer(), die.path(), deathVis);
+        }
+        actor.setVisibility(deathVis);
+        if (zombie != null) {
+            droppedArms.remove(zombie);
         }
         actor.setTimeScale(1f);
         float scale = bossActors.remove(actor) ? LawnLayout.ZOMBOSS_SCALE : LawnLayout.ZOMBIE_SCALE;
@@ -665,7 +704,27 @@ public final class ZombieSync {
         lastArmorLayers.keySet().retainAll(keep);
     }
 
-    private List<PamActor> spawnParticles(PamActor body, EntityAnimationCatalog.ClipSpec parts) {
+    private void maybeDropArm(Zombie zombie, PamActor body) {
+        if (!ZombieLimbLooks.shouldDropArm(zombie) || !droppedArms.add(zombie)) {
+            return;
+        }
+        EntityAnimationCatalog.ClipSpec parts = clips.particles(zombie.getType());
+        if (parts == null) {
+            return;
+        }
+        try {
+            assets.pamPlayer().loadSync(parts.path());
+        } catch (RuntimeException e) {
+            return;
+        }
+        if (!debrisParts(parts.path()).contains(PARTICLE_ARM)) {
+            return;
+        }
+        spawnDebris(body, parts, PARTICLE_ARM);
+    }
+
+    private List<PamActor> spawnDeathParticles(
+            PamActor body, EntityAnimationCatalog.ClipSpec parts, boolean armAlreadyDropped) {
         if (parts == null) {
             return List.of();
         }
@@ -674,32 +733,28 @@ public final class ZombieSync {
         } catch (RuntimeException e) {
             return List.of();
         }
-        List<String> names = debrisPartNames(parts.path());
-        if (names.isEmpty()) {
-            return List.of(spawnDebris(body, parts, null));
-        }
+        List<String> found = debrisParts(parts.path());
         List<PamActor> spawned = new ArrayList<>();
-        for (String name : names) {
-            spawned.add(spawnDebris(body, parts, name));
+        if (found.contains(PARTICLE_HEAD)) {
+            spawned.add(spawnDebris(body, parts, PARTICLE_HEAD));
+        }
+        if (!armAlreadyDropped && found.contains(PARTICLE_ARM)) {
+            spawned.add(spawnDebris(body, parts, PARTICLE_ARM));
+        }
+        if (spawned.isEmpty() && found.isEmpty()) {
+            spawned.add(spawnDebris(body, parts, null));
         }
         return spawned;
     }
 
-    private List<String> debrisPartNames(String pamPath) {
+    private List<String> debrisParts(String pamPath) {
         List<String> found = new ArrayList<>();
         try {
             collectDebrisParts(assets.pamPlayer().getParts(pamPath), found);
         } catch (RuntimeException e) {
             return List.of();
         }
-        List<String> names = new ArrayList<>();
-        if (found.contains(PARTICLE_HEAD)) {
-            names.add(PARTICLE_HEAD);
-        }
-        if (found.contains(PARTICLE_ARM)) {
-            names.add(PARTICLE_ARM);
-        }
-        return names;
+        return found;
     }
 
     private static void collectDebrisParts(PamPlayer.AnimationPart part, List<String> names) {
@@ -733,16 +788,41 @@ public final class ZombieSync {
             Vector2 centroid = PamPartCentroid.of(assets.pamPlayer(), parts.path(), parts.clip(), partName);
             debris.setRotateOffset(centroid.x, centroid.y);
         }
-        debris.addAction(Actions.sequence(
-                Actions.parallel(
-                        Actions.moveBy(-layout.tileWidth() * DEBRIS_DROP_X,
-                                -layout.tileHeight() * debrisDropY(partName),
-                                DEBRIS_DROP_SECONDS, Interpolation.sineOut),
-                        Actions.rotateBy(debrisRotation(partName), DEBRIS_DROP_SECONDS, Interpolation.sineOut)),
-                ActorFades.holdThenFade(() -> deathActors.remove(debris))));
+        if (PARTICLE_HEAD.equals(partName)) {
+            debris.addAction(Actions.sequence(
+                    Actions.parallel(
+                            parabolicHeadThrow(debris),
+                            Actions.rotateBy(debrisRotation(partName), HEAD_THROW_SECONDS, Interpolation.sineOut)),
+                    ActorFades.holdThenFade(() -> deathActors.remove(debris))));
+        } else {
+            debris.addAction(Actions.sequence(
+                    Actions.parallel(
+                            Actions.moveBy(-layout.tileWidth() * DEBRIS_DROP_X,
+                                    -layout.tileHeight() * debrisDropY(partName),
+                                    DEBRIS_DROP_SECONDS, Interpolation.sineOut),
+                            Actions.rotateBy(debrisRotation(partName), DEBRIS_DROP_SECONDS, Interpolation.sineOut)),
+                    ActorFades.holdThenFade(() -> deathActors.remove(debris))));
+        }
         layer.addActor(debris);
         deathActors.add(debris);
         return debris;
+    }
+
+    private Action parabolicHeadThrow(Actor debris) {
+        float startX = debris.getX();
+        float startY = debris.getY();
+        float dxSign = MathUtils.randomBoolean() ? 1f : -1f;
+        float dx = dxSign * layout.tileWidth() * MathUtils.random(HEAD_THROW_X_MIN, HEAD_THROW_X_MAX);
+        float landDy = -layout.tileHeight() * HEAD_DROP_Y;
+        float peakDy = layout.tileHeight() * HEAD_THROW_PEAK_Y;
+        return new TemporalAction(HEAD_THROW_SECONDS, Interpolation.linear) {
+            @Override
+            protected void update(float percent) {
+                float x = startX + dx * percent;
+                float y = startY + landDy * percent + 4f * peakDy * percent * (1f - percent);
+                debris.setPosition(x, y);
+            }
+        };
     }
 
     private static int flashHealth(Zombie zombie) {

@@ -12,12 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * usage:
- * ZombieRegistry registry = new ZombieRegistry();
- * registry.loadFromJson("src/main/resources/zombies.json");
- * registry.loadArmorFromJson("src/main/resources/ArmorTypeData.json");
- */
+
 
 public final class ZombieRegistry {
 

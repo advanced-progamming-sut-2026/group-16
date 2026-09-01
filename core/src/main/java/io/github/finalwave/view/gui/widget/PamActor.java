@@ -63,6 +63,10 @@ public final class PamActor extends Actor {
         this.hitFlash = hitFlash;
     }
 
+    public PamPlayer pamPlayer() {
+        return player;
+    }
+
     public void setClip(PlantAnimationCatalog.ClipSpec spec, float scale) {
         setClip(spec, scale, true);
     }

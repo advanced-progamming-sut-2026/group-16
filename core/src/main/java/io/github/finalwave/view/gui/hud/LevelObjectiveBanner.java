@@ -203,9 +203,9 @@ public final class LevelObjectiveBanner {
             case SAVE_OUR_SEEDS -> lines.add("Protect the marked plants.");
             case TIMED_WAR -> {
                 if ("timed-sun".equals(level.getSpecialHandlerKey())) {
-                    lines.add("Produce 150 sun before time runs out.");
+                    lines.add("Produce 150 sun within 60 seconds.");
                 } else {
-                    lines.add("Defeat the zombies before time runs out.");
+                    lines.add("Defeat 3 zombies within 60 seconds.");
                 }
             }
             case NIGHT_OPS -> lines.add("No sky sun. Plan your producers.");

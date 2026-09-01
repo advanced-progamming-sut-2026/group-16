@@ -70,7 +70,7 @@ public final class Wave {
     public int getRemainingHealth() {
         int remaining = 0;
         for (Zombie zombie : spawnedZombies) {
-            if (zombie.isAlive()) {
+            if (zombie.countsAsEnemy()) {
                 remaining += totalHealthOf(zombie);
             }
         }
@@ -86,7 +86,7 @@ public final class Wave {
 
     public boolean isCleared() {
         for (Zombie zombie : spawnedZombies) {
-            if (zombie.isAlive()) {
+            if (zombie.countsAsEnemy()) {
                 return false;
             }
         }

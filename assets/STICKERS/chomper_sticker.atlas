@@ -1,0 +1,32 @@
+chomper_sticker.png
+size: 939, 1565
+format: RGBA8888
+filter: Linear, Linear
+repeat: none
+pma: false
+tile000
+  bounds: 0, 0, 313, 313
+tile001
+  bounds: 313, 0, 313, 313
+tile002
+  bounds: 626, 0, 313, 313
+tile003
+  bounds: 0, 313, 313, 313
+tile005
+  bounds: 313, 313, 313, 313
+tile006
+  bounds: 626, 313, 313, 313
+tile007
+  bounds: 0, 626, 313, 313
+tile010
+  bounds: 313, 626, 313, 313
+tile013
+  bounds: 626, 626, 313, 313
+tile015
+  bounds: 0, 939, 313, 313
+tile016
+  bounds: 313, 939, 313, 313
+tile017
+  bounds: 626, 939, 313, 313
+tile018
+  bounds: 0, 1252, 313, 313

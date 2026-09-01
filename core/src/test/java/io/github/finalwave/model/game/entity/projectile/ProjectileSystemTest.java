@@ -93,9 +93,18 @@ class ProjectileSystemTest {
         List<Zombie> zombies = List.of(
                 new Zombie.Builder("z").maxHealth(100).position(5, 3).build());
 
-        system.tick(board, zombies, z -> {});
-
-        assertEquals(3, system.getProjectiles().getFirst().getRow());
+        int row = plant.getRow();
+        for (int i = 0; i < 40; i++) {
+            system.tick(board, zombies, z -> {});
+            if (system.getProjectiles().isEmpty()) {
+                break;
+            }
+            row = system.getProjectiles().getFirst().getRow();
+            if (row == 3) {
+                break;
+            }
+        }
+        assertEquals(3, row);
     }
 
     @Test
@@ -270,8 +279,47 @@ class ProjectileSystemTest {
 
         system.tick(board, List.of(zombie), z -> {});
 
-        assertTrue(zombie.getFreezeTicksRemaining() > 0);
+        assertTrue(zombie.isButtered());
+        assertEquals(80, zombie.getButterTicksRemaining());
+        assertEquals(80, zombie.getFreezeTicksRemaining());
         assertEquals(0.0, zombie.getCurrentSpeed(), 0.0001);
+    }
+
+    @Test
+    void kernelShotUsesBaseButterChance() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Kernel-pult"), 1, 2);
+        ProjectileSystem butterAlways = new ProjectileSystem(new java.util.Random() {
+            @Override
+            public double nextDouble() {
+                return 0.0;
+            }
+        });
+        butterAlways.spawnFromPlant(plant, 20, 1, ProjectileProfile.arcing(), ProjectileEffect.KERNEL);
+        assertEquals(ProjectileEffect.BUTTER, butterAlways.getProjectiles().getFirst().getEffect());
+
+        ProjectileSystem butterNever = new ProjectileSystem(new java.util.Random() {
+            @Override
+            public double nextDouble() {
+                return 0.99;
+            }
+        });
+        butterNever.spawnFromPlant(plant, 20, 1, ProjectileProfile.arcing(), ProjectileEffect.KERNEL);
+        assertEquals(ProjectileEffect.KERNEL, butterNever.getProjectiles().getFirst().getEffect());
+    }
+
+    @Test
+    void kernelPlantFoodSpawnsButterStormAtEachZombie() {
+        Plant plant = plantFactory.createBaseLevel(
+                registry.getDefinition("Kernel-pult"), 1, 2);
+        Zombie a = new Zombie.Builder("a").maxHealth(200).position(5, 1).build();
+        Zombie b = new Zombie.Builder("b").maxHealth(200).position(6, 3).build();
+        system.spawnKernelPlantFood(plant, 200, List.of(a, b));
+        List<Projectile> shots = system.getProjectiles();
+        assertEquals(2, shots.size());
+        assertTrue(shots.stream().allMatch(p -> p.getEffect() == ProjectileEffect.BUTTER));
+        assertTrue(shots.stream().anyMatch(p -> p.getRow() == 1 && Math.abs(p.getLandX() - 5) < 0.001));
+        assertTrue(shots.stream().anyMatch(p -> p.getRow() == 3 && Math.abs(p.getLandX() - 6) < 0.001));
     }
 
     @Test

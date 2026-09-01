@@ -11,6 +11,15 @@ public final class MessageTypes {
     public static final String LOGIN_FAIL = "LOGIN_FAIL";
     public static final String LOGOUT = "LOGOUT";
     public static final String LOGOUT_OK = "LOGOUT_OK";
+    public static final String RESET_PASSWORD = "RESET_PASSWORD";
+    public static final String RESET_PASSWORD_OK = "RESET_PASSWORD_OK";
+    public static final String RESET_PASSWORD_FAIL = "RESET_PASSWORD_FAIL";
+    public static final String SECURITY_QUESTION_LOOKUP = "SECURITY_QUESTION_LOOKUP";
+    public static final String SECURITY_QUESTION_LOOKUP_OK = "SECURITY_QUESTION_LOOKUP_OK";
+    public static final String SECURITY_QUESTION_LOOKUP_FAIL = "SECURITY_QUESTION_LOOKUP_FAIL";
+    public static final String CHANGE_PASSWORD = "CHANGE_PASSWORD";
+    public static final String CHANGE_PASSWORD_OK = "CHANGE_PASSWORD_OK";
+    public static final String CHANGE_PASSWORD_FAIL = "CHANGE_PASSWORD_FAIL";
 
     public static final String UPDATE_WALLET = "UPDATE_WALLET";
     public static final String UPDATE_WALLET_OK = "UPDATE_WALLET_OK";

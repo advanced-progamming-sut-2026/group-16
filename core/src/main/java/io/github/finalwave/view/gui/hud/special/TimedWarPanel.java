@@ -128,6 +128,9 @@ public final class TimedWarPanel extends Table {
                 value.setText("Fail");
                 status.setDrawable(failed);
                 status.setVisible(true);
+            } else if (mode == TimedWarMode.SUN) {
+                value.setText(remaining + " Sun");
+                status.setVisible(false);
             } else {
                 value.setText(remaining + " Left");
                 status.setVisible(false);

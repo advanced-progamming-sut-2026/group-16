@@ -11,6 +11,7 @@ import io.github.finalwave.model.save.MatchSaveSnapshot;
 import io.github.finalwave.model.user.Gender;
 import io.github.finalwave.model.user.GreenhousePot;
 import io.github.finalwave.model.user.User;
+import io.github.finalwave.model.user.UserProgressInitializer;
 import io.github.finalwave.network.auth.LoginOkPayload;
 
 import java.time.LocalDate;
@@ -77,6 +78,7 @@ public final class ProfileApplier {
                 user.getGreenhousePots().add(pot);
             }
         }
+        UserProgressInitializer.ensureGreenhousePots(user);
 
         user.getUnlockedZombies().clear();
         if (payload.getUnlockedZombies() != null) {

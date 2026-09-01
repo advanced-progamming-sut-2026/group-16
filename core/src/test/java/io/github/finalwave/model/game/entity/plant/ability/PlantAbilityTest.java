@@ -9,6 +9,7 @@ import io.github.finalwave.model.game.board.tile.LowBeachTile;
 import io.github.finalwave.model.game.board.tile.NormalTile;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
+import io.github.finalwave.model.game.entity.plant.food.CitronPlantFoodEffect;
 import io.github.finalwave.model.game.entity.plant.food.CabbagePultPlantFood;
 import io.github.finalwave.model.game.entity.plant.food.FumeShroomPlantFood;
 import io.github.finalwave.model.game.entity.plant.food.KernelPultPlantFood;
@@ -151,6 +152,26 @@ class PlantAbilityTest {
             session.tick();
         }
         assertTrue(session.getProjectileSystem().getProjectiles().isEmpty());
+    }
+
+    @Test
+    void peashooterShootsGraveAheadWithNoZombie() {
+        session.getBoard().setTile(5, 2, new io.github.finalwave.model.game.board.tile.GraveTile());
+        session.tryPlant("Peashooter", 1, 2, 1);
+        for (int i = 0; i < 18; i++) {
+            session.tick();
+        }
+        assertTrue(session.getProjectileSystem().getProjectiles().isEmpty());
+        session.tick();
+        assertFalse(session.getProjectileSystem().getProjectiles().isEmpty());
+        int graveHp = ((io.github.finalwave.model.game.board.tile.GraveTile)
+                session.getBoard().getTile(5, 2)).getHealth();
+        for (int i = 0; i < 80; i++) {
+            session.tick();
+        }
+        assertTrue(((io.github.finalwave.model.game.board.tile.GraveTile)
+                session.getBoard().getTile(5, 2)).getHealth() < graveHp
+                || !session.getBoard().getTile(5, 2).isGrave());
     }
 
     @Test
@@ -505,12 +526,16 @@ class PlantAbilityTest {
         placeMovingZombie(7, 2);
         session.setPlantFoodCount(5);
         assertTrue(session.usePlantFood(1, 2));
-        for (int i = 0; i < 14; i++) {
+        for (int i = 0; i < CitronPlantFoodEffect.FIRE_TICK; i++) {
             session.tick();
         }
         assertTrue(session.getProjectileSystem().getProjectiles().stream().anyMatch(projectile ->
                 projectile.getEffect()
                         == io.github.finalwave.model.game.entity.projectile.ProjectileEffect.PLASMA_PF));
+        assertEquals(1, session.getProjectileSystem().getProjectiles().stream()
+                .filter(projectile -> projectile.getEffect()
+                        == io.github.finalwave.model.game.entity.projectile.ProjectileEffect.PLASMA_PF)
+                .count());
     }
 
     @Test
@@ -552,14 +577,32 @@ class PlantAbilityTest {
         session.tryPlant("Citron", 1, 2, 1);
         Plant citron = session.getBoard().getPlantAt(1, 2);
         citron.setChargeTicksRemaining(0);
+        citron.primeActionCooldown();
         placeMovingZombie(6, 2);
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 80; i++) {
             session.tick();
             if (citron.getRecoveryTicksRemaining() > 0) {
                 break;
             }
         }
         assertTrue(citron.getRecoveryTicksRemaining() > 0);
+    }
+
+    @Test
+    void citronWaitsChargedWithoutTargetThenFires() {
+        session.tryPlant("Citron", 1, 2, 1);
+        Plant citron = session.getBoard().getPlantAt(1, 2);
+        int guard = 0;
+        while (citron.getChargeTicksRemaining() > 0 && guard++ < 500) {
+            session.tick();
+        }
+        assertEquals(0, citron.getChargeTicksRemaining());
+        assertTrue(session.getProjectileSystem().getProjectiles().isEmpty());
+        placeMovingZombie(6, 2);
+        for (int i = 0; i < CitronAbility.FIRE_AT_TICK + 2; i++) {
+            session.tick();
+        }
+        assertFalse(session.getProjectileSystem().getProjectiles().isEmpty());
     }
 
     @Test
@@ -1243,7 +1286,8 @@ class PlantAbilityTest {
         session.tick();
         assertEquals(1, session.getProjectileSystem().getProjectiles().size());
         Projectile first = session.getProjectileSystem().getProjectiles().getFirst();
-        assertEquals(ProjectileEffect.KERNEL, first.getEffect());
+        assertTrue(first.getEffect() == ProjectileEffect.KERNEL
+                || first.getEffect() == ProjectileEffect.BUTTER);
         assertEquals(ProjectileProfile.Trajectory.ARCING, first.getProfile().trajectory());
         assertEquals(kernel.getRow(), first.getRow());
         assertEquals(KernelMuzzles.y(), first.getLaneYOffset(), 0.0001);
@@ -1251,11 +1295,12 @@ class PlantAbilityTest {
     }
 
     @Test
-    void kernelPlantFoodFiresOneArcingKernelAfterWindup() {
+    void kernelPlantFoodFiresButterStormAfterWindup() {
         assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Kernel-pult", 1, 2, 1));
         Plant kernel = session.getBoard().getPlantAt(1, 2);
         assertNotNull(kernel);
         placeMovingZombie(6, 2);
+        placeMovingZombie(5, 3);
         session.setPlantFoodCount(1);
         assertTrue(session.usePlantFood(1, 2));
         assertTrue(kernel.isPlantFooding());
@@ -1266,20 +1311,19 @@ class PlantAbilityTest {
             assertEquals(0, session.getProjectileSystem().getProjectiles().size());
         }
         session.tick();
-        assertEquals(1, session.getProjectileSystem().getProjectiles().size());
-        Projectile first = session.getProjectileSystem().getProjectiles().getFirst();
-        assertFalse(first.isCabbagePlantFood());
-        assertFalse(first.isGiantPea());
-        assertEquals(ProjectileEffect.KERNEL, first.getEffect());
-        assertEquals(ProjectileProfile.Trajectory.ARCING, first.getProfile().trajectory());
-        assertEquals(200, first.getDamage());
-        assertEquals(kernel.getRow(), first.getRow());
-        assertEquals(KernelMuzzles.plantFoodY(), first.getLaneYOffset(), 0.0001);
-        assertEquals(kernel.getCol() + 0.5 + KernelMuzzles.plantFoodX() + 0.25, first.getX(), 0.0001);
+        assertEquals(2, session.getProjectileSystem().getProjectiles().size());
+        for (Projectile shot : session.getProjectileSystem().getProjectiles()) {
+            assertFalse(shot.isCabbagePlantFood());
+            assertFalse(shot.isGiantPea());
+            assertEquals(ProjectileEffect.BUTTER, shot.getEffect());
+            assertEquals(ProjectileProfile.Trajectory.ARCING, shot.getProfile().trajectory());
+            assertEquals(200, shot.getDamage());
+            assertEquals(KernelMuzzles.plantFoodY(), shot.getLaneYOffset(), 0.0001);
+        }
     }
 
     @Test
-    void kernelPlantFoodFiresWithoutLaneTarget() {
+    void kernelPlantFoodFiresNoButterWithoutTargets() {
         assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Kernel-pult", 1, 2, 1));
         Plant kernel = session.getBoard().getPlantAt(1, 2);
         assertNotNull(kernel);
@@ -1291,14 +1335,7 @@ class PlantAbilityTest {
             assertEquals(0, session.getProjectileSystem().getProjectiles().size());
         }
         session.tick();
-        assertEquals(1, session.getProjectileSystem().getProjectiles().size());
-        Projectile first = session.getProjectileSystem().getProjectiles().getFirst();
-        assertEquals(ProjectileEffect.KERNEL, first.getEffect());
-        assertEquals(ProjectileProfile.Trajectory.ARCING, first.getProfile().trajectory());
-        for (int i = 0; i < 20; i++) {
-            session.tick();
-        }
-        assertTrue(session.getProjectileSystem().getProjectiles().isEmpty());
+        assertEquals(0, session.getProjectileSystem().getProjectiles().size());
     }
 
     @Test

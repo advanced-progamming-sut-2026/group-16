@@ -408,7 +408,7 @@ final class GameSessionCombat {
     private int livingZombieCount() {
         int count = 0;
         for (Zombie zombie : session.zombieList()) {
-            if (zombie.isAlive()) {
+            if (zombie.countsAsEnemy()) {
                 count++;
             }
         }

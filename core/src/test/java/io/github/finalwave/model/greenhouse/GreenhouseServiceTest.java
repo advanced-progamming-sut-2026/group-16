@@ -145,6 +145,19 @@ class GreenhouseServiceTest {
         assertEquals("already_unlocked", service.unlockNextLockedFree(user).status());
     }
 
+    @Test
+    void plantWorksWhenGreenhousePotsWereNeverSeeded() {
+        User user = new User("missing-pots", "hash", "nick", "m@example.com", Gender.MALE);
+        assertTrue(user.getGreenhousePots().isEmpty());
+        GreenhouseService service = new GreenhouseService(plantRegistry, new FixedRandom(true, 0));
+
+        GreenhouseService.PlantingResult result = service.plant(user, 1, 1);
+
+        assertEquals("success", result.status());
+        assertEquals(12, user.getGreenhousePots().size());
+        assertFalse(user.getPotAt(1, 1).isEmpty());
+    }
+
     private User createUser() {
         User user = new User("greenhouse-user", "hash", "nick", "g@example.com", Gender.MALE);
         UserProgressInitializer.initializeUserProgress(user);

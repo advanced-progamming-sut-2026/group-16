@@ -101,6 +101,9 @@ public final class ZombieVisualState {
 
     public static Color tint(Zombie zombie, GameSession session) {
         if (zombie.isBoss()) {
+            if (zombie.isButtered()) {
+                return BUTTER;
+            }
             if (zombie.getFreezeTicksRemaining() > 0) {
                 return CHILL;
             }
@@ -108,6 +111,9 @@ public final class ZombieVisualState {
         }
         if (zombie.isHypnotized()) {
             return HYPNOTIZED;
+        }
+        if (zombie.isButtered()) {
+            return BUTTER;
         }
         if (zombie.getFreezeTicksRemaining() > 0) {
             return CHILL;
@@ -181,6 +187,23 @@ public final class ZombieVisualState {
         return vis;
     }
 
+    public static Map<String, Boolean> butterVisibility(Zombie zombie, PamPlayer player, String pamPath) {
+        if (zombie == null || player == null || pamPath == null || !zombie.isButtered()) {
+            return null;
+        }
+        Map<String, Boolean> vis = null;
+        for (String part : ArmorPartVisibility.partNames(player, pamPath)) {
+            if (!part.equals("butter") && !part.startsWith("butter_")) {
+                continue;
+            }
+            if (vis == null) {
+                vis = new HashMap<>();
+            }
+            vis.put(part, Boolean.TRUE);
+        }
+        return vis;
+    }
+
     public static Map<String, Boolean> partVisibility(
             Zombie zombie, ZombieClips clips, PamPlayer player, String pamPath) {
         Map<String, Boolean> vis = armorVisibility(zombie, clips);
@@ -190,6 +213,14 @@ public final class ZombieVisualState {
                 vis = new HashMap<>(ink);
             } else {
                 vis.putAll(ink);
+            }
+        }
+        Map<String, Boolean> butter = butterVisibility(zombie, player, pamPath);
+        if (butter != null) {
+            if (vis == null) {
+                vis = new HashMap<>(butter);
+            } else {
+                vis.putAll(butter);
             }
         }
         return vis;

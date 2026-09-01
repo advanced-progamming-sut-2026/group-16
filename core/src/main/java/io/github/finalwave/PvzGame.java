@@ -8,6 +8,7 @@ import io.github.finalwave.model.App;
 import io.github.finalwave.network.NetworkManager;
 import io.github.finalwave.network.NetworkPingProbe;
 import io.github.finalwave.login.NetworkLoginGateway;
+import io.github.finalwave.login.NetworkPasswordChangeGateway;
 import io.github.finalwave.leaderboard.NetworkLeaderboardGateway;
 import io.github.finalwave.score.NetworkScoreSubmitGateway;
 import io.github.finalwave.network.sync.ProgressSyncService;
@@ -67,6 +68,7 @@ public final class PvzGame extends Game {
         networkManager.addConnectionListener(progressSyncService);
         new NetworkPingProbe(networkManager).start(NETWORK_HOST, NETWORK_PORT);
         NetworkLoginGateway loginGateway = new NetworkLoginGateway(networkManager, progressSyncService);
+        new NetworkPasswordChangeGateway(networkManager);
         NetworkLeaderboardGateway leaderboardGateway = new NetworkLeaderboardGateway(networkManager, progressSyncService);
         NetworkScoreSubmitGateway scoreSubmitGateway = new NetworkScoreSubmitGateway(networkManager, progressSyncService);
         bootstrap = new AppBootstrap(

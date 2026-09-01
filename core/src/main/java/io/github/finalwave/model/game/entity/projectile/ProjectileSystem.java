@@ -29,9 +29,17 @@ public final class ProjectileSystem {
     private final List<Projectile> projectiles = new java.util.ArrayList<>();
     private final List<Projectile> pendingProjectiles = new java.util.ArrayList<>();
     private final List<FumeHitMark> fumeHits = new java.util.ArrayList<>();
-    private final Random random = new Random();
+    private final Random random;
     private boolean ticking;
     private long nextFumeHitId = 1;
+
+    public ProjectileSystem() {
+        this(new Random());
+    }
+
+    public ProjectileSystem(Random random) {
+        this.random = random == null ? new Random() : random;
+    }
 
     public List<Projectile> getProjectiles() {
         return List.copyOf(projectiles);
@@ -191,16 +199,34 @@ public final class ProjectileSystem {
     }
 
     public void spawnKernelPlantFood(Plant plant, int damage) {
-        double startX = plant.getCol() + 0.5 + KernelMuzzles.plantFoodX();
-        spawn(new Projectile(
-                plant.getRow(),
-                startX,
-                damage,
-                ProjectileProfile.arcing(),
-                ProjectileEffect.KERNEL,
-                plant,
-                0,
-                KernelMuzzles.plantFoodY()));
+        spawnKernelPlantFood(plant, damage, List.of());
+    }
+
+    public void spawnKernelPlantFood(Plant plant, int damage, List<Zombie> zombies) {
+        if (plant == null || zombies == null || zombies.isEmpty()) {
+            return;
+        }
+        for (Zombie zombie : zombies) {
+            if (zombie == null || zombie.isDead() || zombie.isHypnotized()) {
+                continue;
+            }
+            double landX = zombie.getX();
+            double startX = plant.getCol() + 0.5 + KernelMuzzles.plantFoodX();
+            if (startX >= landX) {
+                startX = landX - 0.75;
+            }
+            Projectile butter = new Projectile(
+                    zombie.getRow(),
+                    startX,
+                    damage,
+                    ProjectileProfile.arcing(),
+                    ProjectileEffect.BUTTER,
+                    plant,
+                    0,
+                    KernelMuzzles.plantFoodY());
+            butter.setLandX(landX);
+            spawn(butter);
+        }
     }
 
     public void spawnMelonPlantFood(Plant plant, int damage) {
@@ -538,12 +564,19 @@ public final class ProjectileSystem {
     }
 
     private ProjectileEffect resolveEffect(Plant plant, ProjectileEffect requestedEffect) {
-        double butterChance = plant.getStats()
-                .specialModifier(PlantSpecialModifiers.BUTTER_CHANCE_BUFF);
+        if (requestedEffect == ProjectileEffect.BUTTER) {
+            return ProjectileEffect.BUTTER;
+        }
+        if (requestedEffect != ProjectileEffect.KERNEL) {
+            return requestedEffect;
+        }
+        double butterChance = 0.25
+                + (plant == null ? 0.0 : plant.getStats()
+                .specialModifier(PlantSpecialModifiers.BUTTER_CHANCE_BUFF));
         if (butterChance > 0 && random.nextDouble() < butterChance) {
             return ProjectileEffect.BUTTER;
         }
-        return requestedEffect;
+        return ProjectileEffect.KERNEL;
     }
 
     public void tick(GameBoard board, List<Zombie> zombies, Consumer<Zombie> onZombieKilled) {
@@ -762,12 +795,16 @@ public final class ProjectileSystem {
         var tile = board.getTile(col, row);
         if (tile != null && tile.isGrave()) {
             applyTileDamage(board, context, col, row, projectile, true);
-            projectile.setX(-1);
+            if (projectile.getEffect() != ProjectileEffect.PLASMA_PF) {
+                projectile.setX(-1);
+            }
             return;
         }
         if (tile != null && tile.isIce()) {
             applyTileDamage(board, context, col, row, projectile, false);
-            projectile.setX(-1);
+            if (projectile.getEffect() != ProjectileEffect.PLASMA_PF) {
+                projectile.setX(-1);
+            }
         }
         if (context != null) {
             applyTorchwoodPassThrough(projectile, context);
@@ -1012,13 +1049,22 @@ public final class ProjectileSystem {
             }
             zombie.takeDamage(damage);
         } else if (projectile.getEffect() == ProjectileEffect.BUTTER) {
-            zombie.applyFreeze(20);
+            zombie.applyButter(80);
             zombie.takeDamage(damage);
         } else if (projectile.getEffect() == ProjectileEffect.MAGIC_BEAM) {
             zombie.hypnotize(1.0, 1.0);
         } else if (projectile.getEffect() == ProjectileEffect.PEPPER) {
             zombie.clearColdStatuses();
             zombie.takeDamage(damage);
+        } else if (projectile.getEffect() == ProjectileEffect.PLASMA_PF) {
+            if (stopsCitronPlantFood(zombie)) {
+                zombie.takeDamage(damage);
+                while (projectile.canPierce()) {
+                    projectile.consumePierce();
+                }
+            } else {
+                zombie.takeDirectDamage(Math.max(zombie.getHealth(), 1));
+            }
         } else {
             zombie.takeDamage(damage);
         }
@@ -1072,12 +1118,28 @@ public final class ProjectileSystem {
         ProjectileEffect effect = projectile.getEffect();
         if (effect == ProjectileEffect.MELON
                 || effect == ProjectileEffect.WINTER_MELON
-                || effect == ProjectileEffect.PEPPER
-                || effect == ProjectileEffect.PLASMA) {
+                || effect == ProjectileEffect.PEPPER) {
             return true;
         }
         Plant source = projectile.getSource();
         return source != null && source.hasTag(PlantTag.AOE);
+    }
+
+    private static boolean stopsCitronPlantFood(Zombie zombie) {
+        if (zombie == null) {
+            return false;
+        }
+        if (zombie.isBoss()) {
+            return true;
+        }
+        String type = zombie.getType() == null ? "" : zombie.getType().toLowerCase();
+        return type.contains("gargantuar")
+                || type.contains("robo")
+                || type.contains("mech")
+                || type.contains("zombot")
+                || type.contains("cardio")
+                || type.contains("caesar")
+                || type.contains("caketank");
     }
 
     private static int splashDamage(Projectile projectile) {
@@ -1095,6 +1157,9 @@ public final class ProjectileSystem {
     }
 
     private static boolean passesObstacles(Projectile projectile) {
+        if (projectile.getEffect() == ProjectileEffect.PLASMA_PF) {
+            return false;
+        }
         if (projectile.getProfile() != null) {
             if (projectile.getProfile().trajectory() == ProjectileProfile.Trajectory.ARCING) {
                 return true;

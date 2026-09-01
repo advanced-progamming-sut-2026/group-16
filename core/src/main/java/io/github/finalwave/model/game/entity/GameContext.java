@@ -192,6 +192,9 @@ public interface GameContext {
     default void clearGraveAt(int col, int row) {
     }
 
+    default void queueLawnBurst(io.github.finalwave.model.game.LawnBurst burst) {
+    }
+
     void applyFieldModifier(Plant plant, double magnitude);
 
     void grantArmor(Plant plant, int armorValue);

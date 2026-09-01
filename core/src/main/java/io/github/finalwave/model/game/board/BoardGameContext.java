@@ -319,7 +319,8 @@ public final class BoardGameContext implements GameContext {
     @Override
     public void spawnKernelPlantFood(Plant plant, int damage) {
         int resolvedDamage = applyPlantDamageModifiers(plant, damage);
-        session.getProjectileSystem().spawnKernelPlantFood(plant, resolvedDamage);
+        session.getProjectileSystem().spawnKernelPlantFood(
+                plant, resolvedDamage, session.getZombies());
     }
 
     @Override
@@ -554,6 +555,11 @@ public final class BoardGameContext implements GameContext {
     @Override
     public void clearGraveAt(int col, int row) {
         session.clearGraveAt(col, row);
+    }
+
+    @Override
+    public void queueLawnBurst(LawnBurst burst) {
+        session.queueLawnBurst(burst);
     }
 
     private static boolean inExplosionRange(Plant plant,

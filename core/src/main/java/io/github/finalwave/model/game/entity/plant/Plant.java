@@ -181,6 +181,9 @@ public final class Plant extends Entity {
         lastContext = context;
         initializeCooldown(context.getTicksPerSecond());
         PlantBehaviorSupport.onPlanted(this, context, context.getTicksPerSecond());
+        if (hasTag(PlantTag.CHARGE) && !"Bowling Bulb".equals(getName())) {
+            actionCooldownTicks = 0;
+        }
         if ("Puff-shroom".equals(getName()) || "Sea-shroom".equals(getName())) {
             double lifespanSeconds = 60.0
                     + stats.specialModifier(PlantSpecialModifiers.LIFESPAN_EXT);
@@ -311,8 +314,12 @@ public final class Plant extends Entity {
             if (PlantBehaviorSupport.canAct(this)) {
                 if (ability.tryAction(this, context)) {
                     if (hasTag(PlantTag.CHARGE)) {
-                        chargeTicksRemaining = (int) Math.ceil(
-                                PlantBehaviorSupport.actionIntervalTicks(this, context.getTicksPerSecond()));
+                        if ("Citron".equals(getName())) {
+                            chargeTicksRemaining = 0;
+                        } else {
+                            chargeTicksRemaining = PlantBehaviorSupport.chargeTicks(
+                                    this, context.getTicksPerSecond());
+                        }
                         actionCooldownTicks = 0;
                     } else {
                         double interval = PlantBehaviorSupport.actionIntervalTicks(
@@ -323,8 +330,7 @@ public final class Plant extends Entity {
                     actionCooldownTicks = 0;
                 }
             } else {
-                actionCooldownTicks = PlantBehaviorSupport.actionIntervalTicks(
-                        this, context.getTicksPerSecond());
+                actionCooldownTicks = 0;
             }
         }
     }

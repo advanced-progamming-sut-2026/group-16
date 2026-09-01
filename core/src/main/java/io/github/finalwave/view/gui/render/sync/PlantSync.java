@@ -18,6 +18,7 @@ import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.render.ActorRegistry;
 import io.github.finalwave.view.gui.render.LawnLayout;
+import io.github.finalwave.view.gui.render.clip.IceBlockVisibility;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.widget.HitFlashTracker;
 import io.github.finalwave.view.gui.widget.PamActor;
@@ -29,7 +30,6 @@ import java.util.Map;
 
 
 public final class PlantSync {
-    private static final Color ICE_TINT = new Color(0.55f, 0.9f, 1f, 1f);
     private static final Color DISABLED = new Color(0.62f, 0.62f, 0.62f, 1f);
     private static final Color IMITATER_REVEAL_TINT = new Color(0.55f, 0.55f, 0.55f, 1f);
     private static final Map<String, Boolean> MAGNET_ITEM_HIDDEN = Map.of("Magnet_Item", false);
@@ -43,10 +43,12 @@ public final class PlantSync {
     private final PlantClips clips;
     private final Group layer;
     private final ActorRegistry<Plant, PamActor> plants = new ActorRegistry<>();
+    private final ActorRegistry<Plant, PamActor> chillOverlays = new ActorRegistry<>();
     private final ActorRegistry<Plant, PamActor> iceBlocks = new ActorRegistry<>();
     private final ActorRegistry<PlantCovering, PamActor> octopi = new ActorRegistry<>();
     private final ActorRegistry<Plant, PamActor> sheep = new ActorRegistry<>();
     private final HitFlashTracker<Plant> plantHits = new HitFlashTracker<>();
+    private final HitFlashTracker<Plant> chillHits = new HitFlashTracker<>();
     private final HitFlashTracker<Plant> iceHits = new HitFlashTracker<>();
     private final HitFlashTracker<PlantCovering> octopusHits = new HitFlashTracker<>();
     private final PlantShotTracker shots = new PlantShotTracker();
@@ -87,6 +89,7 @@ public final class PlantSync {
         float fraction = Math.max(0f, Math.min(1f, tickFraction));
         GameBoard board = session.getBoard();
         List<Plant> live = new ArrayList<>();
+        List<Plant> chilled = new ArrayList<>();
         List<Plant> frozen = new ArrayList<>();
         for (Plant plant : board.getAllPlants()) {
             if (plant == null || !plant.isAlive()) {
@@ -96,7 +99,10 @@ public final class PlantSync {
                 continue;
             }
             live.add(plant);
-            if (freezeLevel(plant, session) >= 2) {
+            int freeze = freezeLevel(plant, session);
+            if (freeze == 1 || freeze == 2) {
+                chilled.add(plant);
+            } else if (freeze >= 3) {
                 frozen.add(plant);
             }
         }
@@ -109,10 +115,13 @@ public final class PlantSync {
         plants.sync(live, this::spawnPlant,
                 (plant, actor) -> updatePlant(plant, actor, board, session, fraction),
                 PamActor::remove);
+        chillOverlays.sync(chilled, this::spawnChill,
+                (plant, actor) -> updateChill(plant, actor, session), PamActor::remove);
         iceBlocks.sync(frozen, this::spawnIce, (plant, actor) -> updateIce(plant, actor, session), PamActor::remove);
         octopi.sync(octopusCoverings, this::spawnOctopus, this::updateOctopus, PamActor::remove);
         sheep.sync(sheeped, this::spawnSheep, this::updateSheep, PamActor::remove);
         plantHits.retain(live);
+        chillHits.retain(chilled);
         iceHits.retain(frozen);
         octopusHits.retain(octopusCoverings);
         shots.retain(live, projectiles);
@@ -145,10 +154,12 @@ public final class PlantSync {
 
     public void clear() {
         plants.clear(PamActor::remove);
+        chillOverlays.clear(PamActor::remove);
         iceBlocks.clear(PamActor::remove);
         octopi.clear(PamActor::remove);
         sheep.clear(PamActor::remove);
         plantHits.clear();
+        chillHits.clear();
         iceHits.clear();
         octopusHits.clear();
         shots.clear();
@@ -196,10 +207,31 @@ public final class PlantSync {
         PamActor actor = assets.pamActor();
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
+        actor.getColor().a = PlantClips.ICE_OVERLAY_ALPHA;
         actor.playThen(PlantClips.ICE_BLOCK_PATH, PlantClips.ICE_BLOCK_START_CLIP,
                 LawnLayout.ICE_BLOCK_SCALE, PlantClips.ICE_BLOCK_CLIP, true, null);
         layer.addActor(actor);
         return actor;
+    }
+
+    private PamActor spawnChill(Plant plant) {
+        PamActor actor = assets.pamActor();
+        actor.setTouchable(Touchable.disabled);
+        actor.setAnchor(0.5f, LawnLayout.PLANT_ANCHOR_Y);
+        actor.setClip(PlantClips.CHILL_PLANT_PATH, PlantClips.CHILL_STAGE_1, LawnLayout.PLANT_SCALE, true);
+        layer.addActor(actor);
+        return actor;
+    }
+
+    private void updateChill(Plant plant, PamActor actor, GameSession session) {
+        Vector2 center = layout.cellCenter(plant.getCol(), plant.getRow());
+        actor.setSize(layout.tileWidth(), layout.tileHeight());
+        actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
+        int level = freezeLevel(plant, session);
+        String clip = level >= 2 ? PlantClips.CHILL_STAGE_2 : PlantClips.CHILL_STAGE_1;
+        actor.setClip(PlantClips.CHILL_PLANT_PATH, clip, LawnLayout.PLANT_SCALE, true);
+        actor.setUserObject(sortKey(plant, null, 2));
+        chillHits.observe(plant, plant.getHealth(), actor);
     }
 
     private void updatePlant(Plant plant, PamActor actor, GameBoard board, GameSession session, float tickFraction) {
@@ -385,7 +417,12 @@ public final class PlantSync {
             boolean playingOneShot = !leftoverPlantFood
                     && (PlantVisualState.isOneShotClip(actor.clipName())
                     || PlantVisualState.isActionClip(actor.clipName()));
-            if ((PlantVisualState.isOneShot(plant, spec) || PlantVisualState.isAction(spec)) && !playingOneShot) {
+            boolean interruptForCitronAttack = "Citron".equals(plant.getName())
+                    && plant.isAttacking()
+                    && !"attack".equals(actor.clipName());
+            if (interruptForCitronAttack
+                    || ((PlantVisualState.isOneShot(plant, spec) || PlantVisualState.isAction(spec))
+                    && !playingOneShot)) {
                 String followUp = followUpClip(plant, spec, idle, zombies);
                 actor.playThen(spec.path(), spec.clip(), scale, followUp, true, null);
             } else if (!playingOneShot) {
@@ -397,14 +434,11 @@ public final class PlantSync {
 
     private void finishPlantActor(Plant plant, PamActor actor, GameBoard board, GameSession session) {
         actor.setUserObject(sortKey(plant, board, 0));
-        int freeze = freezeLevel(plant, session);
         boolean covered = isOctopusCovered(plant, session);
         actor.setVisible(!plant.isCatTransformed() && !covered);
         applyMagnetVisibility(plant, actor);
         if (plant.isDisabled() || plant.isCatTransformed()) {
             actor.setTint(DISABLED);
-        } else if (freeze == 1) {
-            actor.setTint(ICE_TINT);
         } else if (plant.isImitaterCopy()) {
             actor.setTint(IMITATER_REVEAL_TINT);
         } else {
@@ -477,11 +511,13 @@ public final class PlantSync {
         Vector2 center = layout.cellCenter(plant.getCol(), plant.getRow());
         actor.setSize(layout.tileWidth(), layout.tileHeight());
         actor.setPosition(center.x - actor.getWidth() / 2f, center.y - actor.getHeight() / 2f);
+        actor.getColor().a = PlantClips.ICE_OVERLAY_ALPHA;
         if (actor.hasFollowUp()) {
             actor.setDrawScale(LawnLayout.ICE_BLOCK_SCALE);
         } else {
             actor.setClip(PlantClips.ICE_BLOCK_PATH, PlantClips.ICE_BLOCK_CLIP, LawnLayout.ICE_BLOCK_SCALE, true);
         }
+        actor.setVisibility(IceBlockVisibility.fromPlantIceHealth(iceHealth(plant, session)));
         actor.setUserObject(sortKey(plant, null, 2));
         iceHits.observe(plant, iceHealth(plant, session), actor);
     }
@@ -654,10 +690,14 @@ public final class PlantSync {
                     && covering.isAlive()
                     && covering.getCoveredPlant() == plant
                     && covering.getType() == PlantCovering.Type.HUNTER_ICE) {
-                return 2;
+                return 3;
             }
         }
-        if (plant.getHostileIceStacks(null) >= 1) {
+        int stacks = plant.getHostileIceStacks(null);
+        if (stacks >= 2) {
+            return 2;
+        }
+        if (stacks >= 1) {
             return 1;
         }
         return 0;
@@ -728,7 +768,6 @@ public final class PlantSync {
 
     private static void applyMagnetVisibility(Plant plant, PamActor actor) {
         if (!"Magnet-shroom".equals(plant.getName())) {
-            actor.setVisibility(null);
             return;
         }
         actor.setVisibility(MAGNET_ITEM_HIDDEN);

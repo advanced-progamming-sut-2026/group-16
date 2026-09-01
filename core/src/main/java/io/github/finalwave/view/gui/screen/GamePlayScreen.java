@@ -1699,6 +1699,9 @@ public final class GamePlayScreen extends MenuScreen {
         preload(ExplosionLooks.CHERRY_PATH);
         preload(ExplosionLooks.CHERRY_REAR_PATH);
         preload(ExplosionLooks.MINE_PATH);
+        preload(ExplosionLooks.CITRON_PF_LIGHTNING_PATH);
+        preload(ExplosionLooks.CITRON_PF_SHOCK_PATH);
+        preload(ExplosionLooks.CITRON_PF_HIT_PATH);
         assets.region(ExplosionLooks.SCORCH_IMAGE);
         if (session.isConveyorBeltActive()) {
             assets.region(LawnAssetIds.CONVEYOR_BELT);

@@ -67,7 +67,8 @@ public final class RegisterService {
                 user.getGender().name(),
                 user.getCoins(),
                 user.getDiamonds(),
-                user.getPlantFood()
+                user.getPlantFood(),
+                user.getSecurityQuestionId()
         );
     }
 

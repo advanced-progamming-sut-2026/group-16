@@ -106,6 +106,11 @@ public class AuthViewCli extends CliView implements AuthView {
     }
 
     @Override
+    public void promptPasswordResetSecurityAnswer() {
+        displayMessage("Please enter your security answer.");
+    }
+
+    @Override
     public void promptPasswordConfirm() {
         displayMessage("Please confirm your new password.");
     }

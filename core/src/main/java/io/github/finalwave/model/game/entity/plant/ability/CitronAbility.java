@@ -4,13 +4,18 @@ import io.github.finalwave.model.game.entity.GameContext;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.projectile.ProjectileProfile;
 
+
 public final class CitronAbility implements PlantAbility {
 
-    public static final int MUZZLE_TICKS = 4;
+    public static final int ATTACK_TICKS = 13;
+    public static final int FIRE_AT_TICK = 7;
+    public static final int MUZZLE_TICKS = FIRE_AT_TICK;
     public static final int RECOVERY_TICKS = 14;
+    public static final double FIRE_PHASE_SECONDS = 2.5;
 
     private final ProjectileProfile profile;
-    private int windupRemaining;
+    private int attackTicksRemaining;
+    private boolean firedThisAttack;
 
     public CitronAbility(ProjectileProfile profile) {
         this.profile = profile;
@@ -22,11 +27,16 @@ public final class CitronAbility implements PlantAbility {
 
     @Override
     public boolean tryAction(Plant plant, GameContext context) {
-        if (windupRemaining > 0) {
-            windupRemaining--;
-            if (windupRemaining == 0) {
-                onActionReady(plant, context);
+        if (attackTicksRemaining > 0) {
+            attackTicksRemaining--;
+            int elapsed = ATTACK_TICKS - attackTicksRemaining;
+            if (!firedThisAttack && elapsed >= FIRE_AT_TICK) {
+                context.spawnProjectile(plant, plant.getStats().damage(), 1, profile);
+                firedThisAttack = true;
+            }
+            if (attackTicksRemaining == 0) {
                 plant.setAttacking(false);
+                plant.setRecoveryTicksRemaining(RECOVERY_TICKS);
                 return true;
             }
             return false;
@@ -34,19 +44,23 @@ public final class CitronAbility implements PlantAbility {
         if (!ProjectileAttackAbility.hasAhead(plant, context)) {
             return false;
         }
-        windupRemaining = MUZZLE_TICKS;
+        attackTicksRemaining = ATTACK_TICKS;
+        firedThisAttack = false;
         plant.setAttacking(true);
         return false;
     }
 
     @Override
     public void onActionReady(Plant plant, GameContext context) {
-        context.spawnProjectile(plant, plant.getStats().damage(), 1, profile);
+        if (!firedThisAttack) {
+            context.spawnProjectile(plant, plant.getStats().damage(), 1, profile);
+            firedThisAttack = true;
+        }
         plant.setRecoveryTicksRemaining(RECOVERY_TICKS);
     }
 
     @Override
     public int actionWindupTicks() {
-        return MUZZLE_TICKS;
+        return FIRE_AT_TICK;
     }
 }

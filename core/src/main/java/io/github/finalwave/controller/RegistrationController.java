@@ -6,6 +6,7 @@ import io.github.finalwave.model.user.Gender;
 import io.github.finalwave.model.user.SecurityQuestion;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.model.user.UserProgressInitializer;
 import io.github.finalwave.login.LoginGateway;
 import io.github.finalwave.leaderboard.LeaderboardGateway;
 import io.github.finalwave.score.ScoreSubmitGateway;
@@ -215,6 +216,14 @@ public class RegistrationController extends ViewController {
 
     private void handleRegisterSuccess(RegisterOkPayload payload) {
         User user = userFromPayload(payload);
+        if (pendingSecurityQuestion != null) {
+            user.setSecurityQuestionId(pendingSecurityQuestion.getNumber());
+            if (pendingSecurityAnswer != null && !pendingSecurityAnswer.isBlank()) {
+                user.setSecurityAnswerHash(HashUtil.hashSHA256(pendingSecurityAnswer.trim()));
+            }
+        } else if (payload.getSecurityQuestionNumber() > 0) {
+            user.setSecurityQuestionId(payload.getSecurityQuestionNumber());
+        }
         String passwordHash = pendingPassword != null ? HashUtil.hashSHA256(pendingPassword) : null;
         if (passwordHash != null) {
             LocalProfileCache.sync(db, user, passwordHash);
@@ -247,6 +256,7 @@ public class RegistrationController extends ViewController {
                 gender
         );
         user.setId(payload.getUserId());
+        UserProgressInitializer.initializeUserProgress(user);
         user.setCoins(payload.getCoins());
         user.setDiamonds(payload.getDiamonds());
         user.setPlantFood(payload.getPlantFood());

@@ -1,6 +1,7 @@
 package io.github.finalwave.model.game.entity.plant;
 
 import io.github.finalwave.model.game.entity.GameContext;
+import io.github.finalwave.model.game.entity.plant.ability.CitronAbility;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -16,8 +17,7 @@ public final class PlantBehaviorSupport {
                     Math.max(0.1, plant.getStats().actionInterval()) * ticksPerSecond));
         }
         if (plant.hasTag(PlantTag.CHARGE) && !"Bowling Bulb".equals(plant.getName())) {
-            plant.setChargeTicksRemaining((int) Math.ceil(
-                    Math.max(0.1, plant.getStats().actionInterval()) * ticksPerSecond));
+            plant.setChargeTicksRemaining(chargeTicks(plant, ticksPerSecond));
         }
         if ("Caulipower".equals(plant.getName()) || "Electric Blueberry".equals(plant.getName())) {
             plant.setVisualIdleVariant(1 + ThreadLocalRandom.current().nextInt(4));
@@ -32,10 +32,15 @@ public final class PlantBehaviorSupport {
             }
         }
         if (plant.hasTag(PlantTag.CHARGE) && plant.getChargeTicksRemaining() > 0) {
-            plant.decrementChargeTicks();
+            if (!("Citron".equals(plant.getName()) && plant.getRecoveryTicksRemaining() > 0)) {
+                plant.decrementChargeTicks();
+            }
         }
         if (plant.getRecoveryTicksRemaining() > 0) {
             plant.decrementRecoveryTicks();
+            if (plant.getRecoveryTicksRemaining() <= 0 && "Citron".equals(plant.getName())) {
+                plant.setChargeTicksRemaining(chargeTicks(plant, ticksPerSecond));
+            }
         }
         if (plant.getReloadTicksRemaining() > 0 && plant.isBowlingReloading()) {
             plant.decrementReloadTicks();
@@ -71,5 +76,17 @@ public final class PlantBehaviorSupport {
             interval = interval / Math.max(1, plant.getGrowthStage());
         }
         return Math.max(1, interval * ticksPerSecond);
+    }
+
+    public static int chargeTicks(Plant plant, int ticksPerSecond) {
+        return (int) Math.ceil(Math.max(0.1, chargeSeconds(plant)) * ticksPerSecond);
+    }
+
+    public static double chargeSeconds(Plant plant) {
+        double interval = plant.getStats().actionInterval();
+        if ("Citron".equals(plant.getName())) {
+            return Math.max(0.5, interval - CitronAbility.FIRE_PHASE_SECONDS);
+        }
+        return Math.max(0.1, interval);
     }
 }

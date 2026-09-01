@@ -79,14 +79,6 @@ public class SettingController extends ViewController {
         getSettingView().showSettingsMenu(user.getDifficultyLevel());
     }
 
-    public void checkOnlineUserStatus(String username) {
-        io.github.finalwave.network.match.NetworkMatchServices.userStatus()
-                .check(username)
-                .ifPresentOrElse(
-                        status -> getSettingView().showOnlineStatus(username, status.name()),
-                        () -> getSettingView().showOnlineStatus(username, "UNAVAILABLE"));
-    }
-
     private void handleShowCurrent() {
         getSettingView().showCurrentMenu(user.getDifficultyLevel());
     }

@@ -48,6 +48,12 @@ public final class ServerDatabase {
         }
     }
 
+    public void updatePassword(String username, String passwordHash) {
+        synchronized (lock) {
+            requireDelegate().updatePassword(username, passwordHash);
+        }
+    }
+
     public void saveBestMeowPoint(User user) {
         synchronized (lock) {
             requireDelegate().saveBestMeowPoint(user);

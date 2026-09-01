@@ -72,7 +72,7 @@ public final class WaveProgressMeter extends WidgetGroup {
             return;
         }
         for (Wave wave : waves.getWaves()) {
-            if (!wave.isFlagWave()) {
+            if (wave == null) {
                 continue;
             }
             Image flag = new Image(new TextureRegionDrawable(assets.region(LawnAssetIds.PROGRESS_FLAG)));

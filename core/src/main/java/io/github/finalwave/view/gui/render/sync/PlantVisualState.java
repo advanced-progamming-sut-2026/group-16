@@ -100,6 +100,9 @@ public final class PlantVisualState {
         if (clipName.startsWith("special") || clipName.startsWith("reload")) {
             return true;
         }
+        if ("charge".equals(clipName) || "recovery".equals(clipName)) {
+            return true;
+        }
         if ("attack1".equals(clipName)) {
             return false;
         }
@@ -194,6 +197,15 @@ public final class PlantVisualState {
             return fireNames(plant, hasAhead(plant, zombies), hasBehind(plant, zombies));
         }
         if (plant.hasTag(PlantTag.CHARGE) && plant.getChargeTicksRemaining() > 0) {
+            if ("Citron".equals(plant.getName())) {
+                if (currentClip != null && "charge".equals(currentClip)) {
+                    return new String[]{"charge", "idle"};
+                }
+                if (currentClip != null
+                        && ("idle".equals(currentClip) || "idle2".equals(currentClip))) {
+                    return idleNames(plant);
+                }
+            }
             return new String[]{"charge", "idle"};
         }
         return idleNames(plant);
@@ -399,6 +411,9 @@ public final class PlantVisualState {
         if ("Sea-shroom".equals(name)) {
             return new String[]{"idle", "idle2"};
         }
+        if ("Citron".equals(name)) {
+            return new String[]{"idle", "idle2"};
+        }
         if ("Garlic".equals(name) || "Sweet Potato".equals(name)) {
             return new String[]{WallDamageSupport.idleDamageClip(plant), "idle", "idle2"};
         }
@@ -591,6 +606,8 @@ public final class PlantVisualState {
                 || clipName.startsWith("bite")
                 || clipName.startsWith("special")
                 || "recover".equals(clipName)
+                || "recovery".equals(clipName)
+                || "charge".equals(clipName)
                 || clipName.startsWith("plantfood");
     }
 }

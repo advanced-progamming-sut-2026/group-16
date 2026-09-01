@@ -31,6 +31,9 @@ public final class ConveyBeltHandler implements SpecialLevelHandler {
 
     @Override
     public void onLevelStart(GameSession session) {
+        if (session != null && session.getSkySunSystem() != null) {
+            session.getSkySunSystem().setEnabled(false);
+        }
         if (!availablePlants.isEmpty()) {
             session.activateConveyorBelt();
             dropPlant(session, false);

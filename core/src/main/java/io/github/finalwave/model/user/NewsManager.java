@@ -47,7 +47,21 @@ public final class NewsManager {
     }
 
     public String format(NewsItem item) {
-        return item.getMessage();
+        if (item == null) {
+            return "";
+        }
+        String when = formatTimestamp(item.getCreatedAtMillis());
+        String title = item.getSubject() == null || item.getSubject().isBlank()
+                ? item.getType().name()
+                : item.getSubject();
+        String body = item.getMessage() == null ? "" : item.getMessage();
+        return when + "  " + title + " — " + body;
+    }
+
+    private static String formatTimestamp(long millis) {
+        java.time.Instant instant = java.time.Instant.ofEpochMilli(Math.max(0L, millis));
+        java.time.ZonedDateTime local = instant.atZone(java.time.ZoneId.systemDefault());
+        return java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(local);
     }
 
     public List<String> formatAll(List<NewsItem> items) {

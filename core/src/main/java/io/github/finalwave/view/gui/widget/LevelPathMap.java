@@ -35,8 +35,8 @@ public final class LevelPathMap extends Group {
     private static final float BOSS_ISLAND_H = 360f;
     private static final float BOSS_ISLAND_W = 280f;
     private static final float PLATFORM_FROM_TOP = 0.16f;
-    private static final float[] NODE_X = {380f, 760f, 1140f, 1520f, 1640f};
-    private static final float[] NODE_Y = {560f, 320f, 560f, 320f, 140f};
+    private static final float[] NODE_X = {300f, 620f, 960f, 1300f, 1660f};
+    private static final float[] NODE_Y = {560f, 320f, 560f, 300f, 520f};
 
     public LevelPathMap(GameAssets assets,
                         Skin skin,

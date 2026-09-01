@@ -21,7 +21,10 @@ public record LawnBurst(Kind kind, int col, int row, int span, float originX, fl
         BURN,
         BONE_HIT,
         LASER,
-        ICE
+        ICE,
+        CITRON_PF_LIGHTNING,
+        CITRON_PF_SHOCK,
+        CITRON_PF_HIT
     }
 
     public static Kind kindForPlant(String plantName) {

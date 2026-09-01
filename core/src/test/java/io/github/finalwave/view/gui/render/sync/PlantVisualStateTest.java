@@ -3,6 +3,7 @@ package io.github.finalwave.view.gui.render.sync;
 import io.github.finalwave.model.definition.PlantRegistry;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.entity.plant.Plant;
+import io.github.finalwave.model.game.entity.plant.ability.CitronAbility;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieState;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
@@ -59,8 +61,20 @@ class PlantVisualStateTest {
         session.tryPlant("Citron", 1, 3, 1);
         Plant plant = session.getBoard().getPlantAt(1, 3);
         assertTrue(plant.getChargeTicksRemaining() > 0);
-        String[] clips = PlantVisualState.preferredClips(plant, false, false, "idle");
-        assertTrue(clips[0].equals("charge") || clips[0].equals("idle"));
+        String[] clips = PlantVisualState.preferredClips(plant, false, false, null);
+        assertEquals("charge", clips[0]);
+        String[] afterChargeClip = PlantVisualState.preferredClips(plant, false, false, "idle");
+        assertEquals("idle", afterChargeClip[0]);
+    }
+
+    @Test
+    void citronChargeDurationMatchesWikiFirePhase() {
+        session.tryPlant("Citron", 1, 3, 1);
+        Plant plant = session.getBoard().getPlantAt(1, 3);
+        int expected = (int) Math.ceil(
+                (plant.getStats().actionInterval() - CitronAbility.FIRE_PHASE_SECONDS)
+                        * session.getContext().getTicksPerSecond());
+        assertEquals(expected, plant.getChargeTicksRemaining());
     }
 
     @Test

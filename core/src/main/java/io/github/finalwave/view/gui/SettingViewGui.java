@@ -29,11 +29,6 @@ public final class SettingViewGui extends GuiViewBase implements SettingView {
     }
 
     @Override
-    public void showOnlineStatus(String username, String status) {
-        toast(username + ": " + status);
-    }
-
-    @Override
     public void errorInvalidCommand() {
         toastError("Invalid settings command.");
     }

@@ -4,6 +4,7 @@ import io.github.finalwave.model.game.entity.GameContext;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.projectile.ProjectileEffect;
 
+
 public final class LaneClearPlantFoodEffect implements PlantFoodEffect {
 
     private final int damage;

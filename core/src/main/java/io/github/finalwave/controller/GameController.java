@@ -54,6 +54,9 @@ public class GameController extends ViewController {
     }
 
     public void openZombieSandbox() {
+        if (user == null || !user.isDebugMode()) {
+            return;
+        }
         GamePlayController gameplay = SandboxMatch.create(user, userDatabase);
         navigator.push(gameplay);
         gameplay.session().start();

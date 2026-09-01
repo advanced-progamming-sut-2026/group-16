@@ -1,5 +1,6 @@
 package io.github.finalwave.model.game.entity.plant.ability;
 
+import io.github.finalwave.model.game.board.tile.Tile;
 import io.github.finalwave.model.game.entity.GameContext;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.plant.PlantCategory;
@@ -288,7 +289,7 @@ public final class ProjectileAttackAbility implements PlantAbility {
                 return true;
             }
         }
-        return false;
+        return hasDamageableTileAhead(plant, context, row);
     }
 
     public static boolean hasAhead(Plant plant, GameContext context) {
@@ -298,7 +299,35 @@ public final class ProjectileAttackAbility implements PlantAbility {
                 return true;
             }
         }
+        return hasDamageableTileAhead(plant, context, plant.getRow());
+    }
+
+    private static boolean hasDamageableTileAhead(Plant plant, GameContext context, int row) {
+        int plantCol = plant.getCol();
+        if (plant.isFumeShroom()) {
+            double origin = plantCol + 0.5;
+            double range = FumeMuzzles.RANGE_TILES
+                    + plant.getStats().specialModifier(PlantSpecialModifiers.TILE_RANGE_EXT);
+            for (int col = plantCol; col < context.getColCount(); col++) {
+                if (!isDamageableObstacleTile(context.getTileAt(col, row))) {
+                    continue;
+                }
+                if (FumeMuzzles.inRangeFromCenter(origin, col + 0.5, range)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        for (int col = plantCol + 1; col < context.getColCount(); col++) {
+            if (isDamageableObstacleTile(context.getTileAt(col, row))) {
+                return true;
+            }
+        }
         return false;
+    }
+
+    private static boolean isDamageableObstacleTile(Tile tile) {
+        return tile != null && (tile.isGrave() || tile.isIce());
     }
 
     public static boolean hasBehind(Plant plant, GameContext context) {

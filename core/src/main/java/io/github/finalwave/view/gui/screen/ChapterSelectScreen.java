@@ -111,11 +111,13 @@ public final class ChapterSelectScreen extends MenuScreen {
             }
         })).size(HUD_ICON).padLeft(8f).padTop(14f).top();
         topBar.add().expandX().top();
-        topBar.add(hudShortcut(MenuAssetIds.SANDBOX_ICON, () -> {
-            if (controller != null) {
-                controller.openZombieSandbox();
-            }
-        })).size(HUD_ICON).padRight(8f).padTop(14f).top();
+        if (controller != null && controller.getUser() != null && controller.getUser().isDebugMode()) {
+            topBar.add(hudShortcut(MenuAssetIds.SANDBOX_ICON, () -> {
+                if (controller != null) {
+                    controller.openZombieSandbox();
+                }
+            })).size(HUD_ICON).padRight(8f).padTop(14f).top();
+        }
         topBar.add(currencyBar).padTop(14f).top();
         topBar.add(hudShortcut(MenuAssetIds.STORE_ICON, () -> {
             if (controller != null) {

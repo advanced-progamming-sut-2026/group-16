@@ -102,15 +102,23 @@ class NewsManagerTest {
     }
 
     @Test
-    void formatAllReturnsMessages() {
+    void formatAllReturnsDateTitleAndBody() {
         User user = createUser();
         NewsManager manager = new NewsManager();
         NewsItem first = manager.addNews(user, NewsType.SYSTEM, "a", "alpha");
         NewsItem second = manager.addNews(user, NewsType.SYSTEM, "b", "beta");
+        first.setCreatedAtMillis(1_700_000_000_000L);
+        second.setCreatedAtMillis(1_700_000_060_000L);
 
         List<String> lines = manager.formatAll(List.of(first, second));
 
-        assertEquals(List.of("alpha", "beta"), lines);
+        assertEquals(2, lines.size());
+        assertTrue(lines.get(0).contains("a"));
+        assertTrue(lines.get(0).contains("alpha"));
+        assertTrue(lines.get(0).matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}.*"));
+        assertTrue(lines.get(1).contains("b"));
+        assertTrue(lines.get(1).contains("beta"));
+        assertTrue(lines.get(1).matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}.*"));
     }
 
     private static NewsItem findBySubject(User user, String subject) {
