@@ -990,17 +990,23 @@ public final class GamePlayScreen extends MenuScreen {
 
         Table mid = new Table();
         mid.setTouchable(Touchable.childrenOnly);
-        if (iZombie != null || networkedZombieRole() || couchIZombie != null) {
-            mid.add(zombieRoster).left().top().padLeft(8f).padTop(6f);
-        }
         if (couchIZombie != null) {
-            zombieSunLabel = new Label("", assets.skin(), "secondary");
-            mid.add(zombieSunLabel).left().top().padLeft(14f).padTop(10f);
-        }
-        if ((!hideSeedTools() && !sandboxMatch()) || networkedPlantRole() || couchIZombie != null) {
+            zombieRoster.setDockSide(true);
             mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
+            mid.add().expand();
+            zombieSunLabel = new Label("", assets.skin(), "secondary");
+            mid.add(zombieSunLabel).right().top().padRight(14f).padTop(10f);
+            mid.add(zombieRoster).right().top().padRight(8f).padTop(6f);
+        } else {
+            zombieRoster.setDockSide(false);
+            if (iZombie != null || networkedZombieRole()) {
+                mid.add(zombieRoster).left().top().padLeft(8f).padTop(6f);
+            }
+            if ((!hideSeedTools() && !sandboxMatch()) || networkedPlantRole()) {
+                mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
+            }
+            mid.add().expand();
         }
-        mid.add().expand();
         hudLayer.add(mid).grow().row();
 
         hudBottom = new Table();
