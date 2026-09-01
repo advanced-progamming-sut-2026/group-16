@@ -39,6 +39,7 @@ import io.github.finalwave.view.gui.render.sync.MowerSync;
 import io.github.finalwave.view.gui.render.sync.NecromancyTileSync;
 import io.github.finalwave.view.gui.render.sync.PhatBeetPulseSync;
 import io.github.finalwave.view.gui.render.sync.PlantFoodDropSync;
+import io.github.finalwave.view.gui.render.sync.PlantFoodGlowSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
@@ -73,6 +74,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private final Group fxLayer = new Group();
 
     private PlantSync plantSync;
+    private PlantFoodGlowSync plantFoodGlowSync;
     private ExplosionSync explosionSync;
     private JalapenoFireSync jalapenoFireSync;
     private TangleKelpGrabSync tangleKelpGrabSync;
@@ -111,6 +113,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private Predicate<Sun> sunCollector;
     private Predicate<io.github.finalwave.model.item.PlantFoodDrop> plantFoodCollector;
     private boolean networkReplayProjectiles;
+    private boolean unitsPlaying = true;
 
     public void setNetworkReplayProjectiles(boolean networkReplayProjectiles) {
         this.networkReplayProjectiles = networkReplayProjectiles;
@@ -148,6 +151,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         clearBattlefield();
         if (assets == null || layout == null || catalog == null) {
             plantSync = null;
+            plantFoodGlowSync = null;
             explosionSync = null;
             jalapenoFireSync = null;
             tangleKelpGrabSync = null;
@@ -186,6 +190,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         ProjectileClips projectileClips = new ProjectileClips();
         plantSync = new PlantSync(assets, layout, new PlantClips(catalog), plantLayer);
+        plantFoodGlowSync = new PlantFoodGlowSync(assets, layout, plantLayer);
         explosionSync = new ExplosionSync(assets, layout, fxLayer);
         jalapenoFireSync = new JalapenoFireSync(assets, layout, fxLayer);
         tangleKelpGrabSync = new TangleKelpGrabSync(assets, layout, fxLayer);
@@ -367,6 +372,9 @@ public final class BattlefieldGroup extends WidgetGroup {
             if (plantSync != null) {
                 plantSync.clear();
             }
+            if (plantFoodGlowSync != null) {
+                plantFoodGlowSync.clear();
+            }
             if (mintSync != null) {
                 mintSync.clear();
             }
@@ -379,6 +387,9 @@ public final class BattlefieldGroup extends WidgetGroup {
             }
             if (plantSync != null) {
                 plantSync.sync(session, tickFraction);
+            }
+            if (plantFoodGlowSync != null && plantSync != null) {
+                plantFoodGlowSync.sync(session, plantSync);
             }
             if (mintSync != null) {
                 mintSync.sync(session);
@@ -409,7 +420,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             sortByRow(plantLayer, BattlefieldGroup::sortKey);
         }
         if (zombieSync != null) {
-            zombieSync.sync(session, tickFraction);
+            zombieSync.sync(session, tickFraction, unitsPlaying);
         }
         if (sandstormSync != null) {
             sandstormSync.sync(session);
@@ -450,6 +461,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     }
 
     public void setPlaying(boolean unitsPlaying, boolean environmentPlaying) {
+        this.unitsPlaying = unitsPlaying;
         setPlaying(environmentLayer, environmentPlaying);
         setPlaying(deadlineLayer, environmentPlaying);
         setPlaying(mowerLayer, unitsPlaying);
@@ -486,6 +498,9 @@ public final class BattlefieldGroup extends WidgetGroup {
     public void clearBattlefield() {
         if (plantSync != null) {
             plantSync.clear();
+        }
+        if (plantFoodGlowSync != null) {
+            plantFoodGlowSync.clear();
         }
         if (explosionSync != null) {
             explosionSync.clear();

@@ -33,6 +33,10 @@ public final class SunSync {
     public static final String SUN_PATH = "768/INITIAL/EFFECTS/SUN/SUN.PAM";
 
     private static final Color RADIOACTIVE = new Color(0.72f, 0.42f, 1f, 1f);
+    private static final float NORMAL_SIZE = 80f;
+    private static final float NORMAL_SCALE = 0.55f;
+    private static final float SPECIAL_SIZE_MULTIPLIER = 2f;
+    private static final float SPECIAL_SCALE_MULTIPLIER = 3.2f;
     private static final float MIN_FLIGHT_SECONDS = 0.5f;
     private static final float MAX_FLIGHT_SECONDS = 0.9f;
     private static final float FLIGHT_SPEED = 1550f;
@@ -171,11 +175,11 @@ public final class SunSync {
             startAttract(sun, actor);
             return;
         }
-        float size = sun.getType() == SunType.SPECIAL ? 110f : 80f;
+        float size = sunSize(sun.getType());
         actor.setSize(size, size);
         Vector2 cell = layout.cellCenter(sun.getCol(), sun.getRow());
         actor.setPosition(cell.x - size / 2f, fallY(sun, cell.y) - size / 2f);
-        actor.setClip(SUN_PATH, clipOf(sun.getType()), sun.getType() == SunType.SPECIAL ? 0.72f : 0.55f, true);
+        actor.setClip(SUN_PATH, clipOf(sun.getType()), sunScale(sun.getType()), true);
         actor.setTint(sun.getType() == SunType.RADIOACTIVE ? RADIOACTIVE : Color.WHITE);
         actor.setUserObject(sun.getRow());
     }
@@ -303,13 +307,24 @@ public final class SunSync {
     }
 
     private static String clipOf(SunType type) {
-        if (type == SunType.SPECIAL) {
-            return "red";
-        }
         if (type == SunType.RADIOACTIVE) {
             return "blue";
         }
         return "animation";
+    }
+
+    private static float sunSize(SunType type) {
+        if (type == SunType.SPECIAL) {
+            return NORMAL_SIZE * SPECIAL_SIZE_MULTIPLIER;
+        }
+        return NORMAL_SIZE;
+    }
+
+    private static float sunScale(SunType type) {
+        if (type == SunType.SPECIAL) {
+            return NORMAL_SCALE * SPECIAL_SCALE_MULTIPLIER;
+        }
+        return NORMAL_SCALE;
     }
 
     private static final class Flight {

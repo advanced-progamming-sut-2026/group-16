@@ -60,12 +60,29 @@ class NormalSeasonRulesTest {
     }
 
     @Test
-    void clearGraveGrantsSunLoot() {
+    void clearGraveDropsSunLoot() {
         PlantRegistry plants = App.getInstance().getPlantRegistry();
         GameSession session = new GameSession(plants, 10);
         session.getBoard().setTile(3, 1, new GraveTile(GraveTile.Loot.SUN_50));
         session.clearGraveAt(3, 1);
-        assertEquals(60, session.getSunBalance());
+        assertEquals(10, session.getSunBalance());
+        assertEquals(1, session.getSunItems().size());
+        assertEquals(50, session.getSunItems().get(0).getValue());
+        assertEquals(3, session.getSunItems().get(0).getCol());
+        assertEquals(1, session.getSunItems().get(0).getRow());
+        assertTrue(!session.getBoard().getTile(3, 1).isGrave());
+    }
+
+    @Test
+    void clearGraveDropsPlantFoodLoot() {
+        PlantRegistry plants = App.getInstance().getPlantRegistry();
+        GameSession session = new GameSession(plants, 10);
+        session.getBoard().setTile(3, 1, new GraveTile(GraveTile.Loot.PLANT_FOOD));
+        session.clearGraveAt(3, 1);
+        assertEquals(0, session.getPlantFoodCount());
+        assertEquals(1, session.getPlantFoodDrops().size());
+        assertEquals(3, session.getPlantFoodDrops().get(0).getCol());
+        assertEquals(1, session.getPlantFoodDrops().get(0).getRow());
         assertTrue(!session.getBoard().getTile(3, 1).isGrave());
     }
 

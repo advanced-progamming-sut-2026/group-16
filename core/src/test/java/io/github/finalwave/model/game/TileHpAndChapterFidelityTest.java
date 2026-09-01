@@ -46,7 +46,9 @@ class TileHpAndChapterFidelityTest {
         assertTrue(session.damageGraveAt(3, 1, 1));
         assertFalse(session.getBoard().getTile(3, 1).isGrave());
         assertInstanceOf(NormalTile.class, session.getBoard().getTile(3, 1));
-        assertEquals(60, session.getSunBalance());
+        assertEquals(10, session.getSunBalance());
+        assertEquals(1, session.getSunItems().size());
+        assertEquals(50, session.getSunItems().get(0).getValue());
     }
 
     @Test

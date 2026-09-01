@@ -12,6 +12,8 @@ import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
 import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
+import io.github.finalwave.model.item.Sun;
+import io.github.finalwave.model.item.SunType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -122,9 +124,9 @@ final class GameSessionTileEffects {
         }
         board.setTile(col, row, new NormalTile());
         if (loot == GraveTile.Loot.SUN_50) {
-            session.addSunBalance(50);
+            session.spawnSunItem(new Sun(col, row, 50, SunType.NORMAL, true));
         } else if (loot == GraveTile.Loot.PLANT_FOOD) {
-            session.addPlantFood(1);
+            session.spawnPlantFoodDrop(col, row, col + 0.5);
         }
     }
 

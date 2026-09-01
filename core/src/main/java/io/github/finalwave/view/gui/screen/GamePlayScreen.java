@@ -88,6 +88,7 @@ import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.ScreenShake;
 import io.github.finalwave.view.gui.render.clip.ExplosionLooks;
 import io.github.finalwave.view.gui.render.clip.GraveClips;
+import io.github.finalwave.view.gui.render.clip.PlantFoodFxClips;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ProjectileClips;
 import io.github.finalwave.view.gui.render.clip.ZombossClips;
@@ -520,7 +521,7 @@ public final class GamePlayScreen extends MenuScreen {
         }
         float tickFraction = 0f;
         if (clock != null && battlefield != null) {
-            clock.update(delta, battlefield);
+            clock.update(delta);
             tickFraction = clock.tickFraction();
         }
         if (battlefield != null && battlefield.beghouledBusy() && !pauseModal.isShowing()) {
@@ -532,6 +533,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (icebergFlashOverlay != null && matchSession() != null) {
             icebergFlashOverlay.sync(matchSession());
+        }
+        if (clock != null && battlefield != null) {
+            clock.applyPlayback(battlefield);
         }
         if (clock != null && battlefield != null) {
             float unitSpeed = networkedOnlineMatch() ? 1f : clock.speed();
@@ -1756,6 +1760,7 @@ public final class GamePlayScreen extends MenuScreen {
         preload(PlantClips.ICE_BLOCK_PATH);
         preload(PlantClips.OCTOPUS_PATH);
         preload(PlantClips.GRAVE_BUSTER_DIRT_PATH);
+        preload(PlantFoodFxClips.PATH);
         preload(ExplosionLooks.BONE_HIT_PATH);
         assets.region(ExplosionLooks.BONE_PROJECTILE_IMAGE);
         preload(ArcadeObstacleSync.PAM_PATH);
