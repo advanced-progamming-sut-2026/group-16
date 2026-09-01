@@ -502,6 +502,30 @@ public final class ScreenRouter {
         }
     }
 
+    public void playPlantSfx() {
+        game.assets().audio().playPlant();
+    }
+
+    public void playPlantWaterSfx() {
+        game.assets().audio().playPlantWater();
+    }
+
+    public void playShovelSfx() {
+        game.assets().audio().playShovel();
+    }
+
+    public void playBowlingSpawnSfx() {
+        game.assets().audio().playPlantBowling();
+    }
+
+    public void playBowlingImpactSfx() {
+        game.assets().audio().playBowlingImpact();
+    }
+
+    public void playExplosionSfx() {
+        game.assets().audio().playExplosion();
+    }
+
     public void dismissGamePlayResult() {
         if (gamePlayScreen != null) {
             gamePlayScreen.dismissResult();
@@ -723,6 +747,7 @@ public final class ScreenRouter {
 
         if (active == null
                 || active instanceof FadeTransitionScreen
+                || active instanceof MarigoldLoadingScreen
                 || transitioning
                 || screen == active) {
             current = screen;
@@ -731,10 +756,33 @@ public final class ScreenRouter {
             return;
         }
 
+        float marigoldHold = marigoldHoldSeconds(screen, active);
+        if (marigoldHold > 0f && !(active instanceof BootScreen)) {
+            transitioning = true;
+            current = screen;
+            MarigoldLoadingScreen loading = new MarigoldLoadingScreen(
+                    game, marigoldHold, screen, () -> transitioning = false);
+            game.setScreen(loading);
+            return;
+        }
+
         TextureRegion snapshot = FadeTransitionScreen.captureFramebuffer();
         transitioning = true;
         current = screen;
         FadeTransitionScreen fade = new FadeTransitionScreen(game, snapshot, screen, () -> transitioning = false);
         game.setScreen(fade);
+    }
+
+    private static float marigoldHoldSeconds(Screen screen, Screen active) {
+        if (screen instanceof PlantSelectionScreen) {
+            return 2.5f;
+        }
+        if (screen instanceof GamePlayScreen && !(active instanceof PlantSelectionScreen)) {
+            return 2.5f;
+        }
+        if (screen instanceof GreenhouseScreen || screen instanceof ScoreGameScreen) {
+            return 1.5f;
+        }
+        return 0f;
     }
 }

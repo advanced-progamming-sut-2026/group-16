@@ -25,6 +25,7 @@ public final class GreenhouseViewGui extends GuiViewBase implements GreenhouseVi
 
     @Override
     public void showPlantPlantedInPot(int x, int y, String plantType) {
+        router.playPlantWaterSfx();
         toast("Planted " + plantType);
         router.refreshGreenhouse();
     }

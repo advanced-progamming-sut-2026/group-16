@@ -11,7 +11,10 @@ import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.widget.PamActor;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 
 public final class MowerSync {
@@ -26,6 +29,7 @@ public final class MowerSync {
     private final LawnLayout layout;
     private final Group layer;
     private final ActorRegistry<LawnMower, PamActor> mowers = new ActorRegistry<>();
+    private final Set<LawnMower> mowing = Collections.newSetFromMap(new IdentityHashMap<>());
     private String path = EGYPT;
     private float tickFraction;
 
@@ -55,10 +59,19 @@ public final class MowerSync {
                 live.add(mower);
             }
         }
+        for (LawnMower mower : live) {
+            if (mower.isActive() && mowing.add(mower)) {
+                assets.audio().playMower();
+            } else if (!mower.isActive()) {
+                mowing.remove(mower);
+            }
+        }
+        mowing.retainAll(live);
         mowers.sync(live, this::spawn, this::update, PamActor::remove);
     }
 
     public void clear() {
+        mowing.clear();
         mowers.clear(PamActor::remove);
     }
 

@@ -74,10 +74,16 @@ public final class GamePlayViewGui extends GuiViewBase implements
 
     @Override
     public void showPlantPlanted(String plantType, int x, int y) {
+        if (usesWaterPlantSfx(plantType)) {
+            router.playPlantWaterSfx();
+        } else {
+            router.playPlantSfx();
+        }
     }
 
     @Override
     public void showPlantPlucked(int x, int y) {
+        router.playShovelSfx();
     }
 
     @Override
@@ -408,5 +414,13 @@ public final class GamePlayViewGui extends GuiViewBase implements
 
     private void playError(String message) {
         router.toastGamePlayError(message);
+    }
+
+    private static boolean usesWaterPlantSfx(String plantType) {
+        if (plantType == null) {
+            return false;
+        }
+        String name = plantType.toLowerCase();
+        return name.contains("lily") || name.contains("kelp") || name.contains("seashroom");
     }
 }

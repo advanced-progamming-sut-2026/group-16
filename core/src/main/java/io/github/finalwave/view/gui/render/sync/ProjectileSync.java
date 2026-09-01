@@ -76,7 +76,11 @@ public final class ProjectileSync {
         actor.setTouchable(Touchable.disabled);
         actor.setAnchor(0.5f, isFumeCloud(projectile) ? LawnLayout.PLANT_ANCHOR_Y : 0.5f);
         layer.addActor(actor);
-        assets.audio().playThrow();
+        if (projectile.getEffect() == ProjectileEffect.KERNEL) {
+            assets.audio().playKernel();
+        } else {
+            assets.audio().playThrow();
+        }
         effects.put(actor, projectile.getEffect());
         visualClips.put(actor, projectile.getVisualClip());
         rememberSplat(actor, projectile);

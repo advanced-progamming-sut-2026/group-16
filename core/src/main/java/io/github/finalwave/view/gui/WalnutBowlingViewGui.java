@@ -38,15 +38,18 @@ public final class WalnutBowlingViewGui extends GuiViewBase implements WalnutBow
 
     @Override
     public void showBowlingNutSpawned(String plantName, int col, int row) {
+        router.playBowlingSpawnSfx();
         router.refreshGamePlayHud();
     }
 
     @Override
     public void showBowlingNutHit(BowlingNutType type, String zombieType, double x, double row) {
+        router.playBowlingImpactSfx();
     }
 
     @Override
     public void showBowlingNutExploded(int col, int row) {
+        router.playExplosionSfx();
         router.refreshGamePlayHud();
     }
 

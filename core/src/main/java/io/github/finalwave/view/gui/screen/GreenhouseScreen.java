@@ -31,6 +31,11 @@ public final class GreenhouseScreen extends MenuScreen {
         super(game);
     }
 
+    @Override
+    protected void ensureMusic() {
+        assets.audio().playZenGarden();
+    }
+
     public void bind(GreenhouseController controller) {
         this.controller = controller;
         if (controller != null) {
