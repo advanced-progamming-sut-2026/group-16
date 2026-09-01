@@ -66,11 +66,18 @@ public final class Zombie extends Entity {
     private int landTicksRemaining;
     private double arcFromX;
     private double arcToX;
+    private double arcApex;
+    private double arcSpawnLift;
     private boolean afterArcMoveRight;
     private boolean staffSunConcealed;
     private boolean torchLit = true;
     private boolean juggling;
     private boolean sandstormSpawn;
+    private GargantuarImpThrow pendingGargantuarImpThrow;
+    private boolean gargantuarImpSpent;
+    private boolean thrownByGargantuar;
+    private int throwIntroTicksRemaining;
+    private String throwIntroClip = "pop";
 
     private Zombie(Builder b) {
         super(b.alias + "-" + NEXT_ID.incrementAndGet(), b.maxHealth, b.x, b.y);
@@ -123,6 +130,9 @@ public final class Zombie extends Entity {
             if (!behavior.isMovementBehavior()) {
                 behavior.execute(this, context);
             }
+        }
+        if (abilityTicksRemaining > 0) {
+            return;
         }
         for (ZombieBehavior behavior : behaviors) {
             if (behavior.isMovementBehavior()) {
@@ -352,6 +362,45 @@ public final class Zombie extends Entity {
         return true;
     }
 
+    public void queueGargantuarImpThrow(GargantuarImpThrow plan) {
+        pendingGargantuarImpThrow = plan;
+    }
+
+    public boolean isGargantuarImpSpent() {
+        return gargantuarImpSpent;
+    }
+
+    public boolean shouldHideGargantuarImpAmmo() {
+        return gargantuarImpSpent || hasPendingGargantuarImpThrow();
+    }
+
+    public boolean hasPendingGargantuarImpThrow() {
+        return pendingGargantuarImpThrow != null;
+    }
+
+    public boolean wasThrownByGargantuar() {
+        return thrownByGargantuar;
+    }
+
+    public boolean beginImpThrowArc(
+            double fromX, double toX, double spawnLift, double apex, int flyTicks, int landTicks) {
+        int fly = Math.max(1, flyTicks);
+        int land = Math.max(1, landTicks);
+        thrownByGargantuar = true;
+        throwIntroTicksRemaining = 0;
+        arcFromX = fromX;
+        arcToX = toX;
+        arcSpawnLift = Math.max(0, spawnLift);
+        arcApex = Math.max(0.25, apex);
+        setX(fromX);
+        flyTicksTotal = fly;
+        flyTicksRemaining = fly;
+        landTicksRemaining = land;
+        blastTicksRemaining = 0;
+        afterArcMoveRight = false;
+        return beginAbility("fly", fly + land);
+    }
+
     public boolean beginThrownFlight(double toX, int flyTicks, int landTicks) {
         int fly = Math.max(1, flyTicks);
         int land = Math.max(1, landTicks);
@@ -360,6 +409,7 @@ public final class Zombie extends Entity {
         }
         arcFromX = getX();
         arcToX = toX;
+        arcApex = 0;
         flyTicksTotal = fly;
         flyTicksRemaining = fly;
         landTicksRemaining = land;
@@ -381,11 +431,98 @@ public final class Zombie extends Entity {
         landTicksRemaining = land;
         arcFromX = getX();
         arcToX = toX;
+        arcApex = 0;
         afterArcMoveRight = true;
         return true;
     }
 
+    public boolean isInFlightArc() {
+        return flyTicksTotal > 0 && flyTicksRemaining > 0;
+    }
+
+    public double arcProgress(float tickFraction) {
+        if (flyTicksTotal <= 0) {
+            return 0;
+        }
+        double flown = flyTicksTotal - flyTicksRemaining;
+        if (flyTicksRemaining > 0 && tickFraction > 0f) {
+            flown += tickFraction;
+        }
+        return Math.min(1.0, Math.max(0.0, flown / flyTicksTotal));
+    }
+
+    public double arcDisplayX(float tickFraction) {
+        double t = arcProgress(tickFraction);
+        if (!thrownByGargantuar) {
+            t = easeInOut(t);
+        }
+        return arcFromX + (arcToX - arcFromX) * t;
+    }
+
+    public double arcLiftAt(double normalizedProgress) {
+        if (flyTicksTotal <= 0 || arcApex <= 0) {
+            return 0;
+        }
+        double p = Math.min(1.0, Math.max(0.0, normalizedProgress));
+        return parabolicLift(p);
+    }
+
+    public double arcLiftForX(double x) {
+        if (flyTicksTotal <= 0 || arcApex <= 0) {
+            return 0;
+        }
+        double span = arcFromX - arcToX;
+        if (Math.abs(span) < 0.001) {
+            return 0;
+        }
+        double p = Math.min(1.0, Math.max(0.0, (arcFromX - x) / span));
+        return parabolicLift(p);
+    }
+
+    private double parabolicLift(double progress) {
+        double p = Math.min(1.0, Math.max(0.0, progress));
+        return arcSpawnLift * (1.0 - p) + 4.0 * arcApex * p * (1.0 - p);
+    }
+
+    public float arcTangentAngleDegrees(float tickFraction) {
+        if (!thrownByGargantuar || flyTicksTotal <= 0 || arcApex <= 0) {
+            return 0f;
+        }
+        double x = arcDisplayX(tickFraction);
+        double span = arcFromX - arcToX;
+        if (Math.abs(span) < 0.001) {
+            return 0f;
+        }
+        double p = Math.min(1.0, Math.max(0.0, (arcFromX - x) / span));
+        double dhdp = -arcSpawnLift + 4.0 * arcApex * (1.0 - 2.0 * p);
+        double dhdx = dhdp * (-1.0 / span);
+        return (float) Math.toDegrees(Math.atan2(dhdx, 1.0));
+    }
+
+    private static double easeInOut(double t) {
+        if (t <= 0) {
+            return 0;
+        }
+        if (t >= 1) {
+            return 1;
+        }
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    public double arcLift(float tickFraction) {
+        if (thrownByGargantuar && flyTicksTotal > 0) {
+            if (flyTicksRemaining > 0 || tickFraction > 0f) {
+                return arcLiftForX(arcDisplayX(tickFraction));
+            }
+            return 0;
+        }
+        return arcLiftAt(arcProgress(tickFraction));
+    }
+
     public double flightLift() {
+        if (arcApex > 0 && flyTicksTotal > 0 && flyTicksRemaining > 0) {
+            return arcLift(0f);
+        }
         if (flyTicksTotal <= 0 || flyTicksRemaining <= 0) {
             return 0;
         }
@@ -394,8 +531,20 @@ public final class Zombie extends Entity {
     }
 
     private void tickHeldAbility() {
+        maybeReleaseGargantuarImpEarly();
         abilityTicksRemaining--;
         state = ZombieState.ABILITY;
+        if (throwIntroTicksRemaining > 0) {
+            if (throwIntroClip != null && !throwIntroClip.isBlank()) {
+                presentationClip = throwIntroClip;
+            }
+            throwIntroTicksRemaining--;
+            if (throwIntroTicksRemaining == 0 && flyTicksTotal > 0) {
+                flyTicksRemaining = flyTicksTotal;
+                presentationClip = "fly";
+            }
+            return;
+        }
         if (blastTicksRemaining > 0) {
             presentationClip = "blastoff";
             blastTicksRemaining--;
@@ -409,7 +558,8 @@ public final class Zombie extends Entity {
         if (flyTicksRemaining > 0) {
             presentationClip = "fly";
             flyTicksRemaining--;
-            double t = 1.0 - (flyTicksRemaining / (double) flyTicksTotal);
+            double linear = 1.0 - (flyTicksRemaining / (double) flyTicksTotal);
+            double t = thrownByGargantuar ? linear : easeInOut(linear);
             setX(arcFromX + (arcToX - arcFromX) * t);
             if (flyTicksRemaining == 0) {
                 setX(arcToX);
@@ -428,6 +578,7 @@ public final class Zombie extends Entity {
     }
 
     private void finishHeldAbility() {
+        releasePendingGargantuarImpThrow();
         if (afterArcMoveRight) {
             setMovingRight(true);
             setX(arcToX);
@@ -440,6 +591,42 @@ public final class Zombie extends Entity {
         landTicksRemaining = 0;
         blastTicksRemaining = 0;
         afterArcMoveRight = false;
+        throwIntroTicksRemaining = 0;
+        throwIntroClip = "pop";
+        arcApex = 0;
+        arcSpawnLift = 0;
+    }
+
+    private void maybeReleaseGargantuarImpEarly() {
+        GargantuarImpThrow plan = pendingGargantuarImpThrow;
+        if (plan == null || lastContext == null) {
+            return;
+        }
+        int elapsed = plan.throwHoldTicks() - abilityTicksRemaining;
+        if (elapsed >= Math.max(0, plan.releaseTicksAfterStart())) {
+            releasePendingGargantuarImpThrow();
+        }
+    }
+
+    private void releasePendingGargantuarImpThrow() {
+        GargantuarImpThrow plan = pendingGargantuarImpThrow;
+        if (plan == null || lastContext == null) {
+            return;
+        }
+        pendingGargantuarImpThrow = null;
+        gargantuarImpSpent = true;
+        int row = Math.max(0, Math.min(lastContext.getRowCount() - 1, getRow()));
+        double fromX = Math.max(
+                0,
+                Math.min(
+                        lastContext.getColCount() - 1,
+                        getX() - plan.spawnOffsetX() - plan.spawnForwardTiles()));
+        double toX = Math.max(0, Math.min(lastContext.getColCount() - 1, plan.landX()));
+        Zombie imp = lastContext.spawnZombieOfType(plan.impAlias(), row, fromX);
+        if (imp != null) {
+            imp.beginImpThrowArc(
+                    fromX, toX, plan.spawnLift(), plan.arcApex(), plan.flyTicks(), plan.landTicks());
+        }
     }
 
     public void moveRight(double amount) {

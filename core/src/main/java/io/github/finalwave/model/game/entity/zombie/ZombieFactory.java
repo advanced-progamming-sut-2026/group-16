@@ -131,12 +131,9 @@ public final class ZombieFactory {
     }
 
     private static void configureGargantuar(Zombie.Builder b, ZombieDefinition d) {
+        b.addBehavior(GargantuarImpThrowBehavior.fromDefinition(d));
         b.addBehavior(new TransformBehavior(
                 TransformBehavior.TransformType.SMASH, 20));
-
-        double threshold = extractGargantuarImpThreshold(d);
-        // The documented third column is index 2 on the zero-based board.
-        b.addBehavior(SummonBehavior.atFixedColumn("ZombieImp", threshold, 2, 0));
     }
 
     private static void configureNewspaper(Zombie.Builder b, ZombieDefinition d) {
@@ -287,20 +284,6 @@ public final class ZombieFactory {
     private static double contextRange(ZombieDefinition definition) {
         return ZombieBehaviorDefaults.number(definition, "FarAttackRange",
                 ZombieBehaviorDefaults.STANDARD_RANGE);
-    }
-
-    private static double extractGargantuarImpThreshold(ZombieDefinition d) {
-        Object layers = d.getExtra("HealthThresholdToImpAmmoLayers");
-        if (layers instanceof List<?> list && !list.isEmpty()) {
-            Object first = list.get(0);
-            if (first instanceof Map<?, ?> map) {
-                Object val = map.get("HealthPercentThrowImp");
-                if (val instanceof Number n) {
-                    return n.doubleValue();
-                }
-            }
-        }
-        return 0.5; // Default fallback
     }
 
     private static Set<String> validKnightTargets(ZombieDefinition definition) {

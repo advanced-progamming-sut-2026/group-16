@@ -12,7 +12,7 @@ public final class ZombieClips {
     private static final Map<String, String[]> ABILITY_CLIPS = Map.ofEntries(
             Map.entry("ZombieRa", new String[]{"power", "power_up", "power_down"}),
             Map.entry("ZombieTombRaiser", new String[]{"power"}),
-            Map.entry("ZombieGargantuar", new String[]{"smash_left", "fire"}),
+            Map.entry("ZombieGargantuar", new String[]{"smash_left", "cannon_fire", "fire"}),
             Map.entry("ZombieBeachFisherman", new String[]{"cast", "reel", "toss", "cast_loop", "idle"}),
             Map.entry("ZombiePiano", new String[]{"play", "play2", "idle"}),
             Map.entry("ZombieModernAllStar", new String[]{"kick", "tackle", "run"}),
@@ -26,7 +26,7 @@ public final class ZombieClips {
             Map.entry("ZombieArcade", new String[]{"push"}),
             Map.entry("ZombieNewspaper", new String[]{"newspaper_defeat"}),
             Map.entry("ZombieProspector", new String[]{"blastoff", "fly", "land"}),
-            Map.entry("ZombieImp", new String[]{"fly", "land"})
+            Map.entry("ZombieImp", new String[]{"pop", "fly", "land"})
     );
 
     private static final Set<String> SPECIAL_CLIPS = Set.of(
@@ -35,14 +35,14 @@ public final class ZombieClips {
             "throw", "toss", "sheep", "special",
             "spinup", "spin", "spin_walk", "spindown",
             "cast", "reel", "push", "play", "play2",
-            "newspaper_defeat", "blastoff", "fly", "land", "cannon_fire"
+            "newspaper_defeat", "blastoff", "fly", "land", "cannon_fire", "pop"
     );
 
     private static final Set<String> ONE_SHOT_CLIPS = Set.of(
             "smash_left", "fire", "kick", "tackle",
             "throw", "toss", "sheep", "special",
             "attack", "cast", "reel",
-            "newspaper_defeat", "blastoff", "fly", "land", "cannon_fire"
+            "newspaper_defeat", "blastoff", "fly", "land", "cannon_fire", "pop"
     );
 
     private final EntityAnimationCatalog catalog;
