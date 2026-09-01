@@ -48,11 +48,15 @@ public final class LoginScreen extends MenuScreen {
         if (savedUsername != null && !savedUsername.isBlank()) {
             username.field().setText(savedUsername);
         }
-        stayLoggedIn = false;
-        stayLoggedInBtn = PvzButtons.textButton("Stay logged in: Off", skin, "brown", () -> {
-            stayLoggedIn = !stayLoggedIn;
-            stayLoggedInBtn.setText(stayLoggedIn ? "Stay logged in: On" : "Stay logged in: Off");
-        });
+        stayLoggedIn = StayLoggedInStorage.loadSession() != null;
+        stayLoggedInBtn = PvzButtons.textButton(
+                stayLoggedIn ? "Stay logged in: On" : "Stay logged in: Off",
+                skin,
+                "brown",
+                () -> {
+                    stayLoggedIn = !stayLoggedIn;
+                    stayLoggedInBtn.setText(stayLoggedIn ? "Stay logged in: On" : "Stay logged in: Off");
+                });
 
         TextButton loginBtn = PvzButtons.textButton("Login", skin, "purple", this::submitLogin);
         TextButton forgotBtn = PvzButtons.textButton("Forgot password", skin, "green_small",
