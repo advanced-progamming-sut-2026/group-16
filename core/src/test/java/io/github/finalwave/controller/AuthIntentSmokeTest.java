@@ -1,6 +1,7 @@
 package io.github.finalwave.controller;
 
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.util.ClientDataPaths;
 import io.github.finalwave.util.StayLoggedInStorage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +23,7 @@ class AuthIntentSmokeTest {
         Files.deleteIfExists(DATABASE);
         System.setProperty("pvz.database.url", "jdbc:sqlite:" + DATABASE.toAbsolutePath());
         UserDatabase.resetInstanceForTests();
-        sessionFile = Path.of("user.session");
+        sessionFile = ClientDataPaths.sessionFile();
         Files.deleteIfExists(sessionFile);
         StayLoggedInStorage.clear();
     }

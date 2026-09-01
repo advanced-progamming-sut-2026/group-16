@@ -8,6 +8,8 @@ import io.github.finalwave.leaderboard.LeaderboardGateway;
 import io.github.finalwave.score.ScoreSubmitGateway;
 import io.github.finalwave.profile.ProfileApplier;
 import io.github.finalwave.registration.RegistrationGateway;
+import io.github.finalwave.network.sync.ProgressSyncService;
+import io.github.finalwave.util.SessionResumeCredentials;
 import io.github.finalwave.util.StayLoggedInStorage;
 import io.github.finalwave.network.auth.LoginOkPayload;
 import io.github.finalwave.profile.ProfileExporter;
@@ -81,8 +83,14 @@ public final class AppBootstrap {
 
     public void start() {
         if (restoreLocalSession) {
+            StayLoggedInStorage.Session session = StayLoggedInStorage.loadSession();
             User stayLoggedInUser = restoreStayLoggedInUser();
-            if (stayLoggedInUser != null) {
+            if (stayLoggedInUser != null && session != null) {
+                SessionResumeCredentials.remember(session.username(), session.passwordHash());
+                ProgressSyncService sync = ProgressSyncService.getInstance();
+                if (sync != null) {
+                    sync.arm();
+                }
                 App.getInstance().setCurrentUser(stayLoggedInUser);
                 navigator.reset(new MainMenuController(
                         stayLoggedInUser,

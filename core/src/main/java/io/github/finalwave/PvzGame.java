@@ -76,7 +76,7 @@ public final class PvzGame extends Game {
                 leaderboardGateway,
                 scoreSubmitGateway,
                 binder,
-                false
+                true
         );
         bootScreen = new BootScreen(this);
         setScreen(bootScreen);
