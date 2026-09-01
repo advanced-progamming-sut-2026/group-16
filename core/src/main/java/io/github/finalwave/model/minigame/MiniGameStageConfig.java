@@ -323,6 +323,33 @@ public final class MiniGameStageConfig {
         };
     }
 
+    public static MiniGameStageConfig iZombieNetwork() {
+        return new MiniGameStageConfig(
+                MiniGameId.I_ZOMBIE, 1, 5, 9, 200,
+                0, 0, 0, 100,
+                List.of(
+                        "Sunflower", "Twin Sunflower", "Peashooter", "Repeater", "Snow Pea",
+                        "Threepeater", "Wall-nut", "Tall-nut", "Cabbage-pult", "Melon-pult",
+                        "Potato Mine", "Chomper", "Bonk Choy", "Cherry Bomb", "Torchwood", "Split Pea"),
+                List.of(
+                        "ZombieDefault", "ZombieImp", "ZombieArmor1", "ZombieProspector", "ZombieArmor2",
+                        "ZombieNewspaper", "ZombieArmor4", "ZombieIceAgeDodo", "ZombieDarkArmor3"),
+                true,
+                5,
+                1, 100, List.of(),
+                costs(
+                        "ZombieDefault", 100,
+                        "ZombieImp", 100,
+                        "ZombieArmor1", 200,
+                        "ZombieProspector", 200,
+                        "ZombieArmor2", 400,
+                        "ZombieNewspaper", 700,
+                        "ZombieArmor4", 700,
+                        "ZombieIceAgeDodo", 600,
+                        "ZombieDarkArmor3", 550),
+                0);
+    }
+
     public static MiniGameStageConfig beghouled(int stageIndex) {
         return switch (stageIndex) {
             case 1 -> new MiniGameStageConfig(

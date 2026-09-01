@@ -61,6 +61,30 @@ public final class MessageTypes {
     public static final String SUBMIT_SCORE_OK = "SUBMIT_SCORE_OK";
     public static final String SUBMIT_SCORE_FAIL = "SUBMIT_SCORE_FAIL";
 
+    public static final String CHECK_USER_STATUS = "CHECK_USER_STATUS";
+    public static final String CHECK_USER_STATUS_OK = "CHECK_USER_STATUS_OK";
+    public static final String LIST_MATCH_USERS = "LIST_MATCH_USERS";
+    public static final String LIST_MATCH_USERS_OK = "LIST_MATCH_USERS_OK";
+    public static final String MATCH_USERS_UPDATED = "MATCH_USERS_UPDATED";
+    public static final String MATCHMAKING_RESET = "MATCHMAKING_RESET";
+    public static final String MATCHMAKING_RESET_OK = "MATCHMAKING_RESET_OK";
+    public static final String CHALLENGE_REQUEST = "CHALLENGE_REQUEST";
+    public static final String CHALLENGE_FAIL = "CHALLENGE_FAIL";
+    public static final String CHALLENGE_INVITE = "CHALLENGE_INVITE";
+    public static final String CHALLENGE_RESPONSE = "CHALLENGE_RESPONSE";
+    public static final String CHALLENGE_REJECTED = "CHALLENGE_REJECTED";
+    public static final String CHALLENGE_TIMEOUT = "CHALLENGE_TIMEOUT";
+    public static final String MATCH_START = "MATCH_START";
+    public static final String JOIN_RANDOM_QUEUE = "JOIN_RANDOM_QUEUE";
+    public static final String JOIN_RANDOM_QUEUE_OK = "JOIN_RANDOM_QUEUE_OK";
+    public static final String JOIN_RANDOM_QUEUE_FAIL = "JOIN_RANDOM_QUEUE_FAIL";
+    public static final String LEAVE_QUEUE = "LEAVE_QUEUE";
+    public static final String LEAVE_QUEUE_OK = "LEAVE_QUEUE_OK";
+    public static final String MATCH_INPUT = "MATCH_INPUT";
+    public static final String MATCH_STATE = "MATCH_STATE";
+    public static final String MATCH_END = "MATCH_END";
+    public static final String MATCH_REACTION = "MATCH_REACTION";
+
     private MessageTypes() {
     }
 }

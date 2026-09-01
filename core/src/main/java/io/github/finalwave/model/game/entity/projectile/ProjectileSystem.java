@@ -50,6 +50,19 @@ public final class ProjectileSystem {
         return drained;
     }
 
+    public void replaceAll(List<Projectile> next) {
+        projectiles.clear();
+        pendingProjectiles.clear();
+        if (next == null || next.isEmpty()) {
+            return;
+        }
+        for (Projectile projectile : next) {
+            if (projectile != null) {
+                projectiles.add(projectile);
+            }
+        }
+    }
+
     public void spawn(Projectile projectile) {
         if (projectile != null) {
             if (ticking) {

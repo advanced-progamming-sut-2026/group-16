@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import io.github.finalwave.PvzGame;
@@ -28,6 +29,7 @@ public final class SettingScreen extends MenuScreen {
     private Label speedValue;
     private CheckBox gridCheck;
     private CheckBox debugCheck;
+    private TextField onlineUserField;
     private Slider musicSlider;
     private Label musicValue;
     private Slider sfxSlider;
@@ -96,7 +98,18 @@ public final class SettingScreen extends MenuScreen {
                 controller.setDebugMode(debugCheck.isChecked());
             }
         });
-        panel.add(debugCheck).left().height(48).padBottom(22).row();
+        panel.add(debugCheck).left().height(48).padBottom(14).row();
+
+        onlineUserField = new TextField("", skin);
+        panel.add(new Label("Online status lookup", skin, "secondary")).left().padBottom(6).row();
+        Table lookupRow = new Table();
+        lookupRow.add(onlineUserField).width(260).height(44);
+        lookupRow.add(PvzButtons.textButton("Check", skin, "green_small", () -> {
+            if (controller != null && onlineUserField != null) {
+                controller.checkOnlineUserStatus(onlineUserField.getText().trim());
+            }
+        })).width(120).height(44).padLeft(10);
+        panel.add(lookupRow).left().padBottom(22).row();
 
         musicSlider = addDiscreteSlider(panel, skin, "Music", 0, GameAudioSettings.MAX, volume -> {
             assets.audio().setMusicVolume(volume);

@@ -439,6 +439,10 @@ public final class GameSession {
         miniGameState.activateIZombie(placementColumn, zombiePool, zombieCosts);
     }
 
+    public void setIZombieRoster(List<String> zombiePool, Map<String, Integer> zombieCosts) {
+        miniGameState.setIZombieRoster(zombiePool, zombieCosts);
+    }
+
     public boolean isIZombieActive() {
         return miniGameState.isIZombieActive();
     }
@@ -465,6 +469,39 @@ public final class GameSession {
 
     public boolean areAllIZombieBrainsEaten() {
         return miniGameState.areAllIZombieBrainsEaten();
+    }
+
+    public void syncIZombieBrainsFromNetwork(boolean[] eaten) {
+        miniGameState.syncIZombieBrainsFromNetwork(eaten);
+    }
+
+    public int getIZombieSunBalance() {
+        return miniGameState.getIZombieSunBalance();
+    }
+
+    public void setIZombieSunBalance(int amount) {
+        miniGameState.setIZombieSunBalance(amount);
+    }
+
+    public void addIZombieSunBalance(int amount) {
+        miniGameState.addIZombieSunBalance(amount);
+    }
+
+    public void withdrawIZombieSun(int amount) {
+        miniGameState.withdrawIZombieSun(amount);
+    }
+
+    public void syncNetworkTick(long tick) {
+        int next = (int) Math.max(0L, tick);
+        if (next > currentTick) {
+            currentTick = next;
+        }
+    }
+
+    public void advanceGuestDisplayTicks(int count) {
+        if (count > 0) {
+            currentTick += count;
+        }
     }
 
     public PlantPlacementResult tryPlaceZombie(String alias, int col, int row) {

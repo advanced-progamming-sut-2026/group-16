@@ -10,10 +10,17 @@ import io.github.finalwave.model.minigame.MiniGameRegistry;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
 import io.github.finalwave.model.minigame.mode.BeghouledMode;
 import io.github.finalwave.model.minigame.mode.IZombieMode;
+import io.github.finalwave.model.minigame.mode.NetworkedIZombieMode;
 import io.github.finalwave.model.minigame.mode.VaseBreakerMode;
 import io.github.finalwave.model.minigame.mode.WalnutBowlingMode;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.controller.Navigator;
+import io.github.finalwave.network.match.MatchRole;
+import io.github.finalwave.network.match.MatchStartPayload;
+import io.github.finalwave.network.match.MatchmakingService;
+import io.github.finalwave.network.match.MatchSyncService;
+import io.github.finalwave.network.match.NetworkMatchServices;
 import io.github.finalwave.view.api.minigame.MiniGameHubView;
 
 import java.io.IOException;
@@ -189,6 +196,65 @@ public class MiniGameHubController extends ViewController {
     }
 
     private void startIZombie(MiniGameStageConfig stage) {
+        if (!getHubView().preferLobbyForIZombie()) {
+            startSinglePlayerIZombie(stage);
+            return;
+        }
+        MatchmakingService matchmaking = NetworkMatchServices.matchmaking();
+        if (matchmaking != null) {
+            matchmaking.setListener(null);
+        }
+        IZombieMatchmakingController matchmakingController = new IZombieMatchmakingController(
+                user,
+                userDatabase,
+                matchmaking,
+                NetworkMatchServices.userStatus(),
+                NetworkMatchServices.directory(),
+                NetworkMatchServices.matchSync(),
+                stage);
+        navigator.push(matchmakingController);
+        if (matchmaking != null) {
+            matchmaking.setListener(matchmakingController);
+        }
+    }
+
+    public static void launchNetworkedIZombieMatch(
+            Navigator navigator,
+            User user,
+            MatchStartPayload start,
+            MatchSyncService matchSyncService,
+            MiniGameStageConfig stage) {
+        if (start == null || start.getMatchId() == null || start.getMatchId().isBlank()) {
+            return;
+        }
+        String activeMatchId = matchSyncService.matchId();
+        if (activeMatchId != null && activeMatchId.equals(start.getMatchId())) {
+            return;
+        }
+        MiniGameStageConfig resolvedStage = MiniGameStageConfig.iZombieNetwork();
+        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombieRegistry = loadZombieRegistry();
+        NetworkedIZombieMode mode = new NetworkedIZombieMode(resolvedStage, plantRegistry, zombieRegistry, new Random());
+        GameSession session = start.getYourRole() == MatchRole.PLANT
+                ? mode.createHostSession()
+                : mode.createGuestSession();
+        session.start();
+        NetworkedIZombieController controller = new NetworkedIZombieController(
+                user,
+                mode,
+                session,
+                resolvedStage,
+                start.getYourRole(),
+                matchSyncService,
+                start.getOpponentUsername(),
+                start);
+        matchSyncService.registerMatch(start, session);
+        matchSyncService.setListener(controller::handleNetworkMatchEnd);
+        NetworkMatchServices.matchmaking().setListener(null);
+        navigator.push(controller);
+    }
+
+    private void startSinglePlayerIZombie(MiniGameStageConfig stage) {
         PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
         ZombieRegistry zombieRegistry = loadZombieRegistry();
         IZombieMode mode = new IZombieMode(stage, plantRegistry, zombieRegistry, new Random());

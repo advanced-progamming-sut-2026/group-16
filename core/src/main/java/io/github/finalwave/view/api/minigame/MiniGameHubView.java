@@ -30,4 +30,6 @@ public interface MiniGameHubView extends View {
     void errorStageLocked(int stage);
 
     void errorStageNotFound(int stage);
+
+    boolean preferLobbyForIZombie();
 }

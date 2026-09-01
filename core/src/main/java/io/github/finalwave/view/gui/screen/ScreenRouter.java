@@ -7,14 +7,18 @@ import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.AdventureController;
 import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.CollectionController;
+import io.github.finalwave.controller.CouchIZombieController;
 import io.github.finalwave.controller.GameController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.GreenhouseController;
 import io.github.finalwave.controller.IZombieController;
+import io.github.finalwave.controller.IZombieMatchmakingController;
+import io.github.finalwave.network.match.ListMatchUsersResponse;
 import io.github.finalwave.controller.LeaderboardController;
 import io.github.finalwave.controller.LoginController;
 import io.github.finalwave.controller.MainMenuController;
 import io.github.finalwave.controller.MiniGameHubController;
+import io.github.finalwave.controller.NetworkedIZombieController;
 import io.github.finalwave.controller.NewsController;
 import io.github.finalwave.controller.PlantSelectionController;
 import io.github.finalwave.controller.ProfileController;
@@ -57,6 +61,7 @@ public final class ScreenRouter {
     private PlantSelectionScreen plantSelectionScreen;
     private GamePlayScreen gamePlayScreen;
     private MiniGameHubScreen miniGameHubScreen;
+    private IZombieMatchmakingScreen iZombieMatchmakingScreen;
     private ComingSoonScreen comingSoonScreen;
     private ScoreGameScreen scoreGameScreen;
 
@@ -85,6 +90,9 @@ public final class ScreenRouter {
                 || controller instanceof VaseBreakerController
                 || controller instanceof WalnutBowlingController
                 || controller instanceof IZombieController
+                || controller instanceof NetworkedIZombieController
+                || controller instanceof CouchIZombieController
+                || controller instanceof IZombieMatchmakingController
                 || controller instanceof BeghouledController
                 || controller instanceof ZombotanyController;
     }
@@ -140,6 +148,12 @@ public final class ScreenRouter {
             showGamePlay(walnutBowlingController);
         } else if (controller instanceof IZombieController iZombieController) {
             showGamePlay(iZombieController);
+        } else if (controller instanceof NetworkedIZombieController networkedIZombieController) {
+            showGamePlay(networkedIZombieController);
+        } else if (controller instanceof CouchIZombieController couchIZombieController) {
+            showGamePlay(couchIZombieController);
+        } else if (controller instanceof IZombieMatchmakingController matchmakingController) {
+            showIZombieMatchmaking(matchmakingController);
         } else if (controller instanceof BeghouledController beghouledController) {
             showGamePlay(beghouledController);
         } else if (controller instanceof ZombotanyController zombotanyController) {
@@ -313,6 +327,78 @@ public final class ScreenRouter {
         setScreen(gamePlayScreen);
     }
 
+    public void showGamePlay(NetworkedIZombieController controller) {
+        if (gamePlayScreen == null) {
+            gamePlayScreen = new GamePlayScreen(game);
+        }
+        gamePlayScreen.bind(controller);
+        setScreen(gamePlayScreen);
+    }
+
+    public void showGamePlay(CouchIZombieController controller) {
+        if (gamePlayScreen == null) {
+            gamePlayScreen = new GamePlayScreen(game);
+        }
+        gamePlayScreen.bind(controller);
+        setScreen(gamePlayScreen);
+    }
+
+    public void showIZombieMatchmaking(IZombieMatchmakingController controller) {
+        if (iZombieMatchmakingScreen == null) {
+            iZombieMatchmakingScreen = new IZombieMatchmakingScreen(game);
+        }
+        iZombieMatchmakingScreen.bind(controller);
+        setScreen(iZombieMatchmakingScreen);
+    }
+
+    public void refreshIZombieMatchmaking() {
+        if (iZombieMatchmakingScreen != null) {
+            iZombieMatchmakingScreen.refresh();
+        }
+    }
+
+    public void showIZombieMatchmakingSearching(boolean searching) {
+        if (iZombieMatchmakingScreen != null) {
+            iZombieMatchmakingScreen.showSearching(searching);
+        }
+    }
+
+    public void showChallengeInvite(String inviteId, String fromUsername) {
+        if (iZombieMatchmakingScreen != null) {
+            iZombieMatchmakingScreen.showInvite(inviteId, fromUsername);
+        }
+    }
+
+    public void hideChallengeInvite() {
+        if (iZombieMatchmakingScreen != null) {
+            iZombieMatchmakingScreen.hideInvite();
+        }
+    }
+
+    public void toastMatchmakingError(String message) {
+        if (iZombieMatchmakingScreen != null) {
+            iZombieMatchmakingScreen.toastError(message);
+        }
+    }
+
+    public void toastMatchmakingMessage(String message) {
+        if (iZombieMatchmakingScreen != null) {
+            iZombieMatchmakingScreen.toastMessage(message);
+        }
+    }
+
+    public void showIZombieMatchmakingDirectory(ListMatchUsersResponse response) {
+        if (iZombieMatchmakingScreen != null) {
+            iZombieMatchmakingScreen.updatePlayerDirectory(response);
+        }
+    }
+
+    public void selectIZombieMatchmakingUsername(String username) {
+        if (iZombieMatchmakingScreen != null) {
+            iZombieMatchmakingScreen.selectUsername(username);
+        }
+    }
+
     public void showGamePlay(BeghouledController controller) {
         if (gamePlayScreen == null) {
             gamePlayScreen = new GamePlayScreen(game);
@@ -413,6 +499,12 @@ public final class ScreenRouter {
     public void refreshGamePlayHud() {
         if (gamePlayScreen != null) {
             gamePlayScreen.refreshHud();
+        }
+    }
+
+    public void dismissGamePlayResult() {
+        if (gamePlayScreen != null) {
+            gamePlayScreen.dismissResult();
         }
     }
 

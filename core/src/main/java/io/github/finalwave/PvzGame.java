@@ -4,12 +4,19 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import io.github.finalwave.controller.AppBootstrap;
+import io.github.finalwave.model.App;
 import io.github.finalwave.network.NetworkManager;
 import io.github.finalwave.network.NetworkPingProbe;
 import io.github.finalwave.login.NetworkLoginGateway;
 import io.github.finalwave.leaderboard.NetworkLeaderboardGateway;
 import io.github.finalwave.score.NetworkScoreSubmitGateway;
 import io.github.finalwave.network.sync.ProgressSyncService;
+import io.github.finalwave.network.match.MatchLaunchBridge;
+import io.github.finalwave.network.match.MatchDirectoryService;
+import io.github.finalwave.network.match.MatchmakingService;
+import io.github.finalwave.network.match.MatchSyncService;
+import io.github.finalwave.network.match.NetworkMatchServices;
+import io.github.finalwave.network.match.UserStatusService;
 import io.github.finalwave.registration.NetworkRegistrationGateway;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.bind.GuiNavigationBinder;
@@ -28,6 +35,10 @@ public final class PvzGame extends Game {
     private BootScreen bootScreen;
     private NetworkManager networkManager;
     private ProgressSyncService progressSyncService;
+    private MatchmakingService matchmakingService;
+    private MatchSyncService matchSyncService;
+    private UserStatusService userStatusService;
+    private MatchDirectoryService matchDirectoryService;
     private boolean applicationStarted;
 
     @Override
@@ -42,6 +53,16 @@ public final class PvzGame extends Game {
                 NETWORK_HOST,
                 NETWORK_PORT
         );
+        matchmakingService = new MatchmakingService(networkManager);
+        matchSyncService = new MatchSyncService(networkManager);
+        userStatusService = new UserStatusService(networkManager);
+        matchDirectoryService = new MatchDirectoryService(networkManager);
+        NetworkMatchServices.install(
+                networkManager,
+                matchmakingService,
+                matchSyncService,
+                userStatusService,
+                matchDirectoryService);
         UserDatabase.getInstance().addWriteListener(progressSyncService);
         networkManager.addConnectionListener(progressSyncService);
         new NetworkPingProbe(networkManager).start(NETWORK_HOST, NETWORK_PORT);
@@ -67,6 +88,11 @@ public final class PvzGame extends Game {
             return;
         }
         applicationStarted = true;
+        MatchLaunchBridge.install(
+                matchmakingService,
+                matchSyncService,
+                bootstrap::navigator,
+                () -> App.getInstance().getCurrentUser());
         bootstrap.start();
     }
 

@@ -105,6 +105,11 @@ public final class BattlefieldGroup extends WidgetGroup {
     private SandstormSync sandstormSync;
     private BeachTideSync beachTideSync;
     private Predicate<Sun> sunCollector;
+    private boolean networkReplayProjectiles;
+
+    public void setNetworkReplayProjectiles(boolean networkReplayProjectiles) {
+        this.networkReplayProjectiles = networkReplayProjectiles;
+    }
 
     public BattlefieldGroup() {
         setFillParent(true);
@@ -382,7 +387,8 @@ public final class BattlefieldGroup extends WidgetGroup {
             pianoObstacleSync.sync(session);
         }
         if (projectileSync != null) {
-            projectileSync.sync(session, tickFraction);
+            float projectileFraction = networkReplayProjectiles ? 0f : tickFraction;
+            projectileSync.sync(session, projectileFraction);
             sortByRow(projectileLayer, BattlefieldGroup::sortKey);
         }
         if (zombieSync != null || arcadeObstacleSync != null || pianoObstacleSync != null) {
