@@ -8,6 +8,7 @@ import io.github.finalwave.model.game.entity.plant.PlantStatsCalculator;
 import io.github.finalwave.model.game.entity.plant.PlantTag;
 import io.github.finalwave.model.game.entity.plant.support.ImitaterMorphSupport;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
+import io.github.finalwave.model.item.PlantFoodDrop;
 import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.model.item.SunType;
 import io.github.finalwave.model.minigame.GroundSeedPacket;
@@ -22,6 +23,7 @@ final class GameSessionPlanting {
 
     private final GameSession session;
     private final List<Sun> sunItems = new ArrayList<>();
+    private final List<PlantFoodDrop> plantFoodDrops = new ArrayList<>();
     private final List<Vase> vases = new ArrayList<>();
     private final List<GroundSeedPacket> groundSeedPackets = new ArrayList<>();
     private int seedPacketExpiryTicks = 100;
@@ -32,6 +34,10 @@ final class GameSessionPlanting {
 
     List<Sun> getSunItems() {
         return List.copyOf(sunItems);
+    }
+
+    List<PlantFoodDrop> getPlantFoodDrops() {
+        return List.copyOf(plantFoodDrops);
     }
 
     List<Vase> getVases() {
@@ -354,6 +360,45 @@ final class GameSessionPlanting {
             }
         }
         return collectSun(target);
+    }
+
+    void spawnPlantFoodDrop(int col, int row, double worldX) {
+        if (session.getPlantFoodCount() >= GameSession.MAX_PLANT_FOOD) {
+            return;
+        }
+        int clampedCol = Math.max(0, Math.min(session.getBoard().getCols() - 1, col));
+        int clampedRow = Math.max(0, Math.min(session.getBoard().getRows() - 1, row));
+        plantFoodDrops.add(new PlantFoodDrop(clampedCol, clampedRow, worldX));
+    }
+
+    boolean collectPlantFood(PlantFoodDrop drop) {
+        if (drop == null || !plantFoodDrops.contains(drop) || drop.isConsumed()) {
+            return false;
+        }
+        if (session.getPlantFoodCount() >= GameSession.MAX_PLANT_FOOD) {
+            return false;
+        }
+        if (!plantFoodDrops.remove(drop)) {
+            return false;
+        }
+        drop.consume();
+        session.addPlantFood(1);
+        MatchListener matchListener = session.getMatchListener();
+        if (matchListener != null) {
+            matchListener.onGlowingZombieDroppedFood(session.getPlantFoodCount());
+        }
+        return true;
+    }
+
+    boolean collectPlantFoodAt(int col, int row) {
+        PlantFoodDrop target = null;
+        for (PlantFoodDrop drop : plantFoodDrops) {
+            if (drop.getCol() == col && drop.getRow() == row && !drop.isConsumed()) {
+                target = drop;
+                break;
+            }
+        }
+        return collectPlantFood(target);
     }
 
     void spawnSunItem(Sun sun) {

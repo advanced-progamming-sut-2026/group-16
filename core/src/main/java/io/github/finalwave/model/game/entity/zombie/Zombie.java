@@ -26,6 +26,7 @@ public final class Zombie extends Entity {
     private double permanentSpeedMultiplier = 1.0;
     private double permanentEatingDamageMultiplier = 1.0;
     private boolean glowing;
+    private boolean powderDeath;
     private ZombieState state;
     private int tickAge;
     private boolean hypnotized;
@@ -743,6 +744,14 @@ public final class Zombie extends Entity {
 
     public void setGlowing(boolean g) {
         this.glowing = g;
+    }
+
+    public void markPowderDeath() {
+        powderDeath = true;
+    }
+
+    public boolean shouldPowderOnDeath() {
+        return powderDeath;
     }
 
     public void markSandstormSpawn() {

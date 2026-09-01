@@ -239,10 +239,10 @@ final class GameSessionCombat {
             matchListener.onZombieDied(zombie.getType(), zombie.getX(), zombie.getRow());
         }
         if (zombie.isGlowing() && session.getPlantFoodCount() < GameSession.MAX_PLANT_FOOD) {
-            session.addPlantFood(1);
-            if (matchListener != null) {
-                matchListener.onGlowingZombieDroppedFood(session.getPlantFoodCount());
-            }
+            session.spawnPlantFoodDrop(
+                    (int) Math.floor(zombie.getX()),
+                    zombie.getRow(),
+                    zombie.getX());
         }
         rollZombieLootDrop();
         int currentTick = session.getCurrentTick();
@@ -487,6 +487,7 @@ final class GameSessionCombat {
             }
             int zCol = (int) Math.floor(zombie.getX());
             if (Math.abs(zCol - col) <= 2 && Math.abs(zombie.getRow() - row) <= 2) {
+                zombie.markPowderDeath();
                 zombie.takeDirectDamage(150);
                 if (zombie.isDead()) {
                     session.handleZombieKilled(zombie);

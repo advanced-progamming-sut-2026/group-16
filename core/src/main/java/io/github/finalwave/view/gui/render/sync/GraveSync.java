@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.render.sync;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -12,6 +13,7 @@ import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.PendingGraveLanding;
 import io.github.finalwave.model.game.board.GameBoard;
 import io.github.finalwave.model.game.board.tile.GraveTile;
+import io.github.finalwave.model.game.board.tile.NecromancyTile;
 import io.github.finalwave.model.game.board.tile.Tile;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.view.gui.assets.GameAssets;
@@ -29,6 +31,8 @@ import java.util.Map;
 
 
 public final class GraveSync {
+    private static final Color NECROMANCY_TINT = new Color(0.82f, 0.62f, 1f, 1f);
+
     private final GameAssets assets;
     private final LawnLayout layout;
     private final Group layer;
@@ -163,6 +167,7 @@ public final class GraveSync {
         String path = GraveClips.pathFor(chapterId, grave.getLoot());
         String clip = GraveClips.clipFor(grave.getHealth(), grave.getMaxHealth());
         actor.setClip(path, clip, LawnLayout.GRAVE_SCALE, true);
+        actor.setTint(grave instanceof NecromancyTile ? NECROMANCY_TINT : Color.WHITE);
         actor.setUserObject(row);
         hits.observe(grave, grave.getHealth(), actor);
     }

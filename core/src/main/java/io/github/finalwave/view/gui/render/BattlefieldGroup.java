@@ -36,7 +36,9 @@ import io.github.finalwave.view.gui.render.sync.KiwibeastPulseSync;
 import io.github.finalwave.view.gui.render.sync.LawnBurstSync;
 import io.github.finalwave.view.gui.render.sync.MintSync;
 import io.github.finalwave.view.gui.render.sync.MowerSync;
+import io.github.finalwave.view.gui.render.sync.NecromancyTileSync;
 import io.github.finalwave.view.gui.render.sync.PhatBeetPulseSync;
+import io.github.finalwave.view.gui.render.sync.PlantFoodDropSync;
 import io.github.finalwave.view.gui.render.sync.PlantSync;
 import io.github.finalwave.view.gui.render.sync.ProjectileSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
@@ -79,6 +81,7 @@ public final class BattlefieldGroup extends WidgetGroup {
     private ZombieSync zombieSync;
     private ProjectileSync projectileSync;
     private SunSync sunSync;
+    private PlantFoodDropSync plantFoodDropSync;
     private MowerSync mowerSync;
     private ProtectTileSync protectTileSync;
     private GraveSync graveSync;
@@ -104,7 +107,9 @@ public final class BattlefieldGroup extends WidgetGroup {
     private LawnBurstSync lawnBurstSync;
     private SandstormSync sandstormSync;
     private BeachTideSync beachTideSync;
+    private NecromancyTileSync necromancyTileSync;
     private Predicate<Sun> sunCollector;
+    private Predicate<io.github.finalwave.model.item.PlantFoodDrop> plantFoodCollector;
     private boolean networkReplayProjectiles;
 
     public void setNetworkReplayProjectiles(boolean networkReplayProjectiles) {
@@ -151,6 +156,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             zombieSync = null;
             projectileSync = null;
             sunSync = null;
+            plantFoodDropSync = null;
             mowerSync = null;
             protectTileSync = null;
             graveSync = null;
@@ -174,6 +180,7 @@ public final class BattlefieldGroup extends WidgetGroup {
             lawnBurstSync = null;
             sandstormSync = null;
             beachTideSync = null;
+            necromancyTileSync = null;
             mintSync = null;
             return;
         }
@@ -187,6 +194,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         zombieSync = new ZombieSync(assets, layout, new ZombieClips(catalog), new PlantClips(catalog), zombieLayer);
         projectileSync = new ProjectileSync(assets, layout, projectileClips, projectileLayer);
         sunSync = new SunSync(assets, layout, sunLayer, this::collectSun);
+        plantFoodDropSync = new PlantFoodDropSync(assets, layout, sunLayer, this::collectPlantFood);
         mowerSync = new MowerSync(assets, layout, mowerLayer);
         protectTileSync = new ProtectTileSync(layout, environmentLayer);
         graveSync = new GraveSync(assets, layout, environmentLayer);
@@ -212,6 +220,7 @@ public final class BattlefieldGroup extends WidgetGroup {
         lawnBurstSync = new LawnBurstSync(assets, layout, fxLayer);
         sandstormSync = new SandstormSync(assets, layout, environmentLayer, fxLayer);
         beachTideSync = new BeachTideSync(layout, environmentLayer, highlightLayer);
+        necromancyTileSync = new NecromancyTileSync(layout, environmentLayer);
     }
 
     public void setShakeListener(BiConsumer<Float, Float> listener) {
@@ -261,9 +270,34 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
     }
 
+    public void setPlantFoodCollector(Predicate<io.github.finalwave.model.item.PlantFoodDrop> collector) {
+        this.plantFoodCollector = collector;
+    }
+
+    public void setPlantFoodHudTarget(Supplier<Vector2> hudStageTarget) {
+        if (plantFoodDropSync != null) {
+            plantFoodDropSync.setHudStageTarget(hudStageTarget);
+        }
+    }
+
+    public void setPlantFoodArrived(IntConsumer onArrived) {
+        if (plantFoodDropSync != null) {
+            plantFoodDropSync.setOnArrived(onArrived);
+        }
+    }
+
+    public void setPlantFoodFlightsAborted(Runnable onAborted) {
+        if (plantFoodDropSync != null) {
+            plantFoodDropSync.setOnAborted(onAborted);
+        }
+    }
+
     public void tickSunFlights(float delta) {
         if (sunSync != null) {
             sunSync.tickFlights(delta);
+        }
+        if (plantFoodDropSync != null) {
+            plantFoodDropSync.tickFlights(delta);
         }
     }
 
@@ -307,6 +341,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (beachTideSync != null) {
             beachTideSync.sync(session);
+        }
+        if (necromancyTileSync != null) {
+            necromancyTileSync.sync(session);
         }
         if (bossFxSync != null) {
             bossFxSync.sync(session);
@@ -403,6 +440,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (sunSync != null) {
             sunSync.sync(session, tickFraction);
         }
+        if (plantFoodDropSync != null) {
+            plantFoodDropSync.sync(session);
+        }
     }
 
     public void setPlaying(boolean playing) {
@@ -471,6 +511,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         if (sunSync != null) {
             sunSync.clear();
         }
+        if (plantFoodDropSync != null) {
+            plantFoodDropSync.clear();
+        }
         if (mowerSync != null) {
             mowerSync.clear();
         }
@@ -515,6 +558,9 @@ public final class BattlefieldGroup extends WidgetGroup {
         }
         if (beachTideSync != null) {
             beachTideSync.clear();
+        }
+        if (necromancyTileSync != null) {
+            necromancyTileSync.clear();
         }
         if (scorchedEarthSync != null) {
             scorchedEarthSync.clear();
@@ -596,6 +642,10 @@ public final class BattlefieldGroup extends WidgetGroup {
 
     private boolean collectSun(Sun sun) {
         return sunCollector != null && sunCollector.test(sun);
+    }
+
+    private boolean collectPlantFood(io.github.finalwave.model.item.PlantFoodDrop drop) {
+        return plantFoodCollector != null && plantFoodCollector.test(drop);
     }
 
     private static int sortKey(Actor actor) {

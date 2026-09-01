@@ -368,10 +368,7 @@ public final class BoardGameContext implements GameContext {
             int zombieCol = (int) Math.floor(zombie.getX());
             if (Math.abs(zombieCol - centerCol) <= tileRadius
                     && Math.abs(zombie.getRow() - centerRow) <= tileRadius) {
-                zombie.takeDamage(totalDamage);
-                if (zombie.isDead()) {
-                    onZombieKilled(zombie);
-                }
+                damageZombieByExplosion(zombie, totalDamage);
             }
         }
     }
@@ -496,10 +493,7 @@ public final class BoardGameContext implements GameContext {
                 continue;
             }
             if (zombieInBlast(zombie, centerCol, centerRow, radius)) {
-                zombie.takeDamage(damage);
-                if (zombie.isDead()) {
-                    onZombieKilled(zombie);
-                }
+                damageZombieByExplosion(zombie, damage);
             }
         }
         session.queueLawnBurst(new LawnBurst(LawnBurst.Kind.CHERRY, centerCol, centerRow));
@@ -518,10 +512,7 @@ public final class BoardGameContext implements GameContext {
                 continue;
             }
             if (zombieInExplosion(plant, zombie, centerCol, centerRow, radius)) {
-                zombie.takeDamage(totalDamage);
-                if (zombie.isDead()) {
-                    onZombieKilled(zombie);
-                }
+                damageZombieByExplosion(zombie, totalDamage);
             }
         }
         for (PlantCovering covering : session.getPlantCoverings()) {
@@ -1668,5 +1659,16 @@ public final class BoardGameContext implements GameContext {
             }
         }
         return result;
+    }
+
+    private void damageZombieByExplosion(Zombie zombie, int damage) {
+        if (zombie == null || zombie.isDead()) {
+            return;
+        }
+        zombie.markPowderDeath();
+        zombie.takeDamage(damage);
+        if (zombie.isDead()) {
+            onZombieKilled(zombie);
+        }
     }
 }

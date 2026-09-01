@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.hud;
 
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -76,6 +77,11 @@ public final class PlantFoodCounter extends WidgetGroup {
     public void setCount(int count) {
         this.count = Math.max(0, Math.min(SLOT_COUNT, count));
         refreshSlots();
+    }
+
+    public Vector2 iconCenterStage(Vector2 out) {
+        Vector2 point = out == null ? new Vector2() : out;
+        return orbLeaf.localToStageCoordinates(point.set(orbLeaf.getWidth() * 0.5f, orbLeaf.getHeight() * 0.5f));
     }
 
     @Override

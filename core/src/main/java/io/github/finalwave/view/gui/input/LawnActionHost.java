@@ -12,6 +12,8 @@ public interface LawnActionHost {
 
     boolean collectSunAt(int col, int row);
 
+    boolean collectPlantFoodAt(int col, int row);
+
     boolean shovelAt(int col, int row);
 
     boolean feedAt(int col, int row);

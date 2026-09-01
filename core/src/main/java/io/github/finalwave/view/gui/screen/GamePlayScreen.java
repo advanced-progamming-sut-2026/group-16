@@ -99,6 +99,8 @@ import io.github.finalwave.view.gui.render.sync.PianoObstacleSync;
 import io.github.finalwave.view.gui.render.sync.ProtectTileSync;
 import io.github.finalwave.view.gui.render.sync.SandstormSync;
 import io.github.finalwave.view.gui.render.sync.SlipperyTileSync;
+import io.github.finalwave.view.gui.render.clip.ZombieDeathLooks;
+import io.github.finalwave.view.gui.render.sync.PlantFoodDropSync;
 import io.github.finalwave.view.gui.render.sync.SunSync;
 import io.github.finalwave.view.gui.render.sync.VaseSync;
 
@@ -148,6 +150,7 @@ public final class GamePlayScreen extends MenuScreen {
     private Table hudBottom;
     private SunCounter sunCounter;
     private final Vector2 sunHudTmp = new Vector2();
+    private final Vector2 plantFoodHudTmp = new Vector2();
     private TimedWarPanel timedWarPanel;
     private LoveYourPlantsCounter loveYourPlantsCounter;
     private MeowPointBanner meowPointBanner;
@@ -340,10 +343,12 @@ public final class GamePlayScreen extends MenuScreen {
                 cursorLayer,
                 this::inputBlocked);
         battlefield.setSunCollector(sun -> input != null && input.collectSun(sun));
+        battlefield.setPlantFoodCollector(drop -> input != null && input.collectPlantFood(drop));
         battlefield.setBeghouledController(beghouled, this::inputBlocked);
         battlefield.setShakeListener(screenShake::trigger);
         buildHud();
         battlefield.setSunHudTarget(this::sunHudCenter);
+        battlefield.setPlantFoodHudTarget(this::plantFoodHudCenter);
         battlefield.setSunDeferred(amount -> {
             if (sunCounter != null) {
                 sunCounter.hold(amount);
@@ -357,6 +362,12 @@ public final class GamePlayScreen extends MenuScreen {
         battlefield.setSunFlightsAborted(() -> {
             if (sunCounter != null) {
                 sunCounter.clearHeld();
+            }
+        });
+        battlefield.setPlantFoodArrived(amount -> {
+            GameSession active = matchSession();
+            if (plantFoodCounter != null && active != null) {
+                plantFoodCounter.setCount(active.getPlantFoodCount());
             }
         });
         icebergFlashOverlay = new IcebergFlashOverlay();
@@ -1229,6 +1240,13 @@ public final class GamePlayScreen extends MenuScreen {
         return sunCounter.iconCenterStage(sunHudTmp);
     }
 
+    private Vector2 plantFoodHudCenter() {
+        if (plantFoodCounter == null || !plantFoodCounter.hasParent() || !plantFoodCounter.isVisible()) {
+            return null;
+        }
+        return plantFoodCounter.iconCenterStage(plantFoodHudTmp);
+    }
+
     private void onAddSun() {
         User user = matchUser();
         if (user == null || !user.isDebugMode()) {
@@ -1743,6 +1761,11 @@ public final class GamePlayScreen extends MenuScreen {
         preload(ArcadeObstacleSync.PAM_PATH);
         preload(PianoObstacleSync.PAM_PATH);
         preload(SunSync.SUN_PATH);
+        preload(PlantFoodDropSync.PICKUP_PATH);
+        preload(ZombieDeathLooks.ASH_PATH);
+        preload(ZombieDeathLooks.BIG_ASH_PATH);
+        preload(ZombieDeathLooks.IMP_ASH_PATH);
+        preload(ZombieDeathLooks.GARG_ASH_PATH);
         preload(mowerPath(ChapterId.fromName(session.getChapterId())));
         if (ChapterId.fromName(session.getChapterId()) == ChapterId.ANCIENT_EGYPT) {
             preload(SandstormSync.REAR_PATH);
