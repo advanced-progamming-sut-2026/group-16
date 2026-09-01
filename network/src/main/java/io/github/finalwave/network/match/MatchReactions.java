@@ -8,22 +8,22 @@ public final class MatchReactions {
 
     private static final String[] MESSAGES = {
             "Good luck!",
-            "Too easy!",
-            "Well played.",
+            "Well played!",
+            "Thanks!",
+            "Good game!",
     };
 
-    private static final String[] FACES = {"Nice one!", "Brains!", "Boom!"};
+    private static final String[] FACES = {"❤️", "🔥", "💀", "💪"};
 
-    private static final String[] STICKERS = {"Sunflower", "Peashooter", "Normal"};
+    private static final String[] STICKERS = {"Chomper", "Jalapeno", "Bonk Choy"};
 
-    private static final String[] STICKER_LABELS = {
-            "Dancing Sunflower", "Cheering Peashooter", "Taunting Zombie",
-    };
+    private static final String[] STICKER_LABELS = {"Chomper", "Jalapeno", "Bonk Choy"};
 
     private static final String[] FULL_MESSAGES = {
-            "Good luck out there!",
-            "Is that the best you have?",
-            "Well played.",
+            "Good luck!",
+            "Well played!",
+            "Thanks!",
+            "Good game!",
     };
 
     private MatchReactions() {
@@ -45,22 +45,40 @@ public final class MatchReactions {
         return STICKER_LABELS.clone();
     }
 
+    public static int textCount() {
+        return MESSAGES.length;
+    }
+
+    public static int emojiCount() {
+        return FACES.length;
+    }
+
+    public static int stickerCount() {
+        return STICKERS.length;
+    }
+
     public static int count() {
         return MESSAGES.length;
     }
 
     public static String describe(String kind, int index) {
-        int safe = Math.max(0, Math.min(count() - 1, index));
         if (EMOJI.equals(kind)) {
-            return FACES[safe];
+            return FACES[clamp(index, FACES.length)];
         }
         if (STICKER.equals(kind)) {
-            return STICKER_LABELS[safe];
+            return STICKER_LABELS[clamp(index, STICKER_LABELS.length)];
         }
-        return FULL_MESSAGES[safe];
+        return FULL_MESSAGES[clamp(index, FULL_MESSAGES.length)];
     }
 
     public static String hint(String kind, int index) {
         return describe(kind, index);
+    }
+
+    private static int clamp(int index, int length) {
+        if (length <= 0) {
+            return 0;
+        }
+        return Math.max(0, Math.min(length - 1, index));
     }
 }

@@ -40,6 +40,7 @@ import io.github.finalwave.model.minigame.GroundSeedPacket;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
 import io.github.finalwave.model.minigame.beghouled.BeghouledUpgradeRule;
 import io.github.finalwave.model.minigame.izombie.IZombieHandler;
+import io.github.finalwave.network.match.MatchReactionPayload;
 import io.github.finalwave.network.match.MatchRole;
 import io.github.finalwave.model.scoregame.MeowPointBreakdown;
 import io.github.finalwave.model.user.User;
@@ -47,6 +48,7 @@ import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.hud.AlertBanner;
 import io.github.finalwave.view.gui.hud.CouchPickOverlay;
+import io.github.finalwave.view.gui.hud.ChatIconButton;
 import io.github.finalwave.view.gui.hud.DuelPickOverlay;
 import io.github.finalwave.view.gui.hud.LevelObjectiveBanner;
 import io.github.finalwave.view.gui.hud.MatchResultModal;
@@ -56,8 +58,9 @@ import io.github.finalwave.view.gui.hud.NpcDialogScript;
 import io.github.finalwave.view.gui.hud.PauseButton;
 import io.github.finalwave.view.gui.hud.PauseModal;
 import io.github.finalwave.view.gui.hud.PlantFoodCounter;
-import io.github.finalwave.view.gui.hud.ReactionBar;
+import io.github.finalwave.view.gui.hud.ReactionDrawer;
 import io.github.finalwave.view.gui.hud.ReactionToast;
+import io.github.finalwave.view.gui.hud.ReactionUiMetrics;
 import io.github.finalwave.view.gui.hud.SeedBankBar;
 import io.github.finalwave.view.gui.hud.ShovelButton;
 import io.github.finalwave.view.gui.hud.SpeedButton;
@@ -146,7 +149,6 @@ public final class GamePlayScreen extends MenuScreen {
     private ConveyorBeltBar conveyorBeltBar;
     private StartWaveButton startWaveButton;
     private DuelPickOverlay duelPickOverlay;
-    private ReactionBar reactionBar;
     private Label duelClockLabel;
     private Table hudTop;
     private Table hudBottom;
@@ -496,8 +498,7 @@ public final class GamePlayScreen extends MenuScreen {
             clock.setPaused(false);
             clock.setResultShowing(false);
         }
-        networkedIZombie.setReactionViewListener(payload ->
-                ReactionToast.show(modalLayer, assets.skin(), payload));
+        networkedIZombie.setReactionViewListener(this::showMatchReaction);
         networkedIZombie.setPhaseChangeListener(ignored -> rebuildDuelOverlays());
         rebuildDuelOverlays();
         buildHud();
@@ -514,14 +515,7 @@ public final class GamePlayScreen extends MenuScreen {
             duelPickOverlay.remove();
             duelPickOverlay = null;
         }
-        if (reactionBar != null) {
-            if (reactionBar.getParent() != null) {
-                reactionBar.getParent().remove();
-            } else {
-                reactionBar.remove();
-            }
-            reactionBar = null;
-        }
+        ReactionDrawer.close(modalLayer);
         if (networkedIZombie == null) {
             return;
         }
@@ -538,12 +532,35 @@ public final class GamePlayScreen extends MenuScreen {
             hudLayer.setTouchable(Touchable.childrenOnly);
             buildHud();
         }
-        reactionBar = new ReactionBar(assets.skin(), (kind, index) -> networkedIZombie.sendReaction(kind, index));
-        Table holder = new Table();
-        holder.setFillParent(true);
-        holder.bottom().right().pad(12f);
-        holder.add(reactionBar);
-        modalLayer.addActor(holder);
+    }
+
+    private void showMatchReaction(MatchReactionPayload payload) {
+        if (payload == null || toastLayer == null) {
+            return;
+        }
+        float anchorY = ReactionUiMetrics.ANCHOR_Y;
+        float anchorX = ReactionUiMetrics.ANCHOR_X_ZOMBIE;
+        if (networkedPlantRole()) {
+            Vector2 plus = sunPlusHudCenter();
+            anchorX = plus == null ? ReactionUiMetrics.ANCHOR_X_PLANT_FALLBACK : plus.x;
+        }
+        ReactionToast.show(toastLayer, assets, payload, anchorX, anchorY);
+    }
+
+    private Vector2 sunPlusHudCenter() {
+        if (sunCounter == null || !sunCounter.hasParent() || !sunCounter.isVisible()) {
+            return null;
+        }
+        return sunCounter.plusCenterStage(sunHudTmp);
+    }
+
+    private void toggleReactionDrawer() {
+        if (networkedIZombie == null || networkedIZombie.isPicking()) {
+            return;
+        }
+        ReactionDrawer.toggle(modalLayer, stage.getViewport(), assets,
+                (kind, index) -> networkedIZombie.sendReaction(kind, index),
+                null);
     }
 
     public void dismissResult() {
@@ -983,6 +1000,7 @@ public final class GamePlayScreen extends MenuScreen {
 
     @Override
     public void dispose() {
+        ReactionDrawer.close(modalLayer);
         if (input != null) {
             input.dispose();
             input = null;
@@ -1025,6 +1043,10 @@ public final class GamePlayScreen extends MenuScreen {
         boolean hideShovel = hideAdventureTools() || beghouled != null || iZombie != null
                 || networkedZombieRole() || couchIZombie != null;
         Actor shovel = hideShovel ? null : ShovelButton.create(assets, this::onShovel);
+        boolean showReactionChat = networkedOnlineMatch()
+                && networkedIZombie != null
+                && !networkedIZombie.isPicking();
+        Actor chatIcon = showReactionChat ? ChatIconButton.create(assets, this::toggleReactionDrawer) : null;
 
         hudTop = new Table();
         if (!hideAdventureTools()) {
@@ -1088,8 +1110,16 @@ public final class GamePlayScreen extends MenuScreen {
             hudBottom.add(plantFoodCounter).left().padLeft(plantFoodPad()).padBottom(18f);
         }
         hudBottom.add().expandX();
-        if (shovel != null) {
-            hudBottom.add(shovel).size(84f).padRight(20f).padBottom(18f);
+        if (chatIcon != null || shovel != null) {
+            Table rightTools = new Table();
+            rightTools.top().right();
+            if (chatIcon != null) {
+                rightTools.add(chatIcon).size(84f).padBottom(shovel != null ? 8f : 0f).row();
+            }
+            if (shovel != null) {
+                rightTools.add(shovel).size(84f).row();
+            }
+            hudBottom.add(rightTools).padRight(20f).padBottom(18f);
         }
         hudLayer.add(hudBottom).growX();
         hudLayer.addActor(conveyorBeltBar);

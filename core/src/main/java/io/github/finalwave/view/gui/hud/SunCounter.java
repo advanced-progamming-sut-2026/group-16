@@ -33,6 +33,7 @@ public final class SunCounter extends Table {
 
     private final SunChip chip;
     private final Label value;
+    private final Actor plus;
     private float shown;
     private int actual;
     private int target;
@@ -44,7 +45,7 @@ public final class SunCounter extends Table {
     public SunCounter(GameAssets assets, Runnable onAdd) {
         chip = new SunChip(assets);
         value = chip.value();
-        Actor plus = PvzButtons.iconButton(assets.region(LawnAssetIds.HUD_PLUS), PLUS_SIZE, PLUS_SIZE, onAdd);
+        plus = PvzButtons.iconButton(assets.region(LawnAssetIds.HUD_PLUS), PLUS_SIZE, PLUS_SIZE, onAdd);
         add(chip).size(CHIP_WIDTH, CHIP_HEIGHT).padRight(PLUS_GAP);
         add(plus).size(PLUS_SIZE);
     }
@@ -107,6 +108,11 @@ public final class SunCounter extends Table {
         Vector2 point = out == null ? new Vector2() : out;
         Image icon = chip.icon();
         return icon.localToStageCoordinates(point.set(icon.getWidth() * 0.5f, icon.getHeight() * 0.5f));
+    }
+
+    public Vector2 plusCenterStage(Vector2 out) {
+        Vector2 point = out == null ? new Vector2() : out;
+        return plus.localToStageCoordinates(point.set(plus.getWidth() * 0.5f, plus.getHeight() * 0.5f));
     }
 
     public void pulse() {
