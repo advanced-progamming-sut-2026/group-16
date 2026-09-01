@@ -1,5 +1,6 @@
 package io.github.finalwave.view.gui.hud;
 
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.entity.plant.PlantArmor;
@@ -24,6 +25,7 @@ public final class ZombieRosterBar extends Table {
     private final Consumer<String> onSelect;
     private final List<PlantCardActor> cards = new ArrayList<>();
     private List<String> roster = List.of();
+    private String keyboardSelected;
 
     public ZombieRosterBar(GameAssets assets, Consumer<String> onSelect) {
         this.assets = assets;
@@ -32,6 +34,14 @@ public final class ZombieRosterBar extends Table {
         defaults().pad(CARD_GAP);
         top().left();
         setClip(false);
+    }
+
+    public void keyboardSelect(String alias) {
+        this.keyboardSelected = alias;
+    }
+
+    public void setInputEnabled(boolean enabled) {
+        setTouchable(enabled ? Touchable.childrenOnly : Touchable.disabled);
     }
 
     public void refresh(GameSession session, ToolMode mode) {
@@ -44,7 +54,12 @@ public final class ZombieRosterBar extends Table {
         if (!next.equals(roster)) {
             rebuild(next);
         }
-        String selected = mode instanceof ToolMode.Zombie zombie ? zombie.alias() : null;
+        String selected;
+        if (keyboardSelected != null) {
+            selected = keyboardSelected;
+        } else {
+            selected = mode instanceof ToolMode.Zombie zombie ? zombie.alias() : null;
+        }
         PlantArmor.PlantCooldownTracker cooldowns = session.getCooldownTracker();
         Map<String, Integer> costs = session.getIZombieZombieCosts();
         int sun = session.isIZombieActive() ? session.getIZombieSunBalance() : session.getSunBalance();

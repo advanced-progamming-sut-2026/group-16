@@ -1,7 +1,14 @@
 package io.github.finalwave.controller;
 
+import io.github.finalwave.model.App;
+import io.github.finalwave.model.definition.PlantRegistry;
+import io.github.finalwave.model.definition.ZombieRegistry;
+import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.minigame.MiniGameStageConfig;
+import io.github.finalwave.model.minigame.mode.IZombieMode;
+import io.github.finalwave.model.minigame.mode.NetworkedIZombieMode;
 import io.github.finalwave.model.user.User;
+import io.github.finalwave.model.user.UserDatabase;
 import io.github.finalwave.network.match.ChallengeFailReason;
 import io.github.finalwave.network.match.ChallengeInvitePayload;
 import io.github.finalwave.network.match.ListMatchUsersResponse;
@@ -13,9 +20,12 @@ import io.github.finalwave.network.match.UserStatus;
 import io.github.finalwave.network.match.UserStatusService;
 import io.github.finalwave.view.api.minigame.IZombieMatchmakingView;
 
+import java.util.Random;
+
 public final class IZombieMatchmakingController extends ViewController implements MatchmakingService.Listener {
 
     private final User user;
+    private final UserDatabase userDatabase;
     private final MatchmakingService matchmakingService;
     private final UserStatusService userStatusService;
     private final MatchDirectoryService matchDirectoryService;
@@ -24,12 +34,14 @@ public final class IZombieMatchmakingController extends ViewController implement
 
     public IZombieMatchmakingController(
             User user,
+            UserDatabase userDatabase,
             MatchmakingService matchmakingService,
             UserStatusService userStatusService,
             MatchDirectoryService matchDirectoryService,
             MatchSyncService matchSyncService,
             MiniGameStageConfig stage) {
         this.user = user;
+        this.userDatabase = userDatabase;
         this.matchmakingService = matchmakingService;
         this.userStatusService = userStatusService;
         this.matchDirectoryService = matchDirectoryService;
@@ -81,6 +93,30 @@ public final class IZombieMatchmakingController extends ViewController implement
 
     public void joinRandomQueue() {
         matchmakingService.joinRandomQueue();
+    }
+
+    public void startCouchPlay() {
+        leaveQueue();
+        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombieRegistry = MiniGameHubController.loadZombieRegistry();
+        MiniGameStageConfig duelStage = MiniGameStageConfig.iZombieNetwork();
+        NetworkedIZombieMode mode = new NetworkedIZombieMode(
+                duelStage, plantRegistry, zombieRegistry, new Random());
+        GameSession session = mode.createHostSession();
+        CouchIZombieController controller = new CouchIZombieController(user, mode, session, duelStage);
+        navigator.push(controller);
+        session.start();
+    }
+
+    public void startSinglePlayer() {
+        leaveQueue();
+        PlantRegistry plantRegistry = App.getInstance().getPlantRegistry();
+        ZombieRegistry zombieRegistry = MiniGameHubController.loadZombieRegistry();
+        IZombieMode mode = new IZombieMode(stage, plantRegistry, zombieRegistry, new Random());
+        GameSession session = mode.createSession();
+        IZombieController controller = new IZombieController(user, userDatabase, mode, session, stage);
+        navigator.push(controller);
+        session.start();
     }
 
     public void leaveQueue() {

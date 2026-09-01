@@ -1,6 +1,7 @@
 package io.github.finalwave.view.gui.input;
 
 import io.github.finalwave.controller.BeghouledController;
+import io.github.finalwave.controller.CouchIZombieController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.IZombieController;
 import io.github.finalwave.controller.NetworkedIZombieController;
@@ -16,6 +17,7 @@ public final class ControllerLawnHost implements LawnActionHost {
     private final WalnutBowlingController walnutBowling;
     private final IZombieController iZombie;
     private final NetworkedIZombieController networkedIZombie;
+    private final CouchIZombieController couchIZombie;
     private final BeghouledController beghouled;
     private final ZombotanyController zombotany;
 
@@ -25,6 +27,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
     }
@@ -35,6 +38,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
     }
@@ -45,6 +49,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = walnutBowling;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
     }
@@ -55,6 +60,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = iZombie;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
     }
@@ -65,6 +71,18 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = networkedIZombie;
+        this.couchIZombie = null;
+        this.beghouled = null;
+        this.zombotany = null;
+    }
+
+    public ControllerLawnHost(CouchIZombieController couchIZombie) {
+        this.gamePlay = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.iZombie = null;
+        this.networkedIZombie = null;
+        this.couchIZombie = couchIZombie;
         this.beghouled = null;
         this.zombotany = null;
     }
@@ -75,6 +93,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = beghouled;
         this.zombotany = null;
     }
@@ -85,6 +104,7 @@ public final class ControllerLawnHost implements LawnActionHost {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = zombotany;
     }
@@ -102,6 +122,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         }
         if (networkedIZombie != null) {
             return networkedIZombie.session();
+        }
+        if (couchIZombie != null) {
+            return couchIZombie.session();
         }
         if (beghouled != null) {
             return beghouled.session();
@@ -124,6 +147,10 @@ public final class ControllerLawnHost implements LawnActionHost {
         }
         if (networkedIZombie != null) {
             networkedIZombie.plantSeed(plantName, col, row);
+            return;
+        }
+        if (couchIZombie != null) {
+            couchIZombie.plantSeed(plantName, col, row);
             return;
         }
         if (iZombie != null || beghouled != null) {
@@ -160,6 +187,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         if (networkedIZombie != null) {
             return networkedIZombie.collectSunAt(col, row);
         }
+        if (couchIZombie != null) {
+            return couchIZombie.collectSunAt(col, row);
+        }
         if (beghouled != null) {
             return beghouled.collectSunAt(col, row);
         }
@@ -179,6 +209,9 @@ public final class ControllerLawnHost implements LawnActionHost {
         }
         if (networkedIZombie != null) {
             return networkedIZombie.shovelAt(col, row);
+        }
+        if (couchIZombie != null) {
+            return couchIZombie.shovelAt(col, row);
         }
         if (zombotany != null) {
             return zombotany.shovelAt(col, row);
@@ -208,6 +241,10 @@ public final class ControllerLawnHost implements LawnActionHost {
         }
         if (networkedIZombie != null) {
             networkedIZombie.placeZombie(alias, col, row);
+            return;
+        }
+        if (couchIZombie != null) {
+            couchIZombie.placeZombie(alias, col, row);
         }
     }
 }

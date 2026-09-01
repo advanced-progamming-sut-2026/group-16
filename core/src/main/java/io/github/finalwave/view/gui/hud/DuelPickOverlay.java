@@ -15,9 +15,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
-import io.github.finalwave.controller.NetworkedIZombieController;
 import io.github.finalwave.model.minigame.izombie.IZombieDuelCatalog;
-import io.github.finalwave.network.match.MatchRole;
+import io.github.finalwave.view.api.minigame.DuelPickController;
 import io.github.finalwave.view.gui.assets.GameAssets;
 import io.github.finalwave.view.gui.widget.PanelLabels;
 import io.github.finalwave.view.gui.widget.PlantCardActor;
@@ -44,7 +43,7 @@ public final class DuelPickOverlay extends Table {
     private static final Color HEADER_CREAM = Color.valueOf("FFFBE6");
 
     private final GameAssets assets;
-    private final NetworkedIZombieController controller;
+    private final DuelPickController controller;
     private final boolean zombieRole;
     private final List<PlantCardActor> poolCards = new ArrayList<>();
     private final Texture dimTexture;
@@ -56,10 +55,10 @@ public final class DuelPickOverlay extends Table {
     private List<String> lastPicks = List.of();
     private String focusedName;
 
-    public DuelPickOverlay(GameAssets assets, NetworkedIZombieController controller) {
+    public DuelPickOverlay(GameAssets assets, DuelPickController controller) {
         this.assets = assets;
         this.controller = controller;
-        this.zombieRole = controller.role() == MatchRole.ZOMBIE;
+        this.zombieRole = controller.zombieSide();
         setFillParent(true);
         setTouchable(Touchable.enabled);
 

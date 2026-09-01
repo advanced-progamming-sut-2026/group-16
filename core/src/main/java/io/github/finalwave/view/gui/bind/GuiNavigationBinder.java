@@ -3,6 +3,7 @@ package io.github.finalwave.view.gui.bind;
 import io.github.finalwave.controller.AdventureController;
 import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.CollectionController;
+import io.github.finalwave.controller.CouchIZombieController;
 import io.github.finalwave.controller.GameController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.GreenhouseController;
@@ -167,6 +168,10 @@ public final class GuiNavigationBinder implements NavigationBinder {
         } else if (newController instanceof IZombieMatchmakingController matchmakingController) {
             iZombieMatchmakingView.bindController(matchmakingController);
             newController.setView(iZombieMatchmakingView);
+        } else if (newController instanceof CouchIZombieController couchController) {
+            iZombieView.bindController(null);
+            couchController.setDeferMatchExit(true);
+            newController.setView(iZombieView);
         } else if (newController instanceof BeghouledController beghouledController) {
             beghouledView.bindController(beghouledController);
             newController.setView(beghouledView);

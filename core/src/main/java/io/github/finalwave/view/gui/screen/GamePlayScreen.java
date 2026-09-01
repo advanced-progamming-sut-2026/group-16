@@ -2,6 +2,7 @@ package io.github.finalwave.view.gui.screen;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
@@ -18,6 +19,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.BeghouledController;
+import io.github.finalwave.controller.CouchIZombieController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.IZombieController;
 import io.github.finalwave.controller.NetworkedIZombieController;
@@ -43,6 +45,7 @@ import io.github.finalwave.model.user.User;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
 import io.github.finalwave.view.gui.assets.LawnAssetIds;
 import io.github.finalwave.view.gui.hud.AlertBanner;
+import io.github.finalwave.view.gui.hud.CouchPickOverlay;
 import io.github.finalwave.view.gui.hud.DuelPickOverlay;
 import io.github.finalwave.view.gui.hud.LevelObjectiveBanner;
 import io.github.finalwave.view.gui.hud.MatchResultModal;
@@ -70,6 +73,7 @@ import io.github.finalwave.view.gui.hud.special.StartWaveButton;
 import io.github.finalwave.view.gui.hud.special.TimedWarPanel;
 import io.github.finalwave.view.gui.hud.special.ZombossHealthMeter;
 import io.github.finalwave.view.gui.input.ControllerLawnHost;
+import io.github.finalwave.view.gui.input.CouchZombieKeys;
 import io.github.finalwave.view.gui.input.LawnActionHost;
 import io.github.finalwave.view.gui.input.LawnInputController;
 import io.github.finalwave.view.gui.input.ToolMode;
@@ -78,6 +82,7 @@ import io.github.finalwave.view.gui.match.MatchClock;
 import io.github.finalwave.view.gui.render.BattlefieldGroup;
 import io.github.finalwave.view.gui.render.ChapterBackground;
 import io.github.finalwave.view.gui.render.LawnGridOverlay;
+import io.github.finalwave.view.gui.render.LawnHighlights;
 import io.github.finalwave.view.gui.render.LawnLayout;
 import io.github.finalwave.view.gui.render.ScreenShake;
 import io.github.finalwave.view.gui.render.clip.ExplosionLooks;
@@ -115,6 +120,11 @@ public final class GamePlayScreen extends MenuScreen {
     private WalnutBowlingController walnutBowling;
     private IZombieController iZombie;
     private NetworkedIZombieController networkedIZombie;
+    private CouchIZombieController couchIZombie;
+    private CouchPickOverlay couchPickOverlay;
+    private CouchZombieKeys couchKeys;
+    private LawnHighlights couchHighlights;
+    private Label zombieSunLabel;
     private BeghouledController beghouled;
     private ZombotanyController zombotany;
     private MatchClock clock;
@@ -164,6 +174,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
         bindMatch(controller == null ? null : controller.getUser(), controller == null ? null : controller.session());
@@ -175,10 +186,24 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = networkedIZombie;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
         bindMatch(networkedIZombie == null ? null : networkedIZombie.getUser(),
                 networkedIZombie == null ? null : networkedIZombie.session());
+    }
+
+    public void bind(CouchIZombieController couchIZombie) {
+        this.controller = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.iZombie = null;
+        this.networkedIZombie = null;
+        this.couchIZombie = couchIZombie;
+        this.beghouled = null;
+        this.zombotany = null;
+        bindMatch(couchIZombie == null ? null : couchIZombie.getUser(),
+                couchIZombie == null ? null : couchIZombie.session());
     }
 
     public void bind(VaseBreakerController vaseBreaker) {
@@ -187,6 +212,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.zombotany = null;
         bindMatch(vaseBreaker == null ? null : vaseBreaker.getUser(), vaseBreaker == null ? null : vaseBreaker.session());
     }
@@ -197,6 +223,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = walnutBowling;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
         bindMatch(walnutBowling == null ? null : walnutBowling.getUser(),
@@ -209,6 +236,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = iZombie;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
         bindMatch(iZombie == null ? null : iZombie.getUser(), iZombie == null ? null : iZombie.session());
@@ -220,6 +248,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = beghouled;
         this.zombotany = null;
         bindMatch(beghouled == null ? null : beghouled.getUser(), beghouled == null ? null : beghouled.session());
@@ -231,6 +260,7 @@ public final class GamePlayScreen extends MenuScreen {
         this.walnutBowling = null;
         this.iZombie = null;
         this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = zombotany;
         bindMatch(zombotany == null ? null : zombotany.getUser(), zombotany == null ? null : zombotany.session());
@@ -329,6 +359,57 @@ public final class GamePlayScreen extends MenuScreen {
         });
         startIntroDialog();
         finishNetworkedMatchBoot();
+        finishCouchMatchBoot();
+    }
+
+    private void finishCouchMatchBoot() {
+        if (couchIZombie == null) {
+            return;
+        }
+        resultShown = false;
+        if (resultModal != null) {
+            resultModal.dismiss();
+        }
+        if (clock != null) {
+            clock.setPaused(false);
+            clock.setResultShowing(false);
+        }
+        couchIZombie.setPhaseChangeListener(this::rebuildCouchOverlays);
+        couchKeys = new CouchZombieKeys(couchIZombie, this::inputBlocked);
+        couchKeys.activate();
+        if (couchHighlights != null) {
+            couchHighlights.dispose();
+        }
+        couchHighlights = new LawnHighlights(battlefield.highlightLayer());
+        rebuildCouchOverlays();
+        buildHud();
+        refreshHud();
+        Gdx.input.setInputProcessor(new InputMultiplexer(stage, couchKeys));
+    }
+
+    private void rebuildCouchOverlays() {
+        if (couchPickOverlay != null) {
+            couchPickOverlay.remove();
+            couchPickOverlay = null;
+        }
+        if (couchKeys != null) {
+            if (couchIZombie != null && couchIZombie.isPicking()) {
+                couchPickOverlay = new CouchPickOverlay(assets, couchIZombie);
+                couchKeys.setPickOverlay(couchPickOverlay);
+                modalLayer.addActor(couchPickOverlay);
+                couchPickOverlay.updateChrome();
+                if (hudLayer != null) {
+                    hudLayer.setTouchable(Touchable.disabled);
+                }
+                return;
+            }
+            couchKeys.setPickOverlay(null);
+            couchKeys.resetCursor();
+        }
+        if (hudLayer != null) {
+            hudLayer.setTouchable(Touchable.childrenOnly);
+            buildHud();
+        }
     }
 
     private void finishNetworkedMatchBoot() {
@@ -446,6 +527,7 @@ public final class GamePlayScreen extends MenuScreen {
         if (input != null) {
             input.update();
         }
+        updateCouchCursorHighlight();
         pollResult(delta);
         viewport.apply();
         screenShake.update(delta);
@@ -546,7 +628,7 @@ public final class GamePlayScreen extends MenuScreen {
 
     public void refreshHud() {
         if (controller == null && vaseBreaker == null && walnutBowling == null && iZombie == null
-                && networkedIZombie == null && beghouled == null && zombotany == null) {
+                && networkedIZombie == null && beghouled == null && zombotany == null && couchIZombie == null) {
             return;
         }
         User user = matchUser();
@@ -572,12 +654,20 @@ public final class GamePlayScreen extends MenuScreen {
         }
         boolean vaseMode = vaseBreaker != null;
         boolean bowlingMode = walnutBowling != null;
-        boolean iZombieMode = iZombie != null || networkedZombieRole();
+        boolean couchMode = couchIZombie != null;
+        boolean iZombieMode = iZombie != null || networkedZombieRole() || couchMode;
         boolean hideAdventureHud = vaseMode || bowlingMode;
         boolean hideSeeds = hideSeedTools();
         if (sunCounter != null) {
             boolean conveyor = session != null && session.isConveyorBeltActive();
             sunCounter.setVisible(!hideAdventureHud && !conveyor);
+        }
+        if (zombieSunLabel != null) {
+            boolean showZombieSun = couchMode && session != null;
+            zombieSunLabel.setVisible(showZombieSun);
+            if (showZombieSun) {
+                zombieSunLabel.setText("Zombie sun: " + session.getIZombieSunBalance());
+            }
         }
         if (plantFoodCounter != null) {
             plantFoodCounter.setVisible(!hideSeeds);
@@ -603,8 +693,9 @@ public final class GamePlayScreen extends MenuScreen {
             }
         }
         boolean sandbox = sandboxMatch();
+        boolean couchSeedBank = couchMode && session != null;
         if (seedBank != null && session != null) {
-            if (hideSeeds || sandbox) {
+            if ((hideSeeds || sandbox) && !couchSeedBank) {
                 seedBank.setVisible(false);
             } else {
                 seedBank.setVisible(true);
@@ -621,13 +712,37 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (zombieRoster != null) {
             if (iZombieMode) {
+                if (couchKeys != null) {
+                    zombieRoster.keyboardSelect(couchKeys.selectedAlias());
+                }
                 zombieRoster.refresh(session, input == null ? null : input.mode());
             } else {
                 zombieRoster.setVisible(false);
             }
         }
         if (duelClockLabel != null) {
-            if (networkedIZombie != null) {
+            if (couchIZombie != null) {
+                duelClockLabel.setVisible(true);
+                if (couchIZombie.isPicking()) {
+                    duelClockLabel.setText("Picking "
+                            + Math.max(couchIZombie.plantPicks().pickSecondsLeft(),
+                            couchIZombie.zombiePicks().pickSecondsLeft()) + "s");
+                    if (couchPickOverlay != null) {
+                        couchPickOverlay.updateChrome();
+                    }
+                    if (hudLayer != null) {
+                        hudLayer.setTouchable(Touchable.disabled);
+                    }
+                } else {
+                    if (couchIZombie.session().getActiveMiniGameHandler()
+                            instanceof io.github.finalwave.model.minigame.izombie.NetworkedIZombieHandler handler) {
+                        duelClockLabel.setText("Time " + handler.secondsLeft() + "s");
+                    }
+                    if (hudLayer != null && hudLayer.getTouchable() == Touchable.disabled) {
+                        hudLayer.setTouchable(Touchable.childrenOnly);
+                    }
+                }
+            } else if (networkedIZombie != null) {
                 duelClockLabel.setVisible(true);
                 if (networkedIZombie.isPicking()) {
                     duelClockLabel.setText("Picking " + networkedIZombie.pickSecondsLeft() + "s");
@@ -761,6 +876,12 @@ public final class GamePlayScreen extends MenuScreen {
             cursorLayer.remove();
             cursorLayer = null;
         }
+        couchKeys = null;
+        couchPickOverlay = null;
+        if (couchHighlights != null) {
+            couchHighlights.dispose();
+            couchHighlights = null;
+        }
         pauseModal.dismiss();
         resultModal.dismiss();
         if (objectiveBanner != null) {
@@ -781,6 +902,10 @@ public final class GamePlayScreen extends MenuScreen {
         if (input != null) {
             input.dispose();
             input = null;
+        }
+        if (couchHighlights != null) {
+            couchHighlights.dispose();
+            couchHighlights = null;
         }
         if (cursorLayer != null) {
             cursorLayer.remove();
@@ -805,6 +930,7 @@ public final class GamePlayScreen extends MenuScreen {
         plantSandbox = new PlantSandboxPanel(assets, this::onSeed);
         plantSandbox.setVisible(false);
         zombieRoster = new ZombieRosterBar(assets, this::onZombie);
+        zombieRoster.setInputEnabled(couchIZombie == null);
         upgradeBar = new BeghouledUpgradeBar(assets, this::onBeghouledUpgrade);
         conveyorBeltBar = new ConveyorBeltBar(assets, this::onSeed);
         startWaveButton = new StartWaveButton(assets, this::onStartWaves);
@@ -812,7 +938,8 @@ public final class GamePlayScreen extends MenuScreen {
         zombossMeter = new ZombossHealthMeter(assets);
         speedButton = new SpeedButton(assets, this::onSpeed);
         Actor pause = PauseButton.create(assets, this::togglePause);
-        boolean hideShovel = hideAdventureTools() || beghouled != null || iZombie != null || networkedZombieRole();
+        boolean hideShovel = hideAdventureTools() || beghouled != null || iZombie != null
+                || networkedZombieRole() || couchIZombie != null;
         Actor shovel = hideShovel ? null : ShovelButton.create(assets, this::onShovel);
 
         hudTop = new Table();
@@ -850,10 +977,14 @@ public final class GamePlayScreen extends MenuScreen {
 
         Table mid = new Table();
         mid.setTouchable(Touchable.childrenOnly);
-        if (iZombie != null || networkedZombieRole()) {
+        if (iZombie != null || networkedZombieRole() || couchIZombie != null) {
             mid.add(zombieRoster).left().top().padLeft(8f).padTop(6f);
         }
-        if ((!hideSeedTools() && !sandboxMatch()) || networkedPlantRole()) {
+        if (couchIZombie != null) {
+            zombieSunLabel = new Label("", assets.skin(), "secondary");
+            mid.add(zombieSunLabel).left().top().padLeft(14f).padTop(10f);
+        }
+        if ((!hideSeedTools() && !sandboxMatch()) || networkedPlantRole() || couchIZombie != null) {
             mid.add(seedBank).left().top().padLeft(8f).padTop(6f);
         }
         mid.add().expand();
@@ -919,7 +1050,7 @@ public final class GamePlayScreen extends MenuScreen {
     private void startIntroDialog() {
         if (sandboxMatch() || npcDialog == null || controller == null || vaseBreaker != null
                 || walnutBowling != null || iZombie != null || networkedIZombie != null
-                || beghouled != null || zombotany != null) {
+                || beghouled != null || zombotany != null || couchIZombie != null) {
             showObjectiveIfNeeded();
             return;
         }
@@ -942,7 +1073,7 @@ public final class GamePlayScreen extends MenuScreen {
     private void showObjectiveIfNeeded() {
         if (sandboxMatch() || objectiveBanner == null || controller == null || vaseBreaker != null
                 || walnutBowling != null || iZombie != null || networkedIZombie != null
-                || beghouled != null || zombotany != null) {
+                || beghouled != null || zombotany != null || couchIZombie != null) {
             resumeAfterIntro();
             return;
         }
@@ -1019,6 +1150,9 @@ public final class GamePlayScreen extends MenuScreen {
             String versus = opponent == null || opponent.isBlank() ? "" : " vs " + opponent;
             return "I, Zombie Online (" + role + ")" + versus;
         }
+        if (couchIZombie != null) {
+            return "I, Zombie - Couch Play";
+        }
         if (beghouled != null && beghouled.getStage() != null) {
             MiniGameStageConfig stage = beghouled.getStage();
             return "Beghouled - Stage " + stage.getStageIndex();
@@ -1040,6 +1174,12 @@ public final class GamePlayScreen extends MenuScreen {
     }
 
     private void onZombie(String alias) {
+        if (couchIZombie != null) {
+            if (couchKeys != null) {
+                couchKeys.selectAlias(alias);
+            }
+            return;
+        }
         if (input != null) {
             input.toggleZombie(alias);
         }
@@ -1080,6 +1220,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (networkedIZombie != null) {
             networkedIZombie.cheatAddSun(50);
+        }
+        if (couchIZombie != null) {
+            couchIZombie.session().addSunBalance(50);
         }
         if (zombotany != null) {
             zombotany.cheatAddSun(50);
@@ -1205,6 +1348,10 @@ public final class GamePlayScreen extends MenuScreen {
             networkedIZombie.confirmMatchExit();
             return;
         }
+        if (couchIZombie != null) {
+            couchIZombie.confirmMatchExit();
+            return;
+        }
         if (beghouled != null) {
             beghouled.confirmMatchExit();
             return;
@@ -1237,6 +1384,10 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (iZombie != null) {
             iZombie.restartMatch();
+            return;
+        }
+        if (couchIZombie != null) {
+            couchIZombie.restartMatch();
             return;
         }
         if (beghouled != null) {
@@ -1282,6 +1433,19 @@ public final class GamePlayScreen extends MenuScreen {
         }
         resultShown = true;
         pauseModal.dismiss();
+        if (couchIZombie != null) {
+            resultModal.show(
+                    modalLayer,
+                    viewport,
+                    assets.skin(),
+                    result == MatchResult.WON ? "Victory" : "Defeat",
+                    result == MatchResult.WON
+                            ? "Player 1 (Plants) wins!"
+                            : "Player 2 (Zombies) wins!",
+                    this::exitMatch,
+                    this::restartMatch);
+            return;
+        }
         resultModal.show(
                 modalLayer,
                 viewport,
@@ -1291,6 +1455,25 @@ public final class GamePlayScreen extends MenuScreen {
                 this::restartMatch);
     }
 
+    private void updateCouchCursorHighlight() {
+        if (couchHighlights == null) {
+            return;
+        }
+        boolean showCursor = couchIZombie != null
+                && couchKeys != null
+                && couchIZombie.isPlaying()
+                && !inputBlocked()
+                && couchKeys.cursorCol() >= 0;
+        if (showCursor) {
+            couchHighlights.setTint(COUCH_CURSOR_TINT);
+            couchHighlights.show(layout, couchKeys.cursorCol(), couchKeys.cursorRow());
+        } else {
+            couchHighlights.hide();
+        }
+    }
+
+    private static final Color COUCH_CURSOR_TINT = Color.valueOf("7FD4FF80");
+
     private boolean inputBlocked() {
         return resultShown
                 || pauseModal.isShowing()
@@ -1299,7 +1482,8 @@ public final class GamePlayScreen extends MenuScreen {
                 || (!networkedOnlineMatch() && clock != null && clock.isPaused())
                 || matchFinished()
                 || (battlefield != null && battlefield.beghouledBusy())
-                || (networkedIZombie != null && networkedIZombie.isPicking());
+                || (networkedIZombie != null && networkedIZombie.isPicking())
+                || (couchIZombie != null && couchIZombie.isPicking());
     }
 
     private boolean networkedOnlineMatch() {
@@ -1744,6 +1928,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (networkedIZombie != null) {
             return networkedIZombie.session();
         }
+        if (couchIZombie != null) {
+            return couchIZombie.session();
+        }
         if (beghouled != null) {
             return beghouled.session();
         }
@@ -1776,6 +1963,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (networkedIZombie != null) {
             return networkedIZombie.getUser();
         }
+        if (couchIZombie != null) {
+            return couchIZombie.getUser();
+        }
         if (beghouled != null) {
             return beghouled.getUser();
         }
@@ -1803,7 +1993,8 @@ public final class GamePlayScreen extends MenuScreen {
 
     private boolean hideSeedTools() {
         return hideAdventureTools() || beghouled != null || iZombie != null || networkedZombieRole()
-                || (networkedIZombie != null && networkedIZombie.isPicking());
+                || (networkedIZombie != null && networkedIZombie.isPicking())
+                || couchIZombie != null;
     }
 
     private boolean networkedZombieRole() {
@@ -1817,6 +2008,9 @@ public final class GamePlayScreen extends MenuScreen {
     private int displaySunBalance(GameSession session) {
         if (session == null) {
             return 0;
+        }
+        if (couchIZombie != null) {
+            return session.getSunBalance();
         }
         if (iZombie != null || networkedZombieRole()) {
             return session.getIZombieSunBalance();
@@ -1836,6 +2030,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (networkedIZombie != null) {
             return new ControllerLawnHost(networkedIZombie);
+        }
+        if (couchIZombie != null) {
+            return new ControllerLawnHost(couchIZombie);
         }
         if (beghouled != null) {
             return new ControllerLawnHost(beghouled);
@@ -1858,6 +2055,9 @@ public final class GamePlayScreen extends MenuScreen {
         }
         if (networkedIZombie != null) {
             return new ControllerTicker(networkedIZombie);
+        }
+        if (couchIZombie != null) {
+            return new ControllerTicker(couchIZombie);
         }
         if (beghouled != null) {
             return new ControllerTicker(beghouled);
