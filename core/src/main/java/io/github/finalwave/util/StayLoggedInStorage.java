@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class StayLoggedInStorage {
-    private static final Path SESSION_FILE = Path.of("user.session");
 
     private StayLoggedInStorage() {
     }
@@ -15,19 +14,49 @@ public final class StayLoggedInStorage {
 
     public static void saveSession(String username, String passwordHash) {
         try {
-            Files.writeString(SESSION_FILE, username + "\n" + passwordHash);
+            Files.writeString(sessionFile(), username + "\n" + passwordHash);
         } catch (IOException e) {
             throw new RuntimeException("Could not save stay logged in session.", e);
         }
     }
 
-    public static Session loadSession() {
+    public static void saveUsername(String username) {
         try {
-            if (!Files.exists(SESSION_FILE)) {
+            Files.writeString(sessionFile(), username + "\n");
+        } catch (IOException e) {
+            throw new RuntimeException("Could not save stay logged in username.", e);
+        }
+    }
+
+    public static String loadUsername() {
+        Session session = loadSession();
+        if (session != null) {
+            return session.username();
+        }
+        Path file = sessionFile();
+        try {
+            if (!Files.exists(file)) {
                 return null;
             }
+            String[] lines = Files.readString(file).split("\\R", -1);
+            if (lines.length >= 1) {
+                String username = lines[0].trim();
+                if (!username.isEmpty()) {
+                    return username;
+                }
+            }
+        } catch (IOException ignored) {
+        }
+        return null;
+    }
 
-            return readSessionFile(SESSION_FILE);
+    public static Session loadSession() {
+        Path file = sessionFile();
+        try {
+            if (!Files.exists(file)) {
+                return null;
+            }
+            return readSessionFile(file);
         } catch (IOException e) {
             return null;
         }
@@ -48,9 +77,13 @@ public final class StayLoggedInStorage {
 
     public static void clear() {
         try {
-            Files.deleteIfExists(SESSION_FILE);
+            Files.deleteIfExists(sessionFile());
         } catch (IOException e) {
             throw new RuntimeException("Could not clear stay logged in session.", e);
         }
+    }
+
+    private static Path sessionFile() {
+        return ClientDataPaths.sessionFile();
     }
 }

@@ -39,13 +39,16 @@ class BestScorePersistTest {
         user.setSecurityAnswerHash(HashUtil.hashSHA256("a"));
         UserDatabase.getInstance().registerUser(user);
 
+        assertFalse(user.hasPlayed());
         assertTrue(user.updateBestMeowPoint(150));
+        assertTrue(user.hasPlayed());
         UserDatabase.getInstance().saveBestMeowPoint(user);
         assertFalse(user.updateBestMeowPoint(100));
         assertEquals(150, user.getBestMeowPoint());
 
         UserDatabase.resetInstanceForTests();
         User reloaded = UserDatabase.getInstance().getUser("score-user");
+        assertTrue(reloaded.hasPlayed());
         assertEquals(150, reloaded.getBestMeowPoint());
 
         assertTrue(reloaded.updateBestMeowPoint(200));
@@ -54,5 +57,20 @@ class BestScorePersistTest {
         UserDatabase.resetInstanceForTests();
         User again = UserDatabase.getInstance().getUser("score-user");
         assertEquals(200, again.getBestMeowPoint());
+        assertTrue(again.hasPlayed());
+    }
+
+    @Test
+    void freshUserHasNoScoreUntilPlayed() {
+        User user = new User("fresh-score-user", HashUtil.hashSHA256("Passw0rd!"),
+                "FS", "fresh@example.com", Gender.FEMALE);
+        user.setSecurityQuestionId(1);
+        user.setSecurityAnswerHash(HashUtil.hashSHA256("a"));
+        UserDatabase.getInstance().registerUser(user);
+
+        UserDatabase.resetInstanceForTests();
+        User reloaded = UserDatabase.getInstance().getUser("fresh-score-user");
+        assertFalse(reloaded.hasPlayed());
+        assertEquals(0, reloaded.getBestMeowPoint());
     }
 }

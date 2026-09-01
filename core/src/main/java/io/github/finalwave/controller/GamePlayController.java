@@ -20,6 +20,7 @@ import io.github.finalwave.model.minigame.MiniGameId;
 import io.github.finalwave.model.quest.QuestTracker;
 import io.github.finalwave.model.save.MatchSaveSnapshot;
 import io.github.finalwave.model.user.ChapterProgress;
+import io.github.finalwave.model.user.UnlockKind;
 import io.github.finalwave.model.user.UnlockService;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
@@ -455,27 +456,34 @@ public class GamePlayController extends ViewController implements MatchListener 
     }
 
     private void publishUnlockNews(ChapterProgress.LevelCompletionResult completion) {
-        boolean newlyUnlocked = false;
+        boolean newsChanged = false;
         if (completion.newlyUnlockedChapter().isPresent()) {
             ChapterId next = completion.newlyUnlockedChapter().get();
-            if (unlockService.unlockLevel(user, levelId(next))) {
-                newlyUnlocked = true;
+            String levelUnlockId = levelId(next);
+            if (unlockService.unlockLevel(user, levelUnlockId)) {
+                userDatabase.saveUnlock(user, UnlockKind.LEVELS, levelUnlockId);
+                newsChanged = true;
             }
             MiniGameId[] minigames = MiniGameId.values();
-            if (next.ordinal() < minigames.length
-                    && unlockService.unlockMinigame(user, minigames[next.ordinal()].getKey())) {
-                newlyUnlocked = true;
+            if (next.ordinal() < minigames.length) {
+                String minigameId = minigames[next.ordinal()].getKey();
+                if (unlockService.unlockMinigame(user, minigameId)) {
+                    userDatabase.saveUnlock(user, UnlockKind.MINIGAMES, minigameId);
+                    newsChanged = true;
+                }
             }
         }
         if (completion.completedFinalChapterGate()) {
             MiniGameId[] minigames = MiniGameId.values();
             MiniGameId last = minigames[minigames.length - 1];
-            if (unlockService.unlockMinigame(user, last.getKey())) {
-                newlyUnlocked = true;
+            String minigameId = last.getKey();
+            if (unlockService.unlockMinigame(user, minigameId)) {
+                userDatabase.saveUnlock(user, UnlockKind.MINIGAMES, minigameId);
+                newsChanged = true;
             }
         }
-        if (newlyUnlocked) {
-            userDatabase.saveUserWallet(user);
+        if (newsChanged) {
+            userDatabase.saveUserNews(user);
         }
     }
 
@@ -602,7 +610,7 @@ public class GamePlayController extends ViewController implements MatchListener 
             io.github.finalwave.model.user.GreenhousePot pot = user.findNextLockedPot();
             if (pot != null) {
                 pot.setLocked(false);
-                userDatabase.saveUserWallet(user);
+                userDatabase.saveGreenhousePot(user, pot);
                 getGamePlayView().showItemDropped("pot", user.countUnlockedPots());
             } else {
                 getGamePlayView().showItemDropped("pot", user.countUnlockedPots());

@@ -12,18 +12,47 @@ import java.util.List;
 public class UserDatabase {
     private static UserDatabase instance;
 
+    private final java.util.List<UserWriteListener> writeListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private volatile boolean writeEventsSuppressed;
+
     private UserDatabase() {
         createDatabase();
     }
 
-    public static UserDatabase getInstance() {
+    public static synchronized UserDatabase getInstance() {
         if (instance == null) {
             instance = new UserDatabase();
         }
         return instance;
     }
 
-    public static void resetInstanceForTests() {
+    public void addWriteListener(UserWriteListener listener) {
+        if (listener != null) {
+            writeListeners.add(listener);
+        }
+    }
+
+    public void removeWriteListener(UserWriteListener listener) {
+        writeListeners.remove(listener);
+    }
+
+    public void setWriteEventsSuppressed(boolean suppressed) {
+        this.writeEventsSuppressed = suppressed;
+    }
+
+    private void notifyWrite(java.util.function.Consumer<UserWriteListener> action) {
+        if (writeEventsSuppressed) {
+            return;
+        }
+        for (UserWriteListener listener : writeListeners) {
+            try {
+                action.accept(listener);
+            } catch (RuntimeException ignored) {
+            }
+        }
+    }
+
+    public static synchronized void resetInstanceForTests() {
         instance = null;
     }
 
@@ -69,6 +98,64 @@ public class UserDatabase {
         }
     }
 
+
+    public void replaceLocalProfileFromServer(User user, String passwordHash) {
+        if (user == null || user.getId() <= 0) {
+            throw new IllegalArgumentException("user with valid id is required");
+        }
+        boolean previousSuppressed = writeEventsSuppressed;
+        writeEventsSuppressed = true;
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            try (Statement pragma = conn.createStatement()) {
+                pragma.execute("PRAGMA foreign_keys = ON");
+            }
+            try (PreparedStatement delete = conn.prepareStatement("DELETE FROM users WHERE username = ?")) {
+                delete.setString(1, user.getUsername());
+                delete.executeUpdate();
+            }
+            String insertSql = """
+                    INSERT INTO users (id, username, passwordHash, nickname, email, gender,
+                    securityQuestionNumber, securityAnswerHash)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """;
+            try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+                insert.setLong(1, user.getId());
+                insert.setString(2, user.getUsername());
+                insert.setString(3, passwordHash == null ? "" : passwordHash);
+                insert.setString(4, user.getNickname());
+                insert.setString(5, user.getEmail());
+                insert.setString(6, user.getGender().name());
+                if (user.getSecurityQuestionId() > 0) {
+                    insert.setInt(7, user.getSecurityQuestionId());
+                } else {
+                    insert.setNull(7, Types.INTEGER);
+                }
+                insert.setString(8, user.getSecurityAnswerHash());
+                insert.executeUpdate();
+            }
+            replacePlantProgress(conn, user);
+            UserProgressStore.saveUserProgress(conn, user);
+            AdventureProgressStore.save(conn, user);
+            MiniGameProgressStore.save(conn, user);
+            ScoreGameStore.save(conn, user);
+            UserSettingsStore.save(conn, user);
+            if (user.getQuestTracker() != null) {
+                QuestProgressStore.saveQuestProgress(conn, user, user.getQuestTracker());
+            }
+            MatchSaveSnapshot snapshot = user.getMatchSaveSnapshot();
+            if (snapshot != null) {
+                MatchSaveStore.save(conn, user, snapshot);
+            } else {
+                MatchSaveStore.clear(conn, user);
+            }
+            conn.commit();
+        } catch (SQLException exception) {
+            throw new RuntimeException("Could not cache server profile locally.", exception);
+        } finally {
+            writeEventsSuppressed = previousSuppressed;
+        }
+    }
 
     public void registerUser(User user) {
         String sql = """
@@ -186,11 +273,12 @@ public class UserDatabase {
         }
         try (Connection conn = DatabaseUtil.getConnection()) {
             conn.setAutoCommit(false);
-            UserProgressStore.saveUserProgress(conn, user);
+            UserProgressStore.saveWalletRow(conn, user);
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not save games played.", e);
         }
+        notifyWrite(listener -> listener.onWalletChanged(user));
     }
 
     public List<User> getAllUsers() {
@@ -245,6 +333,7 @@ public class UserDatabase {
         } catch (SQLException e) {
             throw new RuntimeException("Could not save best meowpoint.", e);
         }
+        notifyWrite(listener -> listener.onScoreGameChanged(user));
     }
 
     public void saveMatchSnapshot(User user, MatchSaveSnapshot snapshot) {
@@ -258,6 +347,7 @@ public class UserDatabase {
         } catch (SQLException e) {
             throw new RuntimeException("Could not save match.", e);
         }
+        notifyWrite(listener -> listener.onMatchSaved(user, snapshot));
     }
 
     public MatchSaveSnapshot loadMatchSnapshot(User user) {
@@ -282,6 +372,7 @@ public class UserDatabase {
         } catch (SQLException e) {
             throw new RuntimeException("Could not clear match save.", e);
         }
+        notifyWrite(listener -> listener.onMatchCleared(user));
     }
 
     public void saveUserSettings(User user) {
@@ -295,6 +386,7 @@ public class UserDatabase {
         } catch (SQLException e) {
             throw new RuntimeException("Could not save user settings.", e);
         }
+        notifyWrite(listener -> listener.onSettingsChanged(user));
     }
 
     public void saveAdventureProgress(User user) {
@@ -308,6 +400,7 @@ public class UserDatabase {
         } catch (SQLException e) {
             throw new RuntimeException("Could not save adventure progress.", e);
         }
+        notifyWrite(listener -> listener.onAdventureChanged(user));
     }
 
     public void saveMiniGameProgress(User user) {
@@ -321,6 +414,7 @@ public class UserDatabase {
         } catch (SQLException e) {
             throw new RuntimeException("Could not save minigame progress.", e);
         }
+        notifyWrite(listener -> listener.onMiniGameStagesChanged(user));
     }
 
     public void loadQuestProgress(User user, io.github.finalwave.model.quest.QuestTracker tracker) {
@@ -345,6 +439,7 @@ public class UserDatabase {
         } catch (SQLException e) {
             throw new RuntimeException("Could not save quest progress.", e);
         }
+        notifyWrite(listener -> listener.onQuestProgressChanged(user));
     }
 
     public void savePlantProgress(User user) {
@@ -355,26 +450,121 @@ public class UserDatabase {
         } catch (SQLException e) {
             throw new RuntimeException("Could not save plant progress.", e);
         }
+        notifyWrite(listener -> listener.onPlantsChanged(user, user.getPlantProgress().getOwnedPlants().keySet()));
+    }
+
+    public void savePlant(User user, String plantName) {
+        if (user == null || plantName == null || plantName.isBlank()) {
+            return;
+        }
+        OwnedPlant plant = user.getPlantProgress().getOwnedPlant(plantName).orElse(null);
+        if (plant == null) {
+            return;
+        }
+        savePlantEntry(user, plant);
+    }
+
+    public void savePlantEntry(User user, OwnedPlant plant) {
+        if (user == null || plant == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            upsertPlantRow(conn, user.getId(), plant);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save plant progress.", e);
+        }
+        notifyWrite(listener -> listener.onPlantsChanged(user, java.util.Set.of(plant.getPlantName())));
+    }
+
+    private void upsertPlantRow(Connection conn, long userId, OwnedPlant plant) throws SQLException {
+        String sql = """
+                INSERT INTO user_plants (userId, plantName, level, unlocked, seedPackets)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(userId, plantName) DO UPDATE SET
+                    level = excluded.level,
+                    unlocked = excluded.unlocked,
+                    seedPackets = excluded.seedPackets
+                """;
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setLong(1, userId);
+            pstmt.setString(2, plant.getPlantName());
+            pstmt.setInt(3, plant.getLevel());
+            pstmt.setInt(4, plant.isUnlocked() ? 1 : 0);
+            pstmt.setInt(5, plant.getSeedPackets());
+            pstmt.executeUpdate();
+        }
     }
 
     public void saveUserWallet(User user) {
+        if (user == null) {
+            return;
+        }
         try (Connection conn = DatabaseUtil.getConnection()) {
             conn.setAutoCommit(false);
-            UserProgressStore.saveUserProgress(conn, user);
+            UserProgressStore.saveWalletRow(conn, user);
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not save user wallet progress.", e);
         }
+        notifyWrite(listener -> listener.onWalletChanged(user));
+    }
+
+    public void saveGreenhousePot(User user, GreenhousePot pot) {
+        if (user == null || pot == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            UserProgressStore.saveSinglePot(conn, user.getId(), pot);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save greenhouse pot.", e);
+        }
+        notifyWrite(listener -> listener.onGreenhousePotChanged(user, pot));
+    }
+
+    public void saveStoredBoosts(User user) {
+        if (user == null) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            UserProgressStore.saveStoredBoostsRow(conn, user);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save stored boosts.", e);
+        }
+        notifyWrite(listener -> listener.onStoredBoostsChanged(user));
+    }
+
+    public void saveUnlock(User user, UnlockKind kind, String name) {
+        if (user == null || kind == null || name == null || name.isBlank()) {
+            return;
+        }
+        try (Connection conn = DatabaseUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            UserProgressStore.saveSingleUnlock(conn, user.getId(), kind.name(), name);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not save unlock.", e);
+        }
+        notifyWrite(listener -> listener.onUnlocked(user, kind.name(), name));
     }
 
     public void saveUserNews(User user) {
+        if (user == null) {
+            return;
+        }
         try (Connection conn = DatabaseUtil.getConnection()) {
             conn.setAutoCommit(false);
-            UserProgressStore.saveUserProgress(conn, user);
+            UserProgressStore.saveNewsRows(conn, user);
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Could not save user news.", e);
         }
+        notifyWrite(listener -> listener.onNewsChanged(user));
     }
 
     private void replacePlantProgress(Connection conn, User user) throws SQLException {

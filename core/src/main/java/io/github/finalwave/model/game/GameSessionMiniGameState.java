@@ -33,6 +33,7 @@ final class GameSessionMiniGameState {
     private List<String> iZombieZombiePool = List.of();
     private Map<String, Integer> iZombieZombieCosts = Map.of();
     private boolean[] iZombieBrainsEaten = new boolean[0];
+    private int iZombieSunBalance;
 
     private boolean beghouledActive;
     private int beghouledMatchTarget;
@@ -97,6 +98,7 @@ final class GameSessionMiniGameState {
         iZombieZombiePool = zombiePool == null ? List.of() : List.copyOf(zombiePool);
         iZombieZombieCosts = zombieCosts == null ? Map.of() : Map.copyOf(zombieCosts);
         iZombieBrainsEaten = new boolean[session.getBoard().getRows()];
+        iZombieSunBalance = session.getSunBalance();
     }
 
     boolean isIZombieActive() {
@@ -150,6 +152,33 @@ final class GameSessionMiniGameState {
         return false;
     }
 
+    void syncIZombieBrainsFromNetwork(boolean[] eaten) {
+        if (eaten == null || eaten.length != iZombieBrainsEaten.length) {
+            return;
+        }
+        System.arraycopy(eaten, 0, iZombieBrainsEaten, 0, eaten.length);
+    }
+
+    int getIZombieSunBalance() {
+        return iZombieSunBalance;
+    }
+
+    void setIZombieSunBalance(int amount) {
+        iZombieSunBalance = Math.max(0, amount);
+    }
+
+    void addIZombieSunBalance(int amount) {
+        if (amount > 0) {
+            iZombieSunBalance += amount;
+        }
+    }
+
+    void withdrawIZombieSun(int amount) {
+        if (amount > 0) {
+            iZombieSunBalance = Math.max(0, iZombieSunBalance - amount);
+        }
+    }
+
     PlantPlacementResult tryPlaceZombie(String alias, int col, int row) {
         if (!iZombieActive) {
             return PlantPlacementResult.TILE_BLOCKED;
@@ -171,7 +200,7 @@ final class GameSessionMiniGameState {
         if (cost == null) {
             return PlantPlacementResult.UNKNOWN_PLANT;
         }
-        if (session.getSunBalance() < cost) {
+        if (session.getIZombieSunBalance() < cost) {
             return PlantPlacementResult.INSUFFICIENT_SUN;
         }
         if (!session.getCooldownTracker().isReady(trimmed)) {
@@ -186,13 +215,21 @@ final class GameSessionMiniGameState {
         } catch (IllegalArgumentException e) {
             return PlantPlacementResult.UNKNOWN_PLANT;
         }
-        session.withdrawSun(cost);
+        session.withdrawIZombieSun(cost);
         session.getEventBus().publish(new GameEvent.SunSpent(cost));
         session.getCooldownTracker().startCooldown(
                 trimmed,
-                IZombiePacketRecharge.secondsFor(trimmed),
+                IZombiePacketRecharge.secondsFor(trimmed, cost),
                 GameSession.TICKS_PER_SECOND);
         return PlantPlacementResult.SUCCESS;
+    }
+
+    void setIZombieRoster(List<String> zombiePool, Map<String, Integer> zombieCosts) {
+        if (!iZombieActive) {
+            return;
+        }
+        iZombieZombiePool = zombiePool == null ? List.of() : List.copyOf(zombiePool);
+        iZombieZombieCosts = zombieCosts == null ? Map.of() : Map.copyOf(zombieCosts);
     }
 
     int getIZombieCheapestRosterCost() {

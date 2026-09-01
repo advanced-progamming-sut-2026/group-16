@@ -48,6 +48,11 @@ public final class LawnHighlights implements Disposable {
         colBar.setVisible(true);
     }
 
+    public void setTint(Color color) {
+        rowBar.setColor(color);
+        colBar.setColor(color);
+    }
+
     public void hide() {
         rowBar.setVisible(false);
         colBar.setVisible(false);

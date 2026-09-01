@@ -21,14 +21,26 @@ public final class MatchResultModal {
                      MatchResult result,
                      Runnable onExit,
                      Runnable onRetry) {
+        show(modalLayer, viewport, skin,
+                result == MatchResult.WON ? "Victory" : "Defeat",
+                result == MatchResult.WON
+                        ? "You survived the attack."
+                        : "The zombies ate your brains!",
+                onExit, onRetry);
+    }
+
+    public void show(Table modalLayer,
+                     Viewport viewport,
+                     Skin skin,
+                     String title,
+                     String message,
+                     Runnable onExit,
+                     Runnable onRetry) {
         dismiss();
-        boolean won = result == MatchResult.WON;
-        panel = new ModalPanel(skin, won ? "Victory" : "Defeat");
-        Label message = PanelLabels.body(skin, won
-                ? "You survived the attack."
-                : "The zombies ate your brains!");
-        message.setAlignment(Align.center);
-        panel.content().add(message).width(420f).padBottom(18f).row();
+        panel = new ModalPanel(skin, title);
+        Label body = PanelLabels.body(skin, message);
+        body.setAlignment(Align.center);
+        panel.content().add(body).width(420f).padBottom(18f).row();
         TextButton exit = PvzButtons.textButton("Exit", skin, "purple", () -> {
             dismiss();
             if (onExit != null) {

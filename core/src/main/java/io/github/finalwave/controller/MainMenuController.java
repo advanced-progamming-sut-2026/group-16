@@ -3,6 +3,11 @@ package io.github.finalwave.controller;
 import io.github.finalwave.model.command.MainMenuCommands;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.login.LoginGateway;
+import io.github.finalwave.leaderboard.LeaderboardGateway;
+import io.github.finalwave.score.ScoreSubmitGateway;
+import io.github.finalwave.model.App;
+import io.github.finalwave.registration.RegistrationGateway;
 import io.github.finalwave.util.StayLoggedInStorage;
 import io.github.finalwave.view.api.MainMenuView;
 
@@ -22,10 +27,25 @@ public class MainMenuController extends ViewController {
 
     private final User activeUser;
     private final UserDatabase userDatabase;
+    private final RegistrationGateway registrationGateway;
+    private final LoginGateway loginGateway;
+    private final LeaderboardGateway leaderboardGateway;
+    private final ScoreSubmitGateway scoreSubmitGateway;
 
-    public MainMenuController(User activeUser, UserDatabase userDatabase) {
+    public MainMenuController(
+            User activeUser,
+            UserDatabase userDatabase,
+            RegistrationGateway registrationGateway,
+            LoginGateway loginGateway,
+            LeaderboardGateway leaderboardGateway,
+            ScoreSubmitGateway scoreSubmitGateway
+    ) {
         this.activeUser = activeUser;
         this.userDatabase = userDatabase;
+        this.registrationGateway = registrationGateway;
+        this.loginGateway = loginGateway;
+        this.leaderboardGateway = leaderboardGateway;
+        this.scoreSubmitGateway = scoreSubmitGateway;
     }
 
     public User getActiveUser() {
@@ -56,20 +76,22 @@ public class MainMenuController extends ViewController {
 
     public void open(Destination destination) {
         switch (destination) {
-            case GAME -> navigator.push(new GameController(activeUser, userDatabase));
+            case GAME -> navigator.push(new GameController(activeUser, userDatabase, leaderboardGateway));
             case SETTINGS -> navigator.push(new SettingController(activeUser, userDatabase));
             case NEWS -> navigator.push(new NewsController(activeUser, userDatabase));
             case PROFILE -> navigator.push(new ProfileController(userDatabase));
-            case LEADERBOARD -> navigator.push(new LeaderboardController(userDatabase));
-            case SCORE_GAME -> navigator.push(new ScoreGameController(activeUser, userDatabase));
+            case LEADERBOARD -> navigator.push(new LeaderboardController(leaderboardGateway));
+            case SCORE_GAME -> navigator.push(new ScoreGameController(activeUser, userDatabase, scoreSubmitGateway));
             case GREENHOUSE -> navigator.push(new GreenhouseController(activeUser, userDatabase));
         }
     }
 
     public void logout() {
+        loginGateway.logout();
         StayLoggedInStorage.clear();
+        App.getInstance().setCurrentUser(null);
         getMainMenuView().showLoggedOut();
-        navigator.reset(new RegistrationController(userDatabase));
+        navigator.reset(new RegistrationController(registrationGateway, userDatabase, loginGateway, leaderboardGateway, scoreSubmitGateway));
     }
 
     private void handleMenuEnter(String menuName) {

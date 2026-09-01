@@ -77,4 +77,9 @@ public final class MiniGameHubViewGui extends GuiViewBase implements MiniGameHub
     public void errorStageNotFound(int stage) {
         toastError("Stage not found: " + stage + ".");
     }
+
+    @Override
+    public boolean preferLobbyForIZombie() {
+        return true;
+    }
 }

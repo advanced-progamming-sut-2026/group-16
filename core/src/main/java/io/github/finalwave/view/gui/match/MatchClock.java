@@ -12,6 +12,7 @@ public final class MatchClock {
 
     private final MatchTicker ticker;
     private final User user;
+    private final boolean networkedGuest;
     private float accumulator;
     private float tickDuration = 1f / GameSession.TICKS_PER_SECOND;
     private boolean paused;
@@ -19,8 +20,13 @@ public final class MatchClock {
     private boolean frozenActors = true;
 
     public MatchClock(MatchTicker ticker, User user) {
+        this(ticker, user, false);
+    }
+
+    public MatchClock(MatchTicker ticker, User user, boolean networkedGuest) {
         this.ticker = ticker;
         this.user = user;
+        this.networkedGuest = networkedGuest;
     }
 
     public void update(float deltaSeconds, BattlefieldGroup battlefield) {
@@ -34,7 +40,7 @@ public final class MatchClock {
             accumulator = 0f;
             return;
         }
-        tickDuration = 1f / (GameSession.TICKS_PER_SECOND * speed());
+        tickDuration = 1f / (GameSession.TICKS_PER_SECOND * (networkedGuest ? 1 : speed()));
         accumulator += Math.min(MAX_FRAME_DELTA, Math.max(0f, deltaSeconds));
         int steps = 0;
         while (accumulator >= tickDuration && steps < MAX_TICKS_PER_FRAME) {
@@ -85,7 +91,10 @@ public final class MatchClock {
     }
 
     public boolean shouldFreeze() {
-        if (paused || resultShowing) {
+        if (resultShowing) {
+            return true;
+        }
+        if (!networkedGuest && paused) {
             return true;
         }
         if (ticker == null || ticker.session() == null) {

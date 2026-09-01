@@ -40,6 +40,10 @@ public enum ProjectileEffect {
         if (type == null || type.isBlank()) {
             return GENERIC;
         }
+        try {
+            return ProjectileEffect.valueOf(type.trim().toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+        }
         return switch (type.toLowerCase()) {
             case "pea" -> PEA;
             case "fire" -> FIRE;

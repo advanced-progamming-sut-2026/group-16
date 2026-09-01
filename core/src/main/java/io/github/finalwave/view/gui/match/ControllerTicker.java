@@ -1,12 +1,15 @@
 package io.github.finalwave.view.gui.match;
 
 import io.github.finalwave.controller.BeghouledController;
+import io.github.finalwave.controller.CouchIZombieController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.IZombieController;
+import io.github.finalwave.controller.NetworkedIZombieController;
 import io.github.finalwave.controller.VaseBreakerController;
 import io.github.finalwave.controller.WalnutBowlingController;
 import io.github.finalwave.controller.ZombotanyController;
 import io.github.finalwave.model.game.GameSession;
+import io.github.finalwave.network.match.MatchRole;
 
 
 public final class ControllerTicker implements MatchTicker {
@@ -14,6 +17,8 @@ public final class ControllerTicker implements MatchTicker {
     private final VaseBreakerController vaseBreaker;
     private final WalnutBowlingController walnutBowling;
     private final IZombieController iZombie;
+    private final NetworkedIZombieController networkedIZombie;
+    private final CouchIZombieController couchIZombie;
     private final BeghouledController beghouled;
     private final ZombotanyController zombotany;
 
@@ -22,6 +27,8 @@ public final class ControllerTicker implements MatchTicker {
         this.vaseBreaker = null;
         this.walnutBowling = null;
         this.iZombie = null;
+        this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
     }
@@ -31,6 +38,8 @@ public final class ControllerTicker implements MatchTicker {
         this.vaseBreaker = vaseBreaker;
         this.walnutBowling = null;
         this.iZombie = null;
+        this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
     }
@@ -40,6 +49,8 @@ public final class ControllerTicker implements MatchTicker {
         this.vaseBreaker = null;
         this.walnutBowling = walnutBowling;
         this.iZombie = null;
+        this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = null;
     }
@@ -49,6 +60,30 @@ public final class ControllerTicker implements MatchTicker {
         this.vaseBreaker = null;
         this.walnutBowling = null;
         this.iZombie = iZombie;
+        this.networkedIZombie = null;
+        this.couchIZombie = null;
+        this.beghouled = null;
+        this.zombotany = null;
+    }
+
+    public ControllerTicker(NetworkedIZombieController networkedIZombie) {
+        this.gamePlay = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.iZombie = null;
+        this.networkedIZombie = networkedIZombie;
+        this.couchIZombie = null;
+        this.beghouled = null;
+        this.zombotany = null;
+    }
+
+    public ControllerTicker(CouchIZombieController couchIZombie) {
+        this.gamePlay = null;
+        this.vaseBreaker = null;
+        this.walnutBowling = null;
+        this.iZombie = null;
+        this.networkedIZombie = null;
+        this.couchIZombie = couchIZombie;
         this.beghouled = null;
         this.zombotany = null;
     }
@@ -58,6 +93,8 @@ public final class ControllerTicker implements MatchTicker {
         this.vaseBreaker = null;
         this.walnutBowling = null;
         this.iZombie = null;
+        this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = beghouled;
         this.zombotany = null;
     }
@@ -67,6 +104,8 @@ public final class ControllerTicker implements MatchTicker {
         this.vaseBreaker = null;
         this.walnutBowling = null;
         this.iZombie = null;
+        this.networkedIZombie = null;
+        this.couchIZombie = null;
         this.beghouled = null;
         this.zombotany = zombotany;
     }
@@ -79,6 +118,18 @@ public final class ControllerTicker implements MatchTicker {
         }
         if (walnutBowling != null) {
             walnutBowling.advance(ticks);
+            return;
+        }
+        if (networkedIZombie != null) {
+            if (networkedIZombie.role() == MatchRole.PLANT) {
+                networkedIZombie.advance(ticks);
+            } else {
+                networkedIZombie.advanceGuest(ticks);
+            }
+            return;
+        }
+        if (couchIZombie != null) {
+            couchIZombie.advance(ticks);
             return;
         }
         if (iZombie != null) {
@@ -108,6 +159,12 @@ public final class ControllerTicker implements MatchTicker {
         }
         if (iZombie != null) {
             return iZombie.session();
+        }
+        if (networkedIZombie != null) {
+            return networkedIZombie.session();
+        }
+        if (couchIZombie != null) {
+            return couchIZombie.session();
         }
         if (beghouled != null) {
             return beghouled.session();

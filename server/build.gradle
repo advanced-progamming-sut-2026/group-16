@@ -1,0 +1,25 @@
+plugins {
+    id 'application'
+}
+
+java.sourceCompatibility = 25
+java.targetCompatibility = 25
+
+dependencies {
+    implementation project(':network')
+    implementation project(':core')
+}
+
+application {
+    mainClass = 'io.github.finalwave.server.Main'
+}
+
+run {
+    workingDir = rootProject.projectDir
+    jvmArgs += "--enable-native-access=ALL-UNNAMED"
+    if (System.getProperty('pvz.database.url') == null && System.getenv('PVZ_DATABASE_URL') == null) {
+        systemProperty 'pvz.database.url', 'jdbc:sqlite:server/users.db'
+    } else if (System.getProperty('pvz.database.url') != null) {
+        systemProperty 'pvz.database.url', System.getProperty('pvz.database.url')
+    }
+}

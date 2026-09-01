@@ -122,7 +122,7 @@ public class PlantSelectionController extends ViewController {
         PlantCollection.UpgradeResult result = collectionService.upgradePlant(user, plantName);
         if (result.success()) {
             userDatabase.saveUserWallet(user);
-            userDatabase.savePlantProgress(user);
+            userDatabase.savePlant(user, plantName);
             getViewApi().showPlantUpgraded(plantName, result.newLevel());
             return;
         }
@@ -250,7 +250,7 @@ public class PlantSelectionController extends ViewController {
         }
         if (user.hasStoredBoost(type)) {
             user.getStoredBoosts().remove(type);
-            userDatabase.saveUserWallet(user);
+            userDatabase.saveStoredBoosts(user);
             boosted.add(type);
             getViewApi().showPlantBoosted(type);
             return;

@@ -4,20 +4,59 @@ import io.github.finalwave.model.App;
 import io.github.finalwave.model.command.LoginMenuCommands;
 import io.github.finalwave.model.user.User;
 import io.github.finalwave.model.user.UserDatabase;
+import io.github.finalwave.login.LoginGateway;
+import io.github.finalwave.leaderboard.LeaderboardGateway;
+import io.github.finalwave.score.ScoreSubmitGateway;
+import io.github.finalwave.network.auth.LoginFailPayload;
+import io.github.finalwave.network.auth.LoginOkPayload;
+import io.github.finalwave.network.auth.LoginRequest;
+import io.github.finalwave.network.sync.ProgressSyncService;
+import io.github.finalwave.profile.LocalProfileCache;
+import io.github.finalwave.profile.ProfileApplier;
+import io.github.finalwave.registration.RegistrationGateway;
 import io.github.finalwave.util.HashUtil;
+import io.github.finalwave.util.LoginFailMessages;
 import io.github.finalwave.util.RegistrationValidator;
+import io.github.finalwave.util.SessionResumeCredentials;
 import io.github.finalwave.util.StayLoggedInStorage;
 import io.github.finalwave.view.api.AuthView;
 
 import java.util.regex.Matcher;
 
 public class LoginController extends ViewController {
+    private final LoginGateway loginGateway;
     private final UserDatabase db;
+    private final RegistrationGateway registrationGateway;
+    private final LeaderboardGateway leaderboardGateway;
+    private final ScoreSubmitGateway scoreSubmitGateway;
+    private final boolean usernameOnlyStayLoggedIn;
     private String pendingPasswordResetUsername;
     private String pendingNewPassword;
 
-    public LoginController(UserDatabase db) {
+    public LoginController(
+            LoginGateway loginGateway,
+            UserDatabase db,
+            RegistrationGateway registrationGateway,
+            LeaderboardGateway leaderboardGateway,
+            ScoreSubmitGateway scoreSubmitGateway
+    ) {
+        this(loginGateway, db, registrationGateway, leaderboardGateway, scoreSubmitGateway, false);
+    }
+
+    public LoginController(
+            LoginGateway loginGateway,
+            UserDatabase db,
+            RegistrationGateway registrationGateway,
+            LeaderboardGateway leaderboardGateway,
+            ScoreSubmitGateway scoreSubmitGateway,
+            boolean usernameOnlyStayLoggedIn
+    ) {
+        this.loginGateway = loginGateway;
         this.db = db;
+        this.registrationGateway = registrationGateway;
+        this.leaderboardGateway = leaderboardGateway;
+        this.scoreSubmitGateway = scoreSubmitGateway;
+        this.usernameOnlyStayLoggedIn = usernameOnlyStayLoggedIn;
     }
 
     @Override
@@ -53,22 +92,21 @@ public class LoginController extends ViewController {
     }
 
     public void login(String username, String password, boolean stayLoggedIn) {
-        User user = db.getUser(username);
-        if (user == null || !user.authenticate(password)) {
-            getAuthView().errorWrongUsernameOrPassword();
-            return;
-        }
+        getAuthView().showLoginInlineError("");
+        String passwordHash = HashUtil.hashSHA256(password);
+        LoginRequest request = new LoginRequest(username, password);
+        loginGateway.login(request, new LoginGateway.Callback() {
+            @Override
+            public void onSuccess(LoginOkPayload payload) {
+                SessionResumeCredentials.remember(payload.getUsername(), passwordHash);
+                handleLoginSuccess(payload, stayLoggedIn);
+            }
 
-        clearPendingPasswordReset();
-        if (stayLoggedIn) {
-            StayLoggedInStorage.saveSession(user.getUsername(), user.getPasswordHash());
-        } else {
-            StayLoggedInStorage.clear();
-        }
-
-        App.getInstance().setCurrentUser(user);
-        getAuthView().showUserLoggedIn();
-        navigator.reset(new MainMenuController(user, db));
+            @Override
+            public void onFailure(LoginFailPayload payload) {
+                handleLoginFailure(payload);
+            }
+        });
     }
 
     public void verifyIdentity(String username, String email, String securityAnswer) {
@@ -118,6 +156,35 @@ public class LoginController extends ViewController {
     public void back() {
         clearPendingPasswordReset();
         navigator.pop();
+    }
+
+    private void handleLoginSuccess(LoginOkPayload payload, boolean stayLoggedIn) {
+        User user = ProfileApplier.apply(payload);
+        LocalProfileCache.sync(db, user, SessionResumeCredentials.passwordHash());
+        clearPendingPasswordReset();
+        if (stayLoggedIn) {
+            if (usernameOnlyStayLoggedIn) {
+                StayLoggedInStorage.saveUsername(user.getUsername());
+            } else {
+                User stored = db.getUser(user.getUsername());
+                String passwordHash = stored != null ? stored.getPasswordHash() : user.getPasswordHash();
+                StayLoggedInStorage.saveSession(user.getUsername(), passwordHash);
+            }
+        } else {
+            StayLoggedInStorage.clear();
+        }
+        App.getInstance().setCurrentUser(user);
+        ProgressSyncService sync = ProgressSyncService.getInstance();
+        if (sync != null) {
+            sync.arm();
+        }
+        getAuthView().showUserLoggedIn();
+        navigator.reset(new MainMenuController(user, db, registrationGateway, loginGateway, leaderboardGateway, scoreSubmitGateway));
+    }
+
+    private void handleLoginFailure(LoginFailPayload payload) {
+        String reason = payload == null ? null : payload.getReason();
+        getAuthView().showLoginInlineError(LoginFailMessages.messageFor(reason));
     }
 
     private void handleMenuEnter(String menuName) {

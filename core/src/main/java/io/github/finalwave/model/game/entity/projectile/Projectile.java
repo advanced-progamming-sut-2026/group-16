@@ -10,13 +10,13 @@ public final class Projectile {
     private static final java.util.concurrent.atomic.AtomicLong NEXT_ID =
             new java.util.concurrent.atomic.AtomicLong(1);
 
-    private final String id = "proj-" + NEXT_ID.getAndIncrement();
+    private final String id;
     private double y;
     private double x;
     private final int damage;
     private final ProjectileProfile profile;
     private final ProjectileEffect effect;
-    private final Plant source;
+    private Plant source;
     private int pierceRemaining;
     private int lifetimeTicks;
     private boolean fromZombie;
@@ -47,25 +47,49 @@ public final class Projectile {
 
     public Projectile(int row, double x, int damage, ProjectileProfile profile,
                       ProjectileEffect effect, Plant source, int pierceRemaining) {
-        this(row, x, damage, profile, effect, source, pierceRemaining, 0);
+        this(null, row, x, damage, profile, effect, source, pierceRemaining);
+    }
+
+    public Projectile(String networkId, int row, double x, int damage, ProjectileProfile profile,
+                      ProjectileEffect effect, Plant source, int pierceRemaining) {
+        this(networkId, row, x, damage, profile, effect, source, pierceRemaining, 0);
     }
 
     public Projectile(int row, double x, int damage, ProjectileProfile profile,
                       ProjectileEffect effect, Plant source, int pierceRemaining,
                       double laneYOffset) {
-        this(row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, false);
+        this(null, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset);
+    }
+
+    public Projectile(String networkId, int row, double x, int damage, ProjectileProfile profile,
+                      ProjectileEffect effect, Plant source, int pierceRemaining,
+                      double laneYOffset) {
+        this(networkId, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, false);
     }
 
     public Projectile(int row, double x, int damage, ProjectileProfile profile,
                       ProjectileEffect effect, Plant source, int pierceRemaining,
                       double laneYOffset, boolean giantPea) {
-        this(row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea, false);
+        this(null, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea);
+    }
+
+    public Projectile(String networkId, int row, double x, int damage, ProjectileProfile profile,
+                      ProjectileEffect effect, Plant source, int pierceRemaining,
+                      double laneYOffset, boolean giantPea) {
+        this(networkId, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea, false);
     }
 
     public Projectile(int row, double x, int damage, ProjectileProfile profile,
                       ProjectileEffect effect, Plant source, int pierceRemaining,
                       double laneYOffset, boolean giantPea, boolean fumePlantFood) {
-        this(row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
+        this(null, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
+                fumePlantFood);
+    }
+
+    public Projectile(String networkId, int row, double x, int damage, ProjectileProfile profile,
+                      ProjectileEffect effect, Plant source, int pierceRemaining,
+                      double laneYOffset, boolean giantPea, boolean fumePlantFood) {
+        this(networkId, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
                 fumePlantFood, false);
     }
 
@@ -73,7 +97,15 @@ public final class Projectile {
                       ProjectileEffect effect, Plant source, int pierceRemaining,
                       double laneYOffset, boolean giantPea, boolean fumePlantFood,
                       boolean cabbagePlantFood) {
-        this(row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
+        this(null, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
+                fumePlantFood, cabbagePlantFood);
+    }
+
+    public Projectile(String networkId, int row, double x, int damage, ProjectileProfile profile,
+                      ProjectileEffect effect, Plant source, int pierceRemaining,
+                      double laneYOffset, boolean giantPea, boolean fumePlantFood,
+                      boolean cabbagePlantFood) {
+        this(networkId, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
                 fumePlantFood, cabbagePlantFood, false);
     }
 
@@ -81,7 +113,15 @@ public final class Projectile {
                       ProjectileEffect effect, Plant source, int pierceRemaining,
                       double laneYOffset, boolean giantPea, boolean fumePlantFood,
                       boolean cabbagePlantFood, boolean melonPlantFood) {
-        this(row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
+        this(null, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
+                fumePlantFood, cabbagePlantFood, melonPlantFood);
+    }
+
+    public Projectile(String networkId, int row, double x, int damage, ProjectileProfile profile,
+                      ProjectileEffect effect, Plant source, int pierceRemaining,
+                      double laneYOffset, boolean giantPea, boolean fumePlantFood,
+                      boolean cabbagePlantFood, boolean melonPlantFood) {
+        this(networkId, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
                 fumePlantFood, cabbagePlantFood, melonPlantFood, false);
     }
 
@@ -89,6 +129,17 @@ public final class Projectile {
                       ProjectileEffect effect, Plant source, int pierceRemaining,
                       double laneYOffset, boolean giantPea, boolean fumePlantFood,
                       boolean cabbagePlantFood, boolean melonPlantFood, boolean pepperPlantFood) {
+        this(null, row, x, damage, profile, effect, source, pierceRemaining, laneYOffset, giantPea,
+                fumePlantFood, cabbagePlantFood, melonPlantFood, pepperPlantFood);
+    }
+
+    public Projectile(String networkId, int row, double x, int damage, ProjectileProfile profile,
+                      ProjectileEffect effect, Plant source, int pierceRemaining,
+                      double laneYOffset, boolean giantPea, boolean fumePlantFood,
+                      boolean cabbagePlantFood, boolean melonPlantFood, boolean pepperPlantFood) {
+        this.id = networkId == null || networkId.isBlank()
+                ? "proj-" + NEXT_ID.getAndIncrement()
+                : networkId;
         this.y = row;
         this.x = x;
         this.damage = damage;
@@ -126,6 +177,22 @@ public final class Projectile {
         projectile.velocityY = velocityY;
         projectile.grapeshotGrape = true;
         projectile.setLifetimeTicks(GrapeshotMuzzles.grapeLifetimeTicks());
+        return projectile;
+    }
+
+    public static Projectile forNetworkRestore(
+            String networkId,
+            int row,
+            double x,
+            int damage,
+            ProjectileProfile profile,
+            ProjectileEffect effect,
+            boolean fromZombie,
+            boolean reverse) {
+        Projectile projectile = new Projectile(
+                networkId, row, x, Math.max(0, damage), profile, effect, null, 0);
+        projectile.fromZombie = fromZombie;
+        projectile.reverse = reverse;
         return projectile;
     }
 
@@ -214,6 +281,13 @@ public final class Projectile {
 
     public Plant getSource() {
         return source;
+    }
+
+    public void setSource(Plant source) {
+        this.source = source;
+        if (source != null) {
+            this.fromZombie = false;
+        }
     }
 
     public double getLaneYOffset() {

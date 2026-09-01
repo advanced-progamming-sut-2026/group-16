@@ -86,7 +86,7 @@ class IZombieHandlerTest {
     @Test
     void brokeAndNoZombiesLoses() {
         GameSession session = createStage1();
-        session.setSunBalance(0);
+        session.setIZombieSunBalance(0);
         session.nukeAllZombies();
         session.getActiveMiniGameHandler().onTick(session);
 
@@ -96,7 +96,7 @@ class IZombieHandlerTest {
     @Test
     void hasSunButNoZombiesDoesNotLose() {
         GameSession session = createStage1();
-        session.setSunBalance(150);
+        session.setIZombieSunBalance(150);
         session.nukeAllZombies();
         session.getActiveMiniGameHandler().onTick(session);
 
@@ -122,7 +122,7 @@ class IZombieHandlerTest {
     @Test
     void placeZombieRejectsInsufficientSun() {
         GameSession session = createStage1();
-        session.setSunBalance(10);
+        session.setIZombieSunBalance(10);
         assertEquals(PlantPlacementResult.INSUFFICIENT_SUN,
                 session.tryPlaceZombie("ZombieDefault", 5, 0));
     }
@@ -130,12 +130,12 @@ class IZombieHandlerTest {
     @Test
     void placeZombieSucceedsAndDeductsSun() {
         GameSession session = createStage1();
-        int before = session.getSunBalance();
+        int before = session.getIZombieSunBalance();
         int livingBefore = countLiving(session);
 
         assertEquals(PlantPlacementResult.SUCCESS,
                 session.tryPlaceZombie("ZombieImp", 5, 0));
-        assertEquals(before - 25, session.getSunBalance());
+        assertEquals(before - 25, session.getIZombieSunBalance());
         assertEquals(livingBefore + 1, countLiving(session));
     }
 
@@ -151,9 +151,9 @@ class IZombieHandlerTest {
     @Test
     void sunProducersGenerateSunOverTime() {
         GameSession session = createStage1();
-        int before = session.getSunBalance();
+        int before = session.getIZombieSunBalance();
         session.advanceTicks(GameSession.TICKS_PER_SECOND);
-        assertTrue(session.getSunBalance() > before);
+        assertTrue(session.getIZombieSunBalance() > before);
     }
 
     @Test
