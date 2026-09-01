@@ -85,6 +85,7 @@ public final class ZombieSync {
     private final Map<PamActor, Zombie> actorZombies = new IdentityHashMap<>();
     private GameSession session;
     private float tickFraction;
+    private boolean matchPlaying = true;
     private BiConsumer<Float, Float> smashShake;
 
     public ZombieSync(GameAssets assets, LawnLayout layout, ZombieClips clips, PlantClips plantClips, Group layer) {
@@ -104,7 +105,12 @@ public final class ZombieSync {
     }
 
     public void sync(GameSession session, float tickFraction) {
+        sync(session, tickFraction, true);
+    }
+
+    public void sync(GameSession session, float tickFraction, boolean matchPlaying) {
         this.session = session;
+        this.matchPlaying = matchPlaying;
         this.tickFraction = Math.max(0f, Math.min(1f, tickFraction));
         if (session == null) {
             return;
@@ -219,10 +225,10 @@ public final class ZombieSync {
             actor.setPlaying(false);
         } else {
             frozenPoses.remove(zombie);
-            actor.setPlaying(true);
+            actor.setPlaying(matchPlaying);
             applyClip(zombie, actor, scale);
         }
-        actor.setTimeScale(frozen ? 0f : locomotionScale(zombie, clip));
+        actor.setTimeScale(!matchPlaying || frozen ? 0f : locomotionScale(zombie, clip));
         actor.setFlipX(shouldFlip(zombie));
         applyThrownImpTilt(zombie, actor);
         actor.setTint(ZombieVisualState.tint(zombie, session));
@@ -347,9 +353,11 @@ public final class ZombieSync {
         if (shoot) {
             EntityAnimationCatalog.ClipSpec attack = plantClips.attack(plantName);
             if (!attack.clip().equals(overlay.clipName())) {
-                overlay.setPlaying(true);
-                overlay.playThen(attack.path(), attack.clip(), scale, idle.clip(), false,
-                        () -> overlay.setPlaying(false));
+                overlay.setPlaying(matchPlaying);
+                if (matchPlaying) {
+                    overlay.playThen(attack.path(), attack.clip(), scale, idle.clip(), false,
+                            () -> overlay.setPlaying(false));
+                }
             } else {
                 overlay.setDrawScale(scale);
             }
@@ -360,7 +368,7 @@ public final class ZombieSync {
             return;
         }
         overlay.setClip(idle.path(), idle.clip(), scale, !freezeIdle);
-        overlay.setPlaying(!freezeIdle);
+        overlay.setPlaying(matchPlaying && !freezeIdle);
     }
 
     private boolean shouldAppear(Zombie zombie) {

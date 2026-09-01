@@ -17,7 +17,6 @@ public final class MatchClock {
     private float tickDuration = 1f / GameSession.TICKS_PER_SECOND;
     private boolean paused;
     private boolean resultShowing;
-    private boolean frozenActors = true;
 
     public MatchClock(MatchTicker ticker, User user) {
         this(ticker, user, false);
@@ -29,14 +28,8 @@ public final class MatchClock {
         this.networkedGuest = networkedGuest;
     }
 
-    public void update(float deltaSeconds, BattlefieldGroup battlefield) {
-        boolean freeze = shouldFreeze();
-        if (battlefield != null) {
-            boolean environmentPlaying = !paused && !resultShowing;
-            battlefield.setPlaying(!freeze, environmentPlaying);
-            frozenActors = freeze;
-        }
-        if (freeze) {
+    public void update(float deltaSeconds) {
+        if (shouldFreeze()) {
             accumulator = 0f;
             return;
         }
@@ -55,6 +48,15 @@ public final class MatchClock {
         if (accumulator > tickDuration) {
             accumulator = tickDuration;
         }
+    }
+
+    public void applyPlayback(BattlefieldGroup battlefield) {
+        if (battlefield == null) {
+            return;
+        }
+        boolean freeze = shouldFreeze();
+        boolean environmentPlaying = !paused && !resultShowing;
+        battlefield.setPlaying(!freeze, environmentPlaying);
     }
 
     public float tickFraction() {

@@ -285,6 +285,38 @@ class PlantAbilityTest {
     }
 
     @Test
+    void graveBusterDropsPlantFoodFromGrave() {
+        session.getBoard().setTile(2, 2, new io.github.finalwave.model.game.board.tile.GraveTile(
+                io.github.finalwave.model.game.board.tile.GraveTile.Loot.PLANT_FOOD));
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Grave Buster", 2, 2, 1));
+        Plant buster = session.getBoard().getPlantAt(2, 2);
+        for (int i = 0; i < 50; i++) {
+            session.tick();
+        }
+        assertFalse(buster.isAlive());
+        assertEquals(0, session.getPlantFoodCount());
+        assertEquals(1, session.getPlantFoodDrops().size());
+        assertEquals(2, session.getPlantFoodDrops().get(0).getCol());
+        assertEquals(2, session.getPlantFoodDrops().get(0).getRow());
+    }
+
+    @Test
+    void graveBusterDropsSunFromGrave() {
+        session.getBoard().setTile(2, 2, new io.github.finalwave.model.game.board.tile.GraveTile(
+                io.github.finalwave.model.game.board.tile.GraveTile.Loot.SUN_50));
+        assertEquals(PlantPlacementResult.SUCCESS, session.tryPlant("Grave Buster", 2, 2, 1));
+        Plant buster = session.getBoard().getPlantAt(2, 2);
+        for (int i = 0; i < 50; i++) {
+            session.tick();
+        }
+        assertFalse(buster.isAlive());
+        assertEquals(1, session.getSunItems().size());
+        assertEquals(50, session.getSunItems().get(0).getValue());
+        assertEquals(2, session.getSunItems().get(0).getCol());
+        assertEquals(2, session.getSunItems().get(0).getRow());
+    }
+
+    @Test
     void sunShroomCanProduceBeforeMaxGrowth() {
         session.tryPlant("Sun-shroom", 1, 1, 1);
         Plant shroom = session.getBoard().getPlantAt(1, 1);

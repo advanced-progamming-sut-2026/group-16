@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 public final class PlantFoodDropSync {
     public static final String PICKUP_PATH =
             "768/INITIAL/EFFECTS/PLANTFOOD_PICKUP/PLANTFOOD_PICKUP.PAM";
-    private static final String IDLE_CLIP = "animation";
+    private static final String IDLE_CLIP = "idle";
     private static final float SIZE = 88f;
     private static final float END_SCALE = 0.35f;
     private static final float FLIGHT_SPEED = 1450f;
