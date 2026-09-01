@@ -32,11 +32,13 @@ public final class ZombotanyViewGui extends GuiViewBase implements ZombotanyView
 
     @Override
     public void showPlantPlanted(String plantType, int col, int row) {
+        router.playPlantSfx();
         router.refreshGamePlayHud();
     }
 
     @Override
     public void showPlantPlucked(int col, int row) {
+        router.playShovelSfx();
         router.refreshGamePlayHud();
     }
 

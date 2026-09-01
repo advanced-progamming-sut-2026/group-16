@@ -31,6 +31,7 @@ import io.github.finalwave.model.adventure.ChapterConfig;
 import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.adventure.ChapterRules;
 import io.github.finalwave.model.collection.CollectionService;
+import io.github.finalwave.model.adventure.ChapterId;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.game.SeedPlacement;
@@ -168,6 +169,7 @@ public final class GamePlayScreen extends MenuScreen {
     private WidgetGroup cursorLayer;
     private boolean resultShown;
     private boolean bossOutroQueued;
+    private boolean bossMusicActive;
     private float resultHold;
 
     public GamePlayScreen(PvzGame game) {
@@ -319,7 +321,58 @@ public final class GamePlayScreen extends MenuScreen {
 
     @Override
     protected void ensureMusic() {
-        assets.audio().playBattle();
+        GameSession session = matchSession();
+        if (session != null && session.isBossActive()) {
+            bossMusicActive = true;
+            assets.audio().playZomboss(1);
+            return;
+        }
+        bossMusicActive = false;
+        ChapterId chapter = session == null ? null : ChapterId.fromName(session.getChapterId());
+        assets.audio().playBattle(chapter);
+    }
+
+    private void syncBattleMusic(GameSession session) {
+        if (session == null) {
+            bossMusicActive = false;
+            return;
+        }
+        if (session.isBossActive()) {
+            if (!bossMusicActive) {
+                bossMusicActive = true;
+                assets.audio().playZomboss(1);
+            }
+            return;
+        }
+        if (bossMusicActive) {
+            bossMusicActive = false;
+            ChapterId chapter = ChapterId.fromName(session.getChapterId());
+            assets.audio().playBattle(chapter);
+        }
+    }
+
+    void playPlantSfx() {
+        assets.audio().playPlant();
+    }
+
+    void playPlantWaterSfx() {
+        assets.audio().playPlantWater();
+    }
+
+    void playShovelSfx() {
+        assets.audio().playShovel();
+    }
+
+    void playCollectSfx() {
+        assets.audio().playCollect();
+    }
+
+    void playBowlingSpawnSfx() {
+        assets.audio().playPlantBowling();
+    }
+
+    void playBowlingImpactSfx() {
+        assets.audio().playBowlingImpact();
     }
 
     @Override
@@ -359,6 +412,7 @@ public final class GamePlayScreen extends MenuScreen {
             if (sunCounter != null) {
                 sunCounter.release(amount);
             }
+            playCollectSfx();
         });
         battlefield.setSunFlightsAborted(() -> {
             if (sunCounter != null) {
@@ -370,6 +424,7 @@ public final class GamePlayScreen extends MenuScreen {
             if (plantFoodCounter != null && active != null) {
                 plantFoodCounter.setCount(active.getPlantFoodCount());
             }
+            playCollectSfx();
         });
         icebergFlashOverlay = new IcebergFlashOverlay();
         icebergFlashOverlay.fitStage(WORLD_WIDTH, WORLD_HEIGHT);
@@ -599,10 +654,9 @@ public final class GamePlayScreen extends MenuScreen {
         if (alertBanner == null) {
             return;
         }
-        if (finalWave) {
+        if (finalWave || waveNumber > 1) {
             alertBanner.show("A huge wave of zombies is approaching!");
-        } else if (waveNumber > 1) {
-            alertBanner.show("A huge wave of zombies is approaching!");
+            assets.audio().playWaveAlert();
         }
         enqueueChapterAlerts();
     }
@@ -657,6 +711,7 @@ public final class GamePlayScreen extends MenuScreen {
         }
         User user = matchUser();
         GameSession session = matchSession();
+        syncBattleMusic(session);
         if (user != null) {
             bindCurrency(user);
         }
@@ -1479,6 +1534,11 @@ public final class GamePlayScreen extends MenuScreen {
         }
         resultShown = true;
         pauseModal.dismiss();
+        if (result == MatchResult.WON) {
+            assets.audio().playWin();
+        } else if (result == MatchResult.LOST) {
+            assets.audio().playLoss();
+        }
         if (couchIZombie != null) {
             resultModal.show(
                     modalLayer,

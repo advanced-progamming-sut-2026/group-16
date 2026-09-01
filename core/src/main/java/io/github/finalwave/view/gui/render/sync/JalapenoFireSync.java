@@ -57,6 +57,6 @@ public final class JalapenoFireSync {
         fx.playOnce(idle.path(), idle.clip(), scale, () -> fx.playOnce(
                 idle2.path(), idle2.clip(), scale, () -> fx.playOnce(
                         idle3.path(), idle3.clip(), scale, fx::remove)));
-        assets.audio().playHit();
+        assets.audio().playFirePea();
     }
 }

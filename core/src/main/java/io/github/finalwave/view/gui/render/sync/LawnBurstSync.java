@@ -86,6 +86,7 @@ public final class LawnBurstSync {
             playBurst(center, burst.row(), rear, clip, scale, kind);
         }
         playBurst(center, burst.row(), ExplosionLooks.path(kind), clip, scale, kind);
+        assets.audio().playExplosion();
         if (onShake != null && ExplosionLooks.shakeSeconds(kind) > 0f) {
             onShake.accept(ExplosionLooks.shakeSeconds(kind), ExplosionLooks.shakePixels(kind));
         }

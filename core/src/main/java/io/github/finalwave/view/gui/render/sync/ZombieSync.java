@@ -81,6 +81,7 @@ public final class ZombieSync {
     private final Map<Armor, String> lastArmorLayers = new IdentityHashMap<>();
     private final ActorRegistry<Zombie, PamActor> iceShells = new ActorRegistry<>();
     private final Set<String> smashShaking = new HashSet<>();
+    private final Set<Zombie> eatingZombies = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<String, Float> clipSeconds = new HashMap<>();
     private final Map<PamActor, Zombie> actorZombies = new IdentityHashMap<>();
     private GameSession session;
@@ -133,6 +134,7 @@ public final class ZombieSync {
         hits.retain(live);
         retainFrozenPoses(live);
         retainThrownArmor(live);
+        eatingZombies.retainAll(live);
         actorZombies.keySet().retainAll(zombies.actors());
     }
 
@@ -254,6 +256,13 @@ public final class ZombieSync {
                 ? 0f
                 : (zombie.isBoss() ? 0.28f : 0.18f);
         hits.observe(zombie, flashHealth(zombie), actor, flashSeconds);
+        if (zombie.getState() == ZombieState.EATING) {
+            if (eatingZombies.add(zombie)) {
+                assets.audio().playZombieEat();
+            }
+        } else {
+            eatingZombies.remove(zombie);
+        }
         if (!frozen) {
             throwBrokenArmor(zombie, actor, clip);
         }

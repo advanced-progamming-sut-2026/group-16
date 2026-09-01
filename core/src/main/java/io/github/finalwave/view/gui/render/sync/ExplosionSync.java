@@ -123,7 +123,7 @@ public final class ExplosionSync {
     private void spawnPotatoExplosion(int col, int row, boolean primal) {
         var spec = PotatoMineClips.explosion(primal);
         spawnFx(col, row, spec.path(), spec.clip());
-        assets.audio().playHit();
+        assets.audio().playExplosion();
     }
 
     private void spawnCherryExplosion(int col, int row) {
@@ -131,7 +131,7 @@ public final class ExplosionSync {
         var top = CherryBombClips.explosionTop();
         spawnFx(col, row, rear.path(), rear.clip());
         spawnFx(col, row, top.path(), top.clip());
-        assets.audio().playHit();
+        assets.audio().playExplosion();
     }
 
     private void spawnFx(int col, int row, String pamPath, String clipName) {
