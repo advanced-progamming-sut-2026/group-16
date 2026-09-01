@@ -18,6 +18,7 @@ import io.github.finalwave.model.game.entity.zombie.ArcadeObstacle;
 import io.github.finalwave.model.game.entity.zombie.PianoObstacle;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieFactory;
+import io.github.finalwave.model.item.PlantFoodDrop;
 import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.model.minigame.GroundSeedPacket;
 import io.github.finalwave.model.minigame.MiniGameHandler;
@@ -236,6 +237,10 @@ public final class GameSession {
 
     public List<Sun> getSunItems() {
         return planting.getSunItems();
+    }
+
+    public List<PlantFoodDrop> getPlantFoodDrops() {
+        return planting.getPlantFoodDrops();
     }
 
     public List<PlantCovering> getPlantCoverings() {
@@ -894,6 +899,18 @@ public final class GameSession {
 
     public boolean collectSunAt(int col, int row) {
         return planting.collectSunAt(col, row);
+    }
+
+    public void spawnPlantFoodDrop(int col, int row, double worldX) {
+        planting.spawnPlantFoodDrop(col, row, worldX);
+    }
+
+    public boolean collectPlantFood(PlantFoodDrop drop) {
+        return planting.collectPlantFood(drop);
+    }
+
+    public boolean collectPlantFoodAt(int col, int row) {
+        return planting.collectPlantFoodAt(col, row);
     }
 
     public boolean usePlantFood(int col, int row) {

@@ -73,6 +73,7 @@ public final class JalapenoFireSystem {
             if ((int) Math.floor(zombie.getX()) != burn.col()) {
                 continue;
             }
+            zombie.markPowderDeath();
             zombie.takeDamage(burn.damage());
             if (zombie.isDead() && context != null) {
                 context.onZombieKilled(zombie);

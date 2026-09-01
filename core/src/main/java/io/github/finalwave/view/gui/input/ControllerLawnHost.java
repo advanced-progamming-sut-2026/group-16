@@ -200,6 +200,11 @@ public final class ControllerLawnHost implements LawnActionHost {
     }
 
     @Override
+    public boolean collectPlantFoodAt(int col, int row) {
+        return gamePlay != null && gamePlay.collectPlantFoodAt(col, row);
+    }
+
+    @Override
     public boolean shovelAt(int col, int row) {
         if (vaseBreaker != null) {
             return vaseBreaker.shovelAt(col, row);

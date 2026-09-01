@@ -16,6 +16,7 @@ import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.MatchResult;
 import io.github.finalwave.model.game.entity.plant.Plant;
 import io.github.finalwave.model.game.entity.projectile.PepperMuzzles;
+import io.github.finalwave.model.item.PlantFoodDrop;
 import io.github.finalwave.model.item.Sun;
 import io.github.finalwave.model.minigame.GroundSeedPacket;
 import io.github.finalwave.view.gui.assets.EntityAnimationCatalog;
@@ -187,6 +188,13 @@ public final class LawnInputController implements Disposable {
         return tryCollect(sun.getCol(), sun.getRow());
     }
 
+    public boolean collectPlantFood(PlantFoodDrop drop) {
+        if (drop == null || drop.isConsumed() || blocked()) {
+            return false;
+        }
+        return host.collectPlantFoodAt(drop.getCol(), drop.getRow());
+    }
+
     @Override
     public void dispose() {
         if (listener != null) {
@@ -264,6 +272,11 @@ public final class LawnInputController implements Disposable {
         for (Sun sun : session.getSunItems()) {
             if (sun != null && !sun.isExpired() && sun.getCol() == col && sun.getRow() == row) {
                 return host.collectSunAt(col, row);
+            }
+        }
+        for (PlantFoodDrop drop : session.getPlantFoodDrops()) {
+            if (drop != null && !drop.isConsumed() && drop.getCol() == col && drop.getRow() == row) {
+                return host.collectPlantFoodAt(col, row);
             }
         }
         return false;

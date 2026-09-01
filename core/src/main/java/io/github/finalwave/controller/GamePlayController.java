@@ -177,6 +177,18 @@ public class GamePlayController extends ViewController implements MatchListener 
         return true;
     }
 
+    public boolean collectPlantFoodAt(int col, int row) {
+        if (col < 0 || row < 0) {
+            getGamePlayView().errorInvalidLocation(col, row);
+            return false;
+        }
+        if (!session.collectPlantFoodAt(col, row)) {
+            return false;
+        }
+        maybeReturnAfterMatch();
+        return true;
+    }
+
     public PlantPlacementResult plantAt(String plantName, int col, int row) {
         if (plantName == null || plantName.isBlank()) {
             getGamePlayView().errorPlantNotFound(plantName);

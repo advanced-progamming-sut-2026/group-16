@@ -23,6 +23,7 @@ import io.github.finalwave.view.gui.render.clip.ArmorPartVisibility;
 import io.github.finalwave.view.gui.render.clip.PlantClips;
 import io.github.finalwave.view.gui.render.clip.ZombossClips;
 import io.github.finalwave.view.gui.render.clip.ZombieClips;
+import io.github.finalwave.view.gui.render.clip.ZombieDeathLooks;
 import io.github.finalwave.view.gui.render.clip.ZombotanyLooks;
 import io.github.finalwave.view.gui.widget.ActorFades;
 import io.github.finalwave.view.gui.widget.HitFlashTracker;
@@ -579,6 +580,10 @@ public final class ZombieSync {
         String alias = aliases.remove(actor);
         bossLogical.remove(actor);
         abilityLatch.remove(actor);
+        if (zombie != null && zombie.shouldPowderOnDeath()) {
+            beginPowderDeath(actor, zombie);
+            return;
+        }
         if (alias == null || !clips.hasDie(alias)) {
             actor.remove();
             return;
@@ -597,6 +602,18 @@ public final class ZombieSync {
         float scale = bossActors.remove(actor) ? LawnLayout.ZOMBOSS_SCALE : LawnLayout.ZOMBIE_SCALE;
         actor.playOnce(die.path(), die.clip(), scale,
                 () -> actor.addAction(ActorFades.holdThenFade(() -> deathActors.remove(actor))));
+    }
+
+    private void beginPowderDeath(PamActor actor, Zombie zombie) {
+        deathActors.add(actor);
+        actor.setVisibility(null);
+        actor.setTimeScale(1f);
+        float scale = bossActors.remove(actor) ? LawnLayout.ZOMBOSS_SCALE : LawnLayout.ZOMBIE_SCALE;
+        String path = ZombieDeathLooks.ashPath(zombie);
+        actor.playOnce(path, ZombieDeathLooks.CLIP, scale, () -> {
+            actor.remove();
+            deathActors.remove(actor);
+        });
     }
 
     private void throwBrokenArmor(Zombie zombie, PamActor body, EntityAnimationCatalog.ClipSpec clip) {
