@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
 import io.github.finalwave.model.game.GameSession;
 import io.github.finalwave.model.game.entity.zombie.Armor;
+import io.github.finalwave.model.game.entity.zombie.GargantuarImpAmmoParts;
 import io.github.finalwave.model.game.entity.zombie.Zombie;
 import io.github.finalwave.model.game.entity.zombie.ZombieState;
 import io.github.finalwave.model.minigame.izombie.IZombieHandler;
@@ -222,6 +223,7 @@ public final class ZombieSync {
         }
         actor.setTimeScale(frozen ? 0f : locomotionScale(zombie, clip));
         actor.setFlipX(shouldFlip(zombie));
+        applyThrownImpTilt(zombie, actor);
         actor.setTint(ZombieVisualState.tint(zombie, session));
         Map<String, Boolean> vis = ArmorPartVisibility.expand(assets.pamPlayer(), clip.path(),
                 ZombieVisualState.partVisibility(zombie, clips, assets.pamPlayer(), clip.path()));
@@ -230,6 +232,7 @@ public final class ZombieSync {
         }
         vis = hideRaStaffSun(zombie, vis);
         vis = hideExplorerTorch(zombie, vis);
+        vis = hideGargantuarImpAmmo(zombie, vis, clip);
         actor.setVisibility(vis);
         actor.setUserObject(zombie.getRow() * 8);
         actor.setVisible(true);
@@ -360,11 +363,21 @@ public final class ZombieSync {
     }
 
     private boolean shouldAppear(Zombie zombie) {
+        if (zombie == null || zombie.isBoss() || zombie.wasThrownByGargantuar()) {
+            return false;
+        }
         return session != null
                 && session.isIZombieActive()
-                && zombie != null
-                && !zombie.isBoss()
                 && !zombie.isStationary();
+    }
+
+    private void applyThrownImpTilt(Zombie zombie, PamActor actor) {
+        if (zombie == null || actor == null || !zombie.wasThrownByGargantuar() || !zombie.isInFlightArc()) {
+            actor.setRotation(0f);
+            return;
+        }
+        float tilt = zombie.arcTangentAngleDegrees(tickFraction);
+        actor.setRotation(Math.max(-48f, Math.min(18f, tilt)));
     }
 
     private void updateProducerBadge(Zombie zombie, PamActor actor) {
@@ -574,7 +587,12 @@ public final class ZombieSync {
         EntityAnimationCatalog.ClipSpec parts = clips.particles(alias);
         spawnParticles(actor, parts);
         deathActors.add(actor);
-        actor.setVisibility(null);
+        if (zombie != null && zombie.shouldHideGargantuarImpAmmo()
+                && zombie.getType() != null && zombie.getType().contains("Gargantuar")) {
+            actor.setVisibility(hideGargantuarImpAmmo(zombie, null, die));
+        } else {
+            actor.setVisibility(null);
+        }
         actor.setTimeScale(1f);
         float scale = bossActors.remove(actor) ? LawnLayout.ZOMBOSS_SCALE : LawnLayout.ZOMBIE_SCALE;
         actor.playOnce(die.path(), die.clip(), scale,
@@ -722,6 +740,9 @@ public final class ZombieSync {
         if (zombie.isBoss()) {
             return lerp(zombie.getPreviousX(), zombie.getX(), tickFraction);
         }
+        if (zombie.wasThrownByGargantuar() && zombie.isInFlightArc()) {
+            return zombie.arcDisplayX(tickFraction);
+        }
         double modelX = zombie.getX();
         if (zombie.isAbilityHeld()) {
             return lerp(zombie.getPreviousX(), modelX, tickFraction);
@@ -746,10 +767,14 @@ public final class ZombieSync {
         if (zombie.isBoss()) {
             return lerp(zombie.getPreviousY(), zombie.getY(), tickFraction);
         }
-        if (session != null && session.isIZombieActive()) {
-            return zombie.getRow();
+        double row = zombie.getRow();
+        if (zombie.wasThrownByGargantuar() && zombie.isInFlightArc()) {
+            return row - zombie.arcLift(tickFraction);
         }
-        return zombie.getY() - zombie.flightLift();
+        if (session != null && session.isIZombieActive()) {
+            return row;
+        }
+        return row - zombie.flightLift();
     }
 
     private static boolean shouldFlip(Zombie zombie) {
@@ -795,6 +820,35 @@ public final class ZombieSync {
         hidden.put("torch_fire_frame_04", Boolean.FALSE);
         hidden.put("torch_fire_fire_frame_01", Boolean.FALSE);
         return hidden;
+    }
+
+    private Map<String, Boolean> hideGargantuarImpAmmo(
+            Zombie zombie, Map<String, Boolean> vis, EntityAnimationCatalog.ClipSpec clip) {
+        if (zombie == null || !zombie.shouldHideGargantuarImpAmmo()
+                || zombie.getType() == null || !zombie.getType().contains("Gargantuar")) {
+            return vis;
+        }
+        Map<String, Boolean> hidden = vis == null ? new HashMap<>() : new HashMap<>(vis);
+        for (String part : GargantuarImpAmmoParts.HIDDEN_AFTER_THROW) {
+            hidden.put(part, Boolean.FALSE);
+        }
+        if (clip != null) {
+            for (String part : ArmorPartVisibility.partNames(assets.pamPlayer(), clip.path())) {
+                if (isGargantuarImpAmmoPart(part)) {
+                    hidden.put(part, Boolean.FALSE);
+                }
+            }
+        }
+        return hidden;
+    }
+
+    private static boolean isGargantuarImpAmmoPart(String part) {
+        if (part == null) {
+            return false;
+        }
+        return part.startsWith("zombie_imp_")
+                || part.startsWith("Zombie_imp_")
+                || "Zombie_gargantuar_whiterope".equals(part);
     }
 
     private static double lerp(double from, double to, float fraction) {

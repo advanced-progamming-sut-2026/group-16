@@ -70,11 +70,11 @@ class ZombieFactoryTest {
         // Gargantuar should have SMASH and SUMMON behaviors
         boolean hasSmash = gargantuar.getBehaviors().stream()
                 .anyMatch(b -> b instanceof TransformBehavior);
-        boolean hasSummon = gargantuar.getBehaviors().stream()
-                .anyMatch(b -> b instanceof SummonBehavior);
+        boolean hasImpThrow = gargantuar.getBehaviors().stream()
+                .anyMatch(b -> b instanceof GargantuarImpThrowBehavior);
 
         assertTrue(hasSmash, "Gargantuar should have a TransformBehavior (Smash)");
-        assertTrue(hasSummon, "Gargantuar should have a SummonBehavior");
+        assertTrue(hasImpThrow, "Gargantuar should have a GargantuarImpThrowBehavior");
     }
 
     @Test

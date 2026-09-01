@@ -47,6 +47,11 @@ public final class TransformBehavior implements ZombieBehavior {
     }
 
     private void handleSmash(Zombie zombie, GameContext context) {
+        if ("ZombieGargantuar".equals(zombie.getType())
+                && !zombie.isGargantuarImpSpent()
+                && (zombie.hasPendingGargantuarImpThrow() || zombie.getHealthRatio() <= 0.5)) {
+            return;
+        }
         if (ticksUntilNextSmash > 0) {
             ticksUntilNextSmash--;
             return;

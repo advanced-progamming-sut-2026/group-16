@@ -45,22 +45,38 @@ class ZombieRuntimeIntegrationTest {
         zombies.loadArmorFromJson("src/test/resources/ArmorTypeData.json");
         GameSession session = new GameSession(
                 plantRegistry, new GameBoard(), 50, zombies, 3);
-        Zombie summoner = session.spawnZombieOfType("ZombieGargantuar", 2, 8);
+        Zombie summoner = session.spawnZombieOfType("ZombieGargantuar", 2, 6);
         summoner.takeDirectDamage(summoner.getHealth() / 2 + 1);
 
         session.start();
         session.tick();
+        assertTrue(
+                "cannon_fire".equals(summoner.getPresentationClip())
+                        || "fire".equals(summoner.getPresentationClip()));
+        assertTrue(summoner.isAbilityHeld());
+        assertEquals(1, session.getZombies().size());
+
+        for (int i = 0; i < 10; i++) {
+            session.tick();
+        }
+        assertTrue(summoner.isGargantuarImpSpent());
 
         Zombie imp = session.getZombies().stream()
                 .filter(zombie -> zombie != summoner)
                 .findFirst().orElseThrow();
         int baseHealth = zombies.getDefinition("ZombieImp").getHitpoints();
         assertEquals("ZombieImp", imp.getType());
-        assertEquals(8.0, imp.getX(), 0.0001);
         assertEquals("fly", imp.getPresentationClip());
         assertTrue(imp.isAbilityHeld());
+        assertTrue(imp.wasThrownByGargantuar());
         assertEquals(2, imp.getRow());
         assertEquals((int) Math.round(baseHealth * 1.2), imp.getMaxHealth());
+
+        while (imp.isAbilityHeld()) {
+            session.tick();
+        }
+        assertEquals(2, (int) Math.floor(imp.getX()));
+        assertEquals(2.5, imp.getX(), 0.12);
     }
 
     @Test
