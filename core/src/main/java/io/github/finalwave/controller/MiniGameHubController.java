@@ -196,21 +196,26 @@ public class MiniGameHubController extends ViewController {
     }
 
     private void startIZombie(MiniGameStageConfig stage) {
-        if (NetworkMatchServices.isOnlineCapable()) {
-            MatchmakingService matchmaking = NetworkMatchServices.matchmaking();
-            matchmaking.setListener(null);
-            IZombieMatchmakingController matchmakingController = new IZombieMatchmakingController(
-                    user,
-                    matchmaking,
-                    NetworkMatchServices.userStatus(),
-                    NetworkMatchServices.directory(),
-                    NetworkMatchServices.matchSync(),
-                    stage);
-            navigator.push(matchmakingController);
-            matchmaking.setListener(matchmakingController);
+        if (!getHubView().preferLobbyForIZombie()) {
+            startSinglePlayerIZombie(stage);
             return;
         }
-        startSinglePlayerIZombie(stage);
+        MatchmakingService matchmaking = NetworkMatchServices.matchmaking();
+        if (matchmaking != null) {
+            matchmaking.setListener(null);
+        }
+        IZombieMatchmakingController matchmakingController = new IZombieMatchmakingController(
+                user,
+                userDatabase,
+                matchmaking,
+                NetworkMatchServices.userStatus(),
+                NetworkMatchServices.directory(),
+                NetworkMatchServices.matchSync(),
+                stage);
+        navigator.push(matchmakingController);
+        if (matchmaking != null) {
+            matchmaking.setListener(matchmakingController);
+        }
     }
 
     public static void launchNetworkedIZombieMatch(

@@ -19,6 +19,7 @@ import io.github.finalwave.network.match.MatchReactionPayload;
 import io.github.finalwave.network.match.MatchRole;
 import io.github.finalwave.network.match.MatchSyncService;
 import io.github.finalwave.network.match.MatchWinner;
+import io.github.finalwave.view.api.minigame.DuelPickController;
 import io.github.finalwave.view.api.minigame.IZombieView;
 
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public final class NetworkedIZombieController extends ViewController implements MatchListener {
+public final class NetworkedIZombieController extends ViewController implements MatchListener, DuelPickController {
 
     private final User user;
     private final NetworkedIZombieMode mode;
@@ -164,6 +165,11 @@ public final class NetworkedIZombieController extends ViewController implements 
         return role;
     }
 
+    @Override
+    public boolean zombieSide() {
+        return role == MatchRole.ZOMBIE;
+    }
+
     public String opponentUsername() {
         return opponentUsername;
     }
@@ -196,14 +202,17 @@ public final class NetworkedIZombieController extends ViewController implements 
         return pickPool;
     }
 
+    @Override
     public int pickSlots() {
         return pickSlots;
     }
 
+    @Override
     public List<String> localPicks() {
         return List.copyOf(localPicks);
     }
 
+    @Override
     public int pickSecondsLeft() {
         if (!isPicking()) {
             return 0;
@@ -234,6 +243,7 @@ public final class NetworkedIZombieController extends ViewController implements 
         this.phaseChangeListener = phaseChangeListener;
     }
 
+    @Override
     public void togglePick(String name) {
         if (!isPicking() || name == null || name.isBlank()) {
             return;
@@ -252,6 +262,7 @@ public final class NetworkedIZombieController extends ViewController implements 
         localPicks.add(trimmed);
     }
 
+    @Override
     public void submitPicks() {
         if (!isPicking()) {
             return;

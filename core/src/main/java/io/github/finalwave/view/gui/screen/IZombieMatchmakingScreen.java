@@ -109,6 +109,18 @@ public final class IZombieMatchmakingScreen extends MenuScreen {
             }
         })).width(220).height(52).padBottom(10).row();
 
+        panel.add(actionButton("Local couch play", skin, () -> {
+            if (controller != null) {
+                controller.startCouchPlay();
+            }
+        })).width(220).height(52).padBottom(10).row();
+
+        panel.add(actionButton("Single player", skin, () -> {
+            if (controller != null) {
+                controller.startSinglePlayer();
+            }
+        })).width(220).height(52).padBottom(10).row();
+
         panel.add(actionButton("Check status", skin, () -> {
             if (controller != null && usernameField != null) {
                 controller.checkUserStatus(usernameField.getText().trim());

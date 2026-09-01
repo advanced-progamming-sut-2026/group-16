@@ -81,4 +81,9 @@ public class MiniGameHubViewCli extends CliView implements MiniGameHubView {
     public void errorStageNotFound(int stage) {
         displayError("Stage not found: " + stage);
     }
+
+    @Override
+    public boolean preferLobbyForIZombie() {
+        return false;
+    }
 }

@@ -7,6 +7,7 @@ import io.github.finalwave.PvzGame;
 import io.github.finalwave.controller.AdventureController;
 import io.github.finalwave.controller.BeghouledController;
 import io.github.finalwave.controller.CollectionController;
+import io.github.finalwave.controller.CouchIZombieController;
 import io.github.finalwave.controller.GameController;
 import io.github.finalwave.controller.GamePlayController;
 import io.github.finalwave.controller.GreenhouseController;
@@ -90,6 +91,7 @@ public final class ScreenRouter {
                 || controller instanceof WalnutBowlingController
                 || controller instanceof IZombieController
                 || controller instanceof NetworkedIZombieController
+                || controller instanceof CouchIZombieController
                 || controller instanceof IZombieMatchmakingController
                 || controller instanceof BeghouledController
                 || controller instanceof ZombotanyController;
@@ -148,6 +150,8 @@ public final class ScreenRouter {
             showGamePlay(iZombieController);
         } else if (controller instanceof NetworkedIZombieController networkedIZombieController) {
             showGamePlay(networkedIZombieController);
+        } else if (controller instanceof CouchIZombieController couchIZombieController) {
+            showGamePlay(couchIZombieController);
         } else if (controller instanceof IZombieMatchmakingController matchmakingController) {
             showIZombieMatchmaking(matchmakingController);
         } else if (controller instanceof BeghouledController beghouledController) {
@@ -324,6 +328,14 @@ public final class ScreenRouter {
     }
 
     public void showGamePlay(NetworkedIZombieController controller) {
+        if (gamePlayScreen == null) {
+            gamePlayScreen = new GamePlayScreen(game);
+        }
+        gamePlayScreen.bind(controller);
+        setScreen(gamePlayScreen);
+    }
+
+    public void showGamePlay(CouchIZombieController controller) {
         if (gamePlayScreen == null) {
             gamePlayScreen = new GamePlayScreen(game);
         }
